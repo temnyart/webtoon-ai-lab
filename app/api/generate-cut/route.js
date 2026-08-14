@@ -19,7 +19,7 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,scene='',sceneLook=null,continuityReference=null,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
+    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,continuityReference=null,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
@@ -56,7 +56,28 @@ export async function POST(req){
     ] : [];
     const content=[{type:'input_text',text:[
       'TASK: Render exactly one vertical Korean martial-arts webtoon CUT from a locked production specification.',
-      'PRIORITY ORDER: 1) CUT action/pose/blocking, 2) SCENE VISUAL LOCK, 3) BACKGROUND MASTER spatial continuity, 4) CHARACTER/PROP MASTER identity, 5) SHOT/CAMERA, 6) visual style, 7) episode/lore context.',
+      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) CUT action/pose/blocking, 3) SCENE VISUAL LOCK, 4) BACKGROUND MASTER spatial continuity, 5) CHARACTER/PROP MASTER identity, 6) SHOT/CAMERA, 7) visual style, 8) episode/lore context.',
+      ...(sceneDirecting ? [
+        'SCENE DIRECTING CONTEXT:',
+        `SCENE PURPOSE: ${sceneDirecting.purpose||''}`,
+        `SCENE EMOTION ARC: ${sceneDirecting.emotionArc||''}`
+      ] : []),
+      ...(storyActing ? [
+        'CUT STORY DIRECTOR / ACTING LOCK — THIS IS AUTHORITATIVE FOR PERFORMANCE:',
+        `STORY BEAT: ${storyActing.storyBeat||''}`,
+        `PREVIOUS CONTEXT: ${storyActing.previousContext||''}`,
+        `CHARACTER KNOWLEDGE STATE: ${storyActing.knowledgeState||''}`,
+        `CURRENT INTENTION: ${storyActing.intention||''}`,
+        `PRIMARY EMOTION: ${storyActing.primaryEmotion||''}`,
+        `SECONDARY EMOTION: ${storyActing.secondaryEmotion||''}`,
+        `EMOTION INTENSITY: ${storyActing.emotionIntensity??''}/10`,
+        `FACIAL ACTING — FOLLOW LITERALLY: ${storyActing.facialActing||''}`,
+        `BODY ACTING — FOLLOW LITERALLY: ${storyActing.bodyActing||''}`,
+        `GAZE TARGET: ${storyActing.gazeTarget||''}`,
+        `AVOID ACTING — DO NOT SHOW ANY OF THESE: ${storyActing.avoidActing||''}`,
+        `NEXT BEAT: ${storyActing.nextBeat||''}`,
+        'Do not make the character emotionally aware of information they have not learned yet. Do not skip ahead to the emotion of the next CUT.'
+      ] : []),
       ...sceneRules,
       ...identityRules,
       ...compositionRules,

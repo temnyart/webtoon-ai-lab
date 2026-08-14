@@ -55,10 +55,14 @@ ${masterNames||'없음'}
 - MEMORY는 과거 기억/전생 컷, TRANSITION은 매치컷·암흑·전환 컷, 나머지는 LOCKED.
 - prompt는 한국 무협 웹툰, 강한 클린 선화, 2~3단계 셀 셰이딩, 포토리얼/3D/웹소설 표지풍 금지를 포함하고 해당 CUT의 구도·인물·배경·행동을 구체적으로 적는다.
 - 보통 한 화 60~100 CUT 수준을 목표로 하되, 스토리 길이에 맞춰 적절히 결정한다.
+- V2 핵심: 각 CUT을 만들기 전에 스토리에서 현재 인물이 무엇을 알고 있는지, 왜 반응하는지, 다음 CUT에서 무엇을 알게 되는지를 분석한다.
+- 미래 CUT의 정보를 현재 표정/행동에 선반영하지 않는다.
+- 장르 관습만으로 결의, 분노, 살기, 전투 자세를 임의로 추가하지 않는다.
+- 같은 SCENE의 시간, 날씨, 색온도, 광원 방향, 노출, 팔레트, 세트 상태, 의상 상태를 sceneLook에 명시하고 모든 CUT에 상속한다.
 
 반드시 JSON만 출력한다. 마크다운 금지.
 {
- "scenes":[{"scene":"SCENE 01 · 이름","purpose":"장면 목적"}],
+ "scenes":[{"scene":"SCENE 01 · 이름","purpose":"장면 목적","emotionArc":"장면 감정 변화","sceneLook":{"time":"시간대","weather":"날씨","temperature":"색온도","palette":"팔레트","lighting":"광원 방향/세기","setState":"공간 상태","wardrobeState":"의상 상태"}}],
  "cuts":[
   {
    "scene":"SCENE 01 · 이름",
@@ -71,6 +75,7 @@ ${masterNames||'없음'}
    "camera":"Eye level / 3/4",
    "action":"이미지에 보여야 할 단일 행동",
    "dialogue":"후편집할 대사나 SFX, 없으면 빈 문자열",
+   "v2":{"storyBeat":"현재 CUT의 핵심 사건","previousContext":"직전 사건 중 현재 반응의 원인","knowledgeState":"현재 시점에서 인물이 알고 있는 사실만","intention":"현재 인물의 의도","primaryEmotion":"주감정","secondaryEmotion":"보조감정","emotionIntensity":5,"facialActing":"눈/눈썹/입/턱/시선의 구체적 연기","bodyActing":"자세/어깨/손/호흡/중심의 구체적 연기","gazeTarget":"시선 대상","avoidActing":"현재 스토리와 충돌하는 금지 표정·포즈·행동","nextBeat":"다음 CUT으로 이어질 감정/인지 변화"},
    "prompt":"실제 이미지 생성용 상세 프롬프트"
   }
  ]

@@ -39,3 +39,10 @@ Environment variable: `OPENAI_API_KEY`
 - The nearest previous APPROVED CUT from the same SCENE is automatically attached as a continuity reference for grade, white balance, lighting, skin tone, costume colors and background exposure only.
 - Previous CUT pose/camera/action are explicitly forbidden from overriding the current CUT specification.
 - Scene Look can be edited from each SCENE header or CUT inspector.
+
+## V9 — V2 Story Directing Production Spec
+- EP.01 124 CUT production data now exposes V2 STORY / ACTING fields in the CUT inspector.
+- CUT generation sends storyBeat, previousContext, character knowledge state, intention, primary/secondary emotion, intensity, facial acting, body acting, gaze target, avoid acting, and next beat to the image orchestrator.
+- Story/acting is higher priority than action, Scene Look, MASTER identity, and general lore context.
+- SCENE V2 directing provides purpose, emotion arc, and locked look values. Important recurring scenes use explicit Notion V2 look values.
+- Future episode SCENE/CUT auto-generation now requests the same V2 schema, so EP.02+ uses the same directing system automatically.
