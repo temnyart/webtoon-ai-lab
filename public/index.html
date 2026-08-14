@@ -32,6 +32,27 @@ function savePrompt(id){CUTS[id].prompt=document.querySelector('#promptBox').val
 const modal=document.querySelector('#modal'),drop=document.querySelector('#drop'),file=document.querySelector('#file'),name=document.querySelector('#name'),type=document.querySelector('#type');
 window.openMaster=(t='',n='')=>{if(t)type.value=t;if(n)name.value=n;modal.classList.add('show')};document.querySelector('#close').onclick=()=>modal.classList.remove('show');drop.onclick=()=>file.click();['dragenter','dragover'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));file.onchange=e=>loadFile(e.target.files[0]);function loadFile(f){if(!f||!f.type.startsWith('image/'))return;name.value=name.value||f.name.replace(/\.[^.]+$/,'');const r=new FileReader();r.onload=()=>{assetData=r.result;drop.innerHTML=`<img src="${assetData}">`;};r.readAsDataURL(f)}document.querySelector('#save').onclick=()=>{if(!assetData||!name.value.trim())return alert('이미지와 이름을 입력해주세요.');const id=`${type.value}_${Date.now()}`;assets.push({id,type:type.value,name:name.value.trim(),img:assetData});try{localStorage.setItem('wtal_assets',JSON.stringify(assets))}catch(e){alert('브라우저 저장 공간이 부족할 수 있습니다. 프리뷰에서는 이미지 수를 줄여주세요.')}assetData='';name.value='';modal.classList.remove('show');drop.innerHTML='<span><b>이미지를 여기에 드래그</b><br><small>또는 클릭해서 PNG · JPG · WEBP 선택</small></span>';render()};
 
+
+function compressReferenceDataUrl(dataUrl,maxSide=1200,quality=0.78){
+  return new Promise((resolve,reject)=>{
+    if(!dataUrl||!dataUrl.startsWith('data:image/')) return resolve(dataUrl);
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        const scale=Math.min(1,maxSide/Math.max(w,h));
+        w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d',{alpha:false});
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/webp',quality));
+      }catch(err){resolve(dataUrl)}
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+
 async function generateCut(id){
   const c=CUTS[id];
   const req=requiredRefs(c);
@@ -48,12 +69,27 @@ async function generateCut(id){
   if(btn){btn.disabled=true;btn.textContent='GENERATING…';}
   showGenerating(c,refs);
   try{
-    const res=await fetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      cutId:id,prompt,continuity:c.continuity,shot:c.shot,camera:c.camera,action:c.action,
-      references:refs.map(a=>({id:a.id,name:a.name,type:a.type,dataUrl:a.img}))
-    })});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'이미지 생성 요청 실패');
+    const compressedRefs=[];
+    for(const a of refs){
+      const dataUrl=await compressReferenceDataUrl(a.img,1200,0.78);
+      compressedRefs.push({id:a.id,name:a.name,type:a.type,dataUrl});
+    }
+    const requestBody={cutId:id,prompt,continuity:c.continuity,shot:c.shot,camera:c.camera,action:c.action,references:compressedRefs};
+    let bodyText=JSON.stringify(requestBody);
+    if(bodyText.length>3200000){
+      const smaller=[];
+      for(const a of refs){
+        const dataUrl=await compressReferenceDataUrl(a.img,900,0.68);
+        smaller.push({id:a.id,name:a.name,type:a.type,dataUrl});
+      }
+      requestBody.references=smaller;
+      bodyText=JSON.stringify(requestBody);
+    }
+    const res=await fetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText});
+    const raw=await res.text();
+    let data={};
+    try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
+    if(!res.ok) throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
     sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,responseId:data.responseId,model:data.model,createdAt:new Date().toISOString()}));
     showGeneratedResult(c,refs,data.image,data.model);
   }catch(err){
