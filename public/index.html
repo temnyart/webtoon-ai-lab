@@ -15,8 +15,112 @@ let assets=[];try{assets=JSON.parse(localStorage.getItem('wtal_assets')||'[]')}c
 let manualLinks={};try{manualLinks=JSON.parse(localStorage.getItem('wtal_cut_links')||'{}')}catch(e){}
 let cutStates={};try{cutStates=JSON.parse(localStorage.getItem('wtal_cut_states')||'{}')}catch(e){}
 let dynamicCuts={};try{dynamicCuts=JSON.parse(localStorage.getItem('wtal_dynamic_cuts')||'{}')}catch(e){}
-let projectData={title:'죽음을 기억하는 자',genre:'무협 · 회귀/불멸 미스터리',style:'한국 무협 웹툰 · 정돈된 선화 · 2~3단계 셀 셰이딩',defaultModel:'gpt-image-1.5'};try{projectData={...projectData,...JSON.parse(localStorage.getItem('wtal_project')||'{}')}}catch(e){}
-let storyBible={premise:'만 17세가 되는 날, 진무현에게 전생의 삶과 죽음이 귀령처럼 돌아오기 시작한다.',world:'청하진가, 무명전, 귀령과 불멸자의 비밀을 중심으로 전개되는 중원 무협 세계.',visual:'포토리얼 금지. 웹소설 표지풍 금지. 캐릭터 MASTER 얼굴·머리·체형·의상과 배경 MASTER 구조를 우선 보존.',rules:'이미지 내부 대사/효과음/글자는 생성하지 않고 후편집한다.'};try{storyBible={...storyBible,...JSON.parse(localStorage.getItem('wtal_story_bible')||'{}')}}catch(e){}
+const PROJECT_DEFAULTS={
+ title:'죽음을 기억하는 자',
+ genre:'무협 · 미스터리 · 성장 · 다크 판타지',
+ theme:'정해진 최선의 역사와 인간의 자유의지 중 무엇이 옳은가',
+ protagonist:'진무현(秦武玄) · 만 17세 · 청하진가 차남 · 불귀자',
+ logline:'죽어도 혼의 흔적이 사라지지 않는 불귀자 진무현. 열일곱 전후, 어린 시절부터 흩어져 있던 여러 삶과 죽음의 기억이 연결되기 시작하고, 그는 역사를 정해진 방향으로 유지하려는 비밀 조직 무명전과 충돌한다.',
+ structure:'전체 5부 · 1부 약 45~50화 · 1막 1~8화 「열일곱」',
+ style:'강한 클린 선화 + 단순한 2~3단계 셀 채색 + 반복 제작에 적합한 한국 액션/무협 웹툰. 포토리얼·3D 렌더·웹소설 표지풍 금지.',
+ defaultModel:'gpt-image-1.5'
+};
+const STORY_BIBLE_DEFAULTS={
+ core:`[작품 핵심]
+장르: 무협 · 미스터리 · 성장 · 다크 판타지
+핵심 주제: 정해진 최선의 역사와 인간의 자유의지 중 무엇이 옳은가.
+주인공은 일반적인 회귀자가 아니라 죽어도 혼의 모든 흔적이 사라지지 않는 불귀자다. 현재 생에서는 청하진가의 차남 진무현으로 태어났다. 어린 시절부터 전생의 파편을 꿈과 기시감으로 경험했고, 만 17세 전후에 그 파편들이 하나의 삶으로 연결되기 시작한다.`,
+ world:`[귀천 歸天]
+사람이 죽으면 혼은 하늘로 돌아가고 삶의 기억은 사라진다. 이 자연스러운 죽음과 순환의 질서를 귀천이라 한다.
+
+[귀령 歸靈]
+극소수에게 만 17세 전후로 전생의 기억 일부가 돌아오는 현상. 모든 17세에게 발생하지 않는다. 대부분 한 번의 전생에서 나온 작은 파편만 기억한다. 기시감, 배운 적 없는 문자·기술, 특정 인물에 대한 설명하기 어려운 감정으로 시작할 수 있다. 강렬한 죽음일수록 선명하게 남는 경향이 있다. 어린 시절부터 파편이 새어 나올 수 있으나 17세 전후가 되면 정신과 육체가 전생의 한 삶을 연결해 받아들일 수 있다.
+
+[불귀자 不歸者]
+한 삶을 기억하는 자는 귀령자. 여러 삶을 기억하는 자는 귀령자가 아니다. 진무현은 수백 년에 걸친 여러 삶과 죽음의 흔적을 같은 혼에 축적한 불귀자다.
+
+[죽음의 기억]
+기억은 마음대로 열람할 수 없다. 특정 죽음의 계기, 장소, 사람, 물건, 무공과 마주할 때 파편이 열린다. 초반에는 내공량보다 판단·급소·심리·전투 설계가 강점이다. 기억이 늘수록 현재 자아와 과거의 수많은 삶 사이에서 정체성 문제가 발생한다.`,
+ factions:`[청하진가 靑河秦家]
+한때 지역에서 이름을 날린 검가였으나 현재는 서서히 몰락하는 중소 무가로 평가된다. 실제로는 가난하지 않으며 토지·상단 지분·객잔·약재 유통권 등으로 경제적 여력이 있다.
+가주에게만 전해지는 규율: “청하진가는 다시 무림의 중심에 서서는 안 된다.”
+지하에는 수백 년간 오래된 검, 목패, 서책, 편지, 옷과 이름 없는 인물들의 흔적이 봉인되어 있다.
+오래된 약속: 물건을 지켜라 / 세상에 알리지 마라 / 가문을 지나치게 키우지 마라 / 주인이 돌아오면 모두 돌려주어라.
+
+[무명전 無名殿]
+공식 역사에 존재하지 않는 비밀 조직. “역사는 정해진 방향으로 흘러야 한다.” 귀천록의 흐름을 유지하기 위해 암살·구출·멸문·비급 회수·전쟁·황실 개입까지 수행한다. 귀령 현상을 수백 년 동안 관찰한다. 귀령자는 제거 대상이 아니라 관찰·보호·회유·영입 대상이 될 수 있다.
+
+[귀천록 歸天錄]
+무명전 가장 깊은 곳의 핵심 기록. 겉으로는 미래의 중요한 사건이 기록된 예언서처럼 보인다. 실제로는 진무현이 과거의 여러 삶에서 경험했던 역사의 흔적과 연결되어 있다. 기록자는 수많은 역사 가운데 가장 적은 사람이 죽는 흐름을 선택했고 무명전은 이를 지키려 한다.`,
+ characters:`[진무현 秦武玄]
+남성 / 만 17세 / 청하진가 차남 / 불귀자.
+냉정하고 판단이 빠르며 필요할 때 현실적이다. 반복되는 죽음의 꿈 때문에 또래보다 죽음을 낯설지 않게 받아들인다. 현재 가족과 삶에 대한 애착이 수많은 과거 자아에 휩쓸리지 않게 하는 닻이다.
+초반부터 압도적인 내공 천재가 아니다. 현재 육체가 감당할 수 있는 한계 안에서 과거의 전투 경험과 무공 이해도를 사용한다. 싸움보다 ‘죽이는 방법’을 많이 알기 때문에 강한 상대와 싸울 수 있다.
+
+[아버지 / 청하진가 가주]
+책임감이 강하고 가족을 아낀다. 실제 재정과 선대의 비밀 규율, 지하 보관소를 알고 있으나 불귀자의 정체까지는 모른다.
+
+[형]
+진무현보다 4~5세 위. 지역에서 재능 있는 후기지수. 동생을 무시하는 천재형이 아니라 동생을 챙기며 가족 관계가 좋다.
+
+[마도윤 馬道潤]
+20대 초반 남성. 첫 충신 / 감초 / 전투 파트너. 능글맞고 화려한 미남형, 도(刀) 중심. 진무현이 전투 전체를 읽고 자신을 칼처럼 사용해 강적을 무너뜨리는 경험 뒤 ‘주군’이라 부르며 따른다.`,
+ martial:`[경지]
+삼류 → 이류 → 일류 → 절정 → 초절정 → 화경 → 현경 → 자연경.
+자연경은 내공량이 더 많은 단계가 아니라 무(武)가 호흡과 걷기처럼 자연스러운 상태. 그 순간 필요한 움직임 자체가 무공이 된다.
+
+[성장 원칙]
+진무현은 기억했다고 과거 고수의 힘을 그대로 쓸 수 없다. 초반에는 실제 경지보다 한두 단계 위 상대를 조건과 전투 설계로 상대하는 정도로 운용한다.
+현경 이후에는 수백 개의 무공과 기억이 오히려 벽이 된다. “내가 알고 있는 수많은 무공 가운데 무엇이 진짜 나의 무공인가?”
+최종적으로 죽음의 기억과 예측에 의존하지 않고 현재만을 보고 처음으로 과거에 존재하지 않았던 움직임을 만들어 자연경에 도달한다.
+
+[무명십이식 無名十二式 · 가칭]
+과거 삶에서 현경의 끝에 도달했던 진무현이 만들기 시작했으나 제11식까지만 완성한 무공. 기억이 열릴 때 초식 파편이 순서 없이 등장한다.
+제1식 무흔: 공격의 시작을 인지하기 어려운 살초.
+제3식 역류: 상대의 힘과 흐름을 역으로 이용하는 반격.
+제5식 단맥: 내공 흐름과 신체 연결을 순간적으로 끊는 근접 초식.
+제7식 낙천: 대규모 전투/강적전의 압도적 공격.
+제9식 무간: 공격 사이의 빈틈을 없애는 연속 살초.
+제11식 귀무: 모든 움직임이 사라진 듯 보이다 단 한 번의 공격으로 귀결.`,
+ story:`[전체 5부]
+1부 — 귀령과 불귀자의 각성: 여러 시대의 삶이 나타나며 불귀자 가능성을 의심받는다.
+2부 — 무명전: 귀령자 관리 체계와 귀천록을 추적하며 무명전과 본격 충돌.
+3부 — 정해진 역사: 귀천록을 거스른 결과 더 큰 재앙이 발생한 사례가 공개되고, 죽음의 기억도 완벽한 해답이 아니게 된다.
+4부 — 귀천록: 여러 시대의 고수들이 같은 혼의 과거였음이 드러나고 귀천록의 기원과 기록자가 공개된다.
+5부 — 불귀자: 죽음을 기억하는 자 vs 역사를 기억하는 자. 진무현은 기억에 없는 선택으로 자연경에 도달한다.
+
+[1막 · 1~8화 「열일곱」]
+무명전에서 “오늘 열일곱이 되는 아이는?”으로 시작. 어린 시절부터 이상 징후가 있던 진무현이 관찰 대상임이 드러난다. 청하진가에서 진무현이 눈을 뜨고, 과거 징후와 반복되는 죽음의 꿈이 제시된다. 특정 사건을 통해 첫 완전한 귀령이 발생하고 서로 다른 시대의 무공 흔적이 나타난다. 무명전 보고: “청하진가 차남. 귀령 확인. 전생 수, 측정 불가.” 1막 후반 금기어 ‘불귀자’가 공개된다.`,
+ visual:`[진무현 비주얼]
+만 17세. 날카롭고 서늘한 미남형. 흑발. 과하게 사나운 인상 금지. 무표정일 때 서늘하고 거리감이 느껴진다. 마른 근육형 또는 균형 잡힌 검객 체형. 화려한 장식보다 단정하고 절제된 무복. 청하진가는 가난하지 않으므로 누더기·빈민형 의상 금지. 귀령 전후 얼굴 자체가 변하는 것이 아니라 눈빛과 자세 변화로 표현한다.
+
+[웹툰 작화]
+강한 클린 선화 + 단순 셀 채색 + 반복 제작에 적합한 한국 액션 웹툰형 디자인. 포토리얼, 3D 렌더, 웹소설 표지풍 금지.
+
+[MASTER 고정]
+얼굴형 / 눈매·눈동자 / 헤어스타일·길이 / 신장·체형 비율 / 기본 의상 실루엣 / 무기 디자인 / 피부톤 / 캐릭터 고유 포인트를 고정한다.
+CHARACTER MASTER는 얼굴·전신·표정·의상·무기·부상 상태를 분리 관리한다.
+BACKGROUND MASTER는 문·창문·가구 위치와 공간 구조를 우선 보존한다.`,
+ production:`[생성 규칙]
+1. CUT 제작 명세의 SCENE / SHOT / CAMERA / ACTION을 최우선으로 따른다.
+2. 등록된 CHARACTER MASTER의 정체성과 외형을 임의 재설계하지 않는다.
+3. 등록된 BACKGROUND MASTER의 공간 구조와 핵심 배치를 유지한다.
+4. MASTER 일치 강도 STRICT에서는 얼굴형·눈매·헤어 실루엣·체형·연령감·의상 디자인을 최대한 고정한다.
+5. 이미지 내부 대사·효과음·한글·문자 생성 금지. 텍스트는 후편집한다.
+6. 17세 진무현은 성인처럼 노화시키지 않는다.
+7. 귀령/죽음의 기억은 초반부터 초능력처럼 과장하지 않고 꿈·기시감·본능적 반응처럼 연출한다.
+8. 생성 결과는 검수 후 채택(APPROVED)된 컷만 Production Assemble에 사용한다.`
+};
+let projectData={...PROJECT_DEFAULTS};
+try{const saved=JSON.parse(localStorage.getItem('wtal_project')||'{}');projectData={...projectData,...saved}}catch(e){}
+let storyBible={...STORY_BIBLE_DEFAULTS};
+try{
+ const saved=JSON.parse(localStorage.getItem('wtal_story_bible')||'{}');
+ // Old V3 placeholder data is intentionally upgraded to the Notion master bible.
+ if(saved && (saved.core || saved.factions || saved.characters || saved.martial || saved.story || saved.production)){
+   storyBible={...storyBible,...saved};
+ }
+}catch(e){}
 let episodes=[];try{episodes=JSON.parse(localStorage.getItem('wtal_episodes')||'[]')}catch(e){}
 if(!episodes.length) episodes=[{id:'EP01',number:1,title:'열일곱',builtin:true},{id:'EP02',number:2,title:'2화',builtin:false},{id:'EP03',number:3,title:'3화',builtin:false}];
 let activeEpisodeId=localStorage.getItem('wtal_active_episode')||'EP01';
@@ -54,10 +158,24 @@ function renderEpisode(){
 function inspectorHtml(c){const req=requiredRefs(c);const manual=(manualLinks[stateKey(c.id)]||manualLinks[c.id]||[]).map(id=>assets.find(a=>a.id===id)).filter(Boolean);let refHtml=req.map(r=>{const a=autoAsset(r);return `<div class="ref">${a?`<img src="${a.img}"><div class="refbody"><div class="ok">✓ AUTO LINKED</div><b>${r.name}</b><br><small>${a.name}</small></div>`:`<div style="height:82px;background:#eee;display:grid;place-items:center;font-size:26px">＋</div><div class="refbody"><div class="miss">⚠ MASTER 미등록</div><b>${r.name}</b><br><button class="btn small" onclick="openMaster('${r.type}','${r.name.replaceAll("'","\\'")}')">등록</button></div>`}</div>`}).join('');manual.forEach(a=>{refHtml+=`<div class="ref"><img src="${a.img}"><div class="refbody"><div class="ok">✓ MANUAL</div><b>${a.name}</b></div></div>`});const st=cutState(c.id);
  return `<aside class="inspector"><div class="eyebrow">CUT INSPECTOR</div><h2>CUT ${String(c.id).padStart(3,'0')} · ${c.title}</h2><span class="mode ${modeClass(c.continuity)}">${c.continuity}</span><span class="statuspill status-${st.status}">${st.status}</span><div class="section"><div class="kv"><b>SCENE</b><span>${c.scene}</span></div><div class="kv"><b>SHOT</b><span>${c.shot}</span></div><div class="kv"><b>CAMERA</b><span>${c.camera}</span></div><div class="kv"><b>ACTION</b><span>${c.action}</span></div>${c.dialogue?`<div class="kv"><b>DIALOGUE</b><span>${c.dialogue}</span></div>`:''}</div><div class="section"><div class="eyebrow">REQUIRED MASTER → AUTO LINK</div><div class="assetrefs">${refHtml||'<div class="lead">이 CUT은 MASTER 참조가 필요하지 않습니다.</div>'}</div><div class="lockbox"><b>MASTER 일치 강도</b><select onchange="masterLock=this.value;localStorage.setItem('wtal_master_lock',masterLock)"><option value="strict" ${masterLock==='strict'?'selected':''}>STRICT · 최대 고정</option><option value="balanced" ${masterLock==='balanced'?'selected':''}>BALANCED</option></select></div></div><div class="section"><div class="eyebrow">MANUAL MASTER OVERRIDE</div><div class="manual-list">${assets.map(a=>`<button class="manual-btn ${(manualLinks[stateKey(c.id)]||manualLinks[c.id]||[]).includes(a.id)?'on':''}" onclick="toggleManual(${c.id},'${a.id}')">${a.name}</button>`).join('')||'<span class="lead">등록된 MASTER가 없습니다.</span>'}</div></div><div class="section"><div class="eyebrow">IMAGE PROMPT</div><textarea class="prompt" id="promptBox">${c.prompt}</textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" onclick="savePrompt(${c.id})">프롬프트 저장</button><button class="btn dark" id="generateBtn" onclick="generateCut(${c.id})">Generate CUT</button>${st.status==='approved'?`<button class="btn" onclick="openSavedResult(${c.id})">채택 결과 보기</button>`:''}</div></div></aside>`}
 function renderAssets(){view.innerHTML=`<div class="eyebrow">MASTER ASSET LIBRARY</div><h1>MASTER 파일 등록</h1><p class="lead">캐릭터/배경/소품 MASTER를 등록하면 모든 화의 제작 명세에서 자동 매칭됩니다.</p><div class="topbar"><div><button class="btn dark" onclick="openMaster()">＋ MASTER 등록</button> <button class="btn" onclick="currentPage='EPISODE';render()">EPISODE로 돌아가기</button></div><div>${assets.length} assets</div></div><div class="assetgrid">${assets.map(a=>`<article class="asset"><div class="assetimg" style="background-image:url('${a.img}')"><span>${a.type}</span></div><div class="assetbody"><h3>${a.name}</h3><code>${a.id}</code></div></article>`).join('')||'<div class="notice">아직 등록된 MASTER가 없습니다.</div>'}</div>`}
-function renderProject(){view.innerHTML=`<div class="eyebrow">PROJECT</div><h1>프로젝트 설정</h1><p class="lead">작품 전체에 공통 적용되는 기본 정보와 생성 스타일입니다.</p><div class="formgrid"><div class="fieldbox"><label>작품명</label><input id="projTitle" value="${projectData.title}"></div><div class="fieldbox"><label>장르</label><input id="projGenre" value="${projectData.genre}"></div><div class="fieldbox"><label>기본 이미지 모델</label><input value="${projectData.defaultModel}" disabled></div><div class="fieldbox"><label>기본 스타일</label><textarea id="projStyle">${projectData.style}</textarea></div></div><div style="margin-top:12px"><button class="btn dark" onclick="saveProject()">프로젝트 저장</button></div>`}
-function saveProject(){projectData.title=document.querySelector('#projTitle').value;projectData.genre=document.querySelector('#projGenre').value;projectData.style=document.querySelector('#projStyle').value;localStorage.setItem('wtal_project',JSON.stringify(projectData));document.querySelector('.project strong').textContent=projectData.title;alert('프로젝트 설정을 저장했습니다.')}
-function renderStoryBible(){view.innerHTML=`<div class="eyebrow">STORY BIBLE</div><h1>스토리 바이블</h1><p class="lead">세계관·핵심 전제·비주얼 규칙을 프로젝트 전체 생성에 사용하는 기준 문서입니다.</p><div class="formgrid"><div class="fieldbox"><label>핵심 전제</label><textarea id="sbPremise">${storyBible.premise}</textarea></div><div class="fieldbox"><label>세계관</label><textarea id="sbWorld">${storyBible.world}</textarea></div><div class="fieldbox"><label>비주얼 바이블</label><textarea id="sbVisual">${storyBible.visual}</textarea></div><div class="fieldbox"><label>제작 규칙</label><textarea id="sbRules">${storyBible.rules}</textarea></div></div><div style="margin-top:12px"><button class="btn dark" onclick="saveStoryBible()">스토리 바이블 저장</button></div>`}
-function saveStoryBible(){storyBible={premise:document.querySelector('#sbPremise').value,world:document.querySelector('#sbWorld').value,visual:document.querySelector('#sbVisual').value,rules:document.querySelector('#sbRules').value};localStorage.setItem('wtal_story_bible',JSON.stringify(storyBible));alert('스토리 바이블을 저장했습니다.')}
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
+function renderProject(){view.innerHTML=`<div class="eyebrow">PROJECT · NOTION MASTER DATA</div><h1>프로젝트 설정</h1><p class="lead">노션 「죽음을 기억하는 자 — 세계관 설정집」의 작품 핵심과 장기 구조를 실제 프로젝트 기본값으로 이식했습니다.</p><div class="formgrid"><div class="fieldbox"><label>작품명</label><input id="projTitle" value="${esc(projectData.title)}"></div><div class="fieldbox"><label>장르</label><input id="projGenre" value="${esc(projectData.genre)}"></div><div class="fieldbox"><label>핵심 주제</label><textarea id="projTheme">${esc(projectData.theme)}</textarea></div><div class="fieldbox"><label>주인공</label><textarea id="projProtagonist">${esc(projectData.protagonist)}</textarea></div><div class="fieldbox"><label>로그라인</label><textarea id="projLogline">${esc(projectData.logline)}</textarea></div><div class="fieldbox"><label>장기 구조</label><textarea id="projStructure">${esc(projectData.structure)}</textarea></div><div class="fieldbox"><label>기본 이미지 모델</label><input value="${esc(projectData.defaultModel)}" disabled></div><div class="fieldbox"><label>기본 비주얼 스타일</label><textarea id="projStyle">${esc(projectData.style)}</textarea></div></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn dark" onclick="saveProject()">프로젝트 저장</button><button class="btn" onclick="resetProjectFromNotion()">노션 기본값으로 복원</button></div>`}
+function saveProject(){projectData={...projectData,title:document.querySelector('#projTitle').value,genre:document.querySelector('#projGenre').value,theme:document.querySelector('#projTheme').value,protagonist:document.querySelector('#projProtagonist').value,logline:document.querySelector('#projLogline').value,structure:document.querySelector('#projStructure').value,style:document.querySelector('#projStyle').value};localStorage.setItem('wtal_project',JSON.stringify(projectData));document.querySelector('.project strong').textContent=projectData.title;alert('프로젝트 설정을 저장했습니다.')}
+function resetProjectFromNotion(){if(!confirm('PROJECT 내용을 노션 마스터 기본값으로 복원할까요?'))return;projectData={...PROJECT_DEFAULTS};localStorage.setItem('wtal_project',JSON.stringify(projectData));renderProject()}
+const SB_SECTIONS=[
+ ['core','작품 핵심'],
+ ['world','세계 법칙 · 귀천 / 귀령 / 불귀자'],
+ ['factions','세력 · 청하진가 / 무명전 / 귀천록'],
+ ['characters','등장인물'],
+ ['martial','무공 체계 · 경지 · 무명십이식'],
+ ['story','전체 스토리 구조 · 1부~5부 / 1막'],
+ ['visual','비주얼 바이블 · MASTER 고정'],
+ ['production','웹툰 제작 · 이미지 생성 규칙']
+];
+function renderStoryBible(){view.innerHTML=`<div class="eyebrow">STORY BIBLE · NOTION MASTER DATA</div><h1>스토리 바이블</h1><p class="lead">노션의 세계관 설정 · 등장인물 · 전체 스토리 구조 · 무공 체계 · 비주얼 바이블을 프로그램 생성 기준 데이터로 이식했습니다.</p><div class="tabsrow" style="margin-bottom:14px">${SB_SECTIONS.map(([k,l],i)=>`<button class="btn ${i===0?'dark':''}" data-sbtab="${k}" onclick="showSbTab('${k}')">${l}</button>`).join('')}</div>${SB_SECTIONS.map(([k,l],i)=>`<section class="fieldbox sbpanel" id="sb-${k}" style="${i?'display:none':''}"><label>${l}</label><textarea id="sbv-${k}" style="min-height:460px">${esc(storyBible[k])}</textarea></section>`).join('')}<div style="margin-top:12px;display:flex;gap:8px"><button class="btn dark" onclick="saveStoryBible()">스토리 바이블 저장</button><button class="btn" onclick="resetStoryBibleFromNotion()">노션 기본값으로 복원</button></div>`}
+function showSbTab(k){document.querySelectorAll('.sbpanel').forEach(x=>x.style.display='none');document.querySelector('#sb-'+k).style.display='block';document.querySelectorAll('[data-sbtab]').forEach(x=>x.classList.toggle('dark',x.dataset.sbtab===k))}
+function saveStoryBible(){const next={};SB_SECTIONS.forEach(([k])=>next[k]=document.querySelector('#sbv-'+k).value);storyBible=next;localStorage.setItem('wtal_story_bible',JSON.stringify(storyBible));alert('스토리 바이블을 저장했습니다.')}
+function resetStoryBibleFromNotion(){if(!confirm('STORY BIBLE을 노션 마스터 데이터로 복원할까요?'))return;storyBible={...STORY_BIBLE_DEFAULTS};localStorage.setItem('wtal_story_bible',JSON.stringify(storyBible));renderStoryBible()}
 function renderProduction(){const cs=cutsForEpisode(),vals=Object.values(cs),approved=vals.filter(c=>cutState(c.id).status==='approved').length,generated=vals.filter(c=>cutState(c.id).status==='generated').length,draft=vals.length-approved-generated;view.innerHTML=`<div class="eyebrow">PRODUCTION</div><h1>EP.${String(ep().number).padStart(2,'0')} · 프로덕션 보드</h1><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='EPISODE';render()">제작 명세로</button></div><div class="statgrid"><div class="stat"><small>TOTAL</small><b>${vals.length}</b>CUT</div><div class="stat"><small>DRAFT</small><b>${draft}</b>초안</div><div class="stat"><small>GENERATED</small><b>${generated}</b>검수 대기</div><div class="stat"><small>APPROVED</small><b>${approved}</b>채택</div></div><div class="productiongrid">${vals.map(c=>{const st=cutState(c.id);return `<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> <span class="statuspill status-${st.status}">${st.status}</span><div style="font-size:11px;margin-top:5px">${c.title}</div><div id="prodimg-${c.id}"></div><div style="margin-top:7px"><button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">열기</button>${st.status!=='draft'?` <button class="btn small" onclick="openSavedResult(${c.id})">결과</button>`:''}</div></div>`}).join('')||'<div class="emptybig">CUT이 없습니다.</div>'}</div>`;hydrateProduction(vals)}
 async function hydrateProduction(vals){for(const c of vals){const st=cutState(c.id);if(st.status==='draft')continue;const r=await getResult(stateKey(c.id));const box=document.querySelector(`#prodimg-${c.id}`);if(box&&r?.image)box.innerHTML=`<img src="${r.image}">`}}
 function renderAssemble(){
@@ -122,7 +240,9 @@ async function generateCut(id){
       const dataUrl=await compressReferenceDataUrl(a.img,1200,0.78);
       compressedRefs.push({id:a.id,name:a.name,type:a.type,dataUrl});
     }
-    const requestBody={cutId:id,prompt,continuity:c.continuity,shot:c.shot,camera:c.camera,action:c.action,references:compressedRefs,masterLock,projectStyle:projectData.style,storyVisual:storyBible.visual,episodeId:activeEpisodeId};
+    const requestBody={cutId:id,prompt,continuity:c.continuity,shot:c.shot,camera:c.camera,action:c.action,references:compressedRefs,masterLock,projectStyle:projectData.style,storyVisual:storyBible.visual,
+      storyContext:[storyBible.core,storyBible.world,storyBible.factions,storyBible.characters,storyBible.martial,storyBible.story,storyBible.production].join('\n\n'),
+      episodeId:activeEpisodeId};
     let bodyText=JSON.stringify(requestBody);
     if(bodyText.length>3200000){
       const smaller=[];

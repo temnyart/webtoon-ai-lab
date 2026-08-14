@@ -19,7 +19,7 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,prompt,references=[],continuity,shot,camera,action,masterLock='strict',projectStyle='',storyVisual='',episodeId=''} = body || {};
+    const {cutId,prompt,references=[],continuity,shot,camera,action,masterLock='strict',projectStyle='',storyVisual='',storyContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
@@ -44,6 +44,7 @@ export async function POST(req){
       `Action: ${action||''}`,
       projectStyle ? `Project visual style: ${projectStyle}` : '',
       storyVisual ? `Story Bible visual constraints: ${storyVisual}` : '',
+      storyContext ? `Canonical Story Bible context. Do not contradict these facts:\n${storyContext}` : '',
       `Production specification: ${prompt}`
     ].filter(Boolean).join('\n')}];
     let ri=0;
