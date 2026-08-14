@@ -30,6 +30,8 @@
 .masterSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
 .masterSummary .stat{padding:12px}
 @media(max-width:800px){.masterSummary{grid-template-columns:1fr}}
+
+.sceneLock{display:flex;gap:7px;align-items:center;margin-left:auto;flex-wrap:wrap}.sceneLock .btn{font-size:10px;padding:5px 8px}.sceneLockBadge{font-size:9px;font-weight:900;border-radius:999px;padding:4px 7px;background:#e4f7e9;color:#17623c}.sceneLookBox{background:#f8f8f6;border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:9px;font-size:11px;line-height:1.55}.sceneLookBox b{display:inline-block;min-width:70px;color:#777}.sceneForm{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sceneForm label{font-size:10px;font-weight:900;color:#777}.sceneForm input,.sceneForm textarea,.sceneForm select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:4px}.sceneForm textarea{min-height:70px;resize:vertical}.continuityRef{border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;background:#fafafa}.continuityRef img{width:100%;max-height:140px;object-fit:cover;border-radius:7px;margin-top:6px}
 </style></head><body><header><div class="brand">WEBTOON <i>AI</i> LAB <span>V2</span></div><div>● VERCEL APP</div></header><div class="shell"><aside><div class="project"><small>CURRENT PROJECT</small><strong>죽음을 기억하는 자</strong><span>EP.01 · 열일곱</span></div><button class="nav" data-page="PROJECT">PROJECT</button><button class="nav" data-page="STORY BIBLE">STORY BIBLE</button><button class="nav" data-page="EPISODE STORY">EPISODE STORY</button><button class="nav" data-page="ASSETS">ASSETS</button><button class="nav active" data-page="EPISODE">EPISODE</button><button class="nav" data-page="PRODUCTION">PRODUCTION</button><button class="nav" data-page="ASSEMBLE">ASSEMBLE</button></aside><main class="workspace"><div id="view"></div></main></div>
 <div class="modal" id="modal"><div class="modalcard"><div class="eyebrow">NEW MASTER ASSET</div><h2>실제 MASTER 등록</h2><label class="drop" id="drop"><span><b>이미지를 여기에 드래그</b><br><small>또는 클릭해서 PNG · JPG · WEBP 선택</small></span><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><div class="fields"><label>TYPE<select id="type"><option>CHARACTER</option><option>BACKGROUND</option><option>PROP</option></select></label><label>MASTER NAME<input id="name" placeholder="예: 진무현 17세"></label></div><div class="right"><button class="btn" id="close">취소</button><button class="btn dark" id="save">MASTER 저장</button></div></div></div>
 <script>
@@ -83,6 +85,23 @@ function saveEpisodeStories(){localStorage.setItem('wtal_episode_stories',JSON.s
 let activeEpisodeId=localStorage.getItem('wtal_active_episode')||'EP01';
 let masterLock=localStorage.getItem('wtal_master_lock')||'strict';
 let compositionLock=localStorage.getItem('wtal_composition_lock')||'strict';
+let sceneLooks={};try{sceneLooks=JSON.parse(localStorage.getItem('wtal_scene_looks')||'{}')}catch(e){}
+function sceneKey(scene){return `${activeEpisodeId}::${scene}`}
+function defaultSceneLook(scene){
+ const cs=Object.values(cutsForEpisode()).filter(c=>c.scene===scene);
+ const text=(scene+' '+cs.map(c=>`${c.title} ${c.action} ${c.prompt}`).join(' ')).toLowerCase();
+ let time='day',weather='clear / interior stable',temperature='neutral 5000K',palette='neutral restrained webtoon palette',lighting='stable soft key light with consistent direction and intensity';
+ if(/새벽|dawn|이른/.test(text)){time='early dawn';temperature='cool 6500–7500K';palette='desaturated blue-gray';lighting='cool window daylight, weak warm practicals only as minor accents'}
+ else if(/밤|야간|night|암흑/.test(text)){time='night';temperature='cool 7000K';palette='deep blue-gray / low saturation';lighting='cool night ambience; warm candles remain weak local accents'}
+ else if(/석양|해질|저녁|sunset|dusk/.test(text)){time='dusk';temperature='warm 3500–4200K';palette='muted amber with controlled shadows';lighting='low warm directional dusk light'}
+ if(/설원|눈|겨울|snow/.test(text)) weather='winter / snow / overcast continuity';
+ const bg=[...new Set(cs.flatMap(c=>c.backgrounds||[]))].join(', ');
+ return {locked:true,time,weather,temperature,palette,lighting,background:bg,notes:'Same scene = same time, weather, color temperature, light direction, exposure, palette and material colors. Do not relight between cuts.',anchorCut:null,updatedAt:new Date().toISOString()};
+}
+function getSceneLook(scene){const k=sceneKey(scene);if(!sceneLooks[k])sceneLooks[k]=defaultSceneLook(scene);return sceneLooks[k]}
+function saveSceneLooks(){localStorage.setItem('wtal_scene_looks',JSON.stringify(sceneLooks))}
+function sceneLookSummary(scene){const x=getSceneLook(scene);return `${x.time} · ${x.temperature} · ${x.palette}`}
+
 let currentPage='EPISODE',selectedCut=13,assetData='',lastGenerated=null;
 const view=document.querySelector('#view');
 function ep(){return episodes.find(e=>e.id===activeEpisodeId)||episodes[0]}
@@ -228,11 +247,40 @@ function renderEpisode(){
  if(!Object.keys(cs).length){view.innerHTML=out+`<div class="emptybig"><h2>EP.${String(e.number).padStart(2,'0')} 제작 명세가 아직 없습니다.</h2><p class="lead">새 CUT을 추가하거나 이후 스토리→콘티 생성 기능으로 채울 수 있습니다.</p><button class="btn dark" onclick="addCut()">첫 CUT 추가</button></div>`;return;}
  const sceneMap={};Object.values(cs).forEach(c=>(sceneMap[c.scene]||(sceneMap[c.scene]=[])).push(c));
  out+=`<div class="episode-layout"><div>`;
- for(const [sceneName,list] of Object.entries(sceneMap)){let cards='';for(const c of list.sort((a,b)=>a.id-b.id)){if(query&&!(`${c.id} ${c.title} ${c.action} ${c.dialogue}`.toLowerCase().includes(query.toLowerCase())))continue;const req=requiredRefs(c),matched=req.filter(r=>autoAsset(r)).length,st=cutState(c.id);cards+=`<button class="cutcard ${selectedCut===c.id?'active':''}" onclick="selectedCut=${c.id};renderEpisode()"><span class="cutnum">CUT ${String(c.id).padStart(3,'0')}</span><span class="mode ${modeClass(c.continuity)}">${c.continuity}</span><span class="statuspill status-${st.status}">${st.status==='approved'?'채택':st.status==='generated'?'생성됨':'초안'}</span><span class="countbadge">${matched}/${req.length}</span><div class="cuttitle">${c.title}</div><div class="cutmeta">${c.shot}<br>${c.action.slice(0,58)}${c.action.length>58?'…':''}</div>${st.status==='approved'?'<span class="approvedmark">✓ APPROVED</span>':''}</button>`}if(cards)out+=`<section class="scene"><div class="scene-head"><h2>${sceneName}</h2><span>${list.length} CUT</span></div><div class="cutgrid">${cards}</div></section>`}
+ for(const [sceneName,list] of Object.entries(sceneMap)){let cards='';for(const c of list.sort((a,b)=>a.id-b.id)){if(query&&!(`${c.id} ${c.title} ${c.action} ${c.dialogue}`.toLowerCase().includes(query.toLowerCase())))continue;const req=requiredRefs(c),matched=req.filter(r=>autoAsset(r)).length,st=cutState(c.id);cards+=`<button class="cutcard ${selectedCut===c.id?'active':''}" onclick="selectedCut=${c.id};renderEpisode()"><span class="cutnum">CUT ${String(c.id).padStart(3,'0')}</span><span class="mode ${modeClass(c.continuity)}">${c.continuity}</span><span class="statuspill status-${st.status}">${st.status==='approved'?'채택':st.status==='generated'?'생성됨':'초안'}</span><span class="countbadge">${matched}/${req.length}</span><div class="cuttitle">${c.title}</div><div class="cutmeta">${c.shot}<br>${c.action.slice(0,58)}${c.action.length>58?'…':''}</div>${st.status==='approved'?'<span class="approvedmark">✓ APPROVED</span>':''}</button>`}if(cards){const sl=getSceneLook(sceneName);out+=`<section class="scene"><div class="scene-head"><h2>${sceneName}</h2><span>${list.length} CUT</span><div class="sceneLock"><span class="sceneLockBadge">🔒 SCENE LOOK</span><span style="font-size:10px;color:#777">${sceneLookSummary(sceneName)}</span><button class="btn" onclick="event.stopPropagation();editSceneLook(decodeURIComponent('${encodeURIComponent(sceneName)}'))">설정</button></div></div><div class="cutgrid">${cards}</div></section>`}}
  const sel=cs[selectedCut]||Object.values(cs)[0];selectedCut=sel.id;out+=`</div>${inspectorHtml(sel)}</div>`;view.innerHTML=out;
 }
 function inspectorHtml(c){const req=requiredRefs(c);const manual=(manualLinks[stateKey(c.id)]||manualLinks[c.id]||[]).map(id=>assets.find(a=>a.id===id)).filter(Boolean);let refHtml=req.map(r=>{const a=autoAsset(r);return `<div class="ref">${a?`<img src="${a.img}"><div class="refbody"><div class="ok">✓ AUTO LINKED</div><b>${r.name}</b><br><small>${a.name}</small></div>`:`<div style="height:82px;background:#eee;display:grid;place-items:center;font-size:26px">＋</div><div class="refbody"><div class="miss">⚠ MASTER 미등록</div><b>${r.name}</b><br><button class="btn small" onclick="openMaster('${r.type}','${r.name.replaceAll("'","\\'")}')">등록</button></div>`}</div>`}).join('');manual.forEach(a=>{refHtml+=`<div class="ref"><img src="${a.img}"><div class="refbody"><div class="ok">✓ MANUAL</div><b>${a.name}</b></div></div>`});const st=cutState(c.id);
- return `<aside class="inspector"><div class="eyebrow">CUT INSPECTOR</div><h2>CUT ${String(c.id).padStart(3,'0')} · ${c.title}</h2><span class="mode ${modeClass(c.continuity)}">${c.continuity}</span><span class="statuspill status-${st.status}">${st.status}</span><div class="section"><div class="kv"><b>SCENE</b><span>${c.scene}</span></div><div class="kv"><b>SHOT</b><span>${c.shot}</span></div><div class="kv"><b>CAMERA</b><span>${c.camera}</span></div><div class="kv"><b>ACTION</b><span>${c.action}</span></div>${c.dialogue?`<div class="kv"><b>DIALOGUE</b><span>${c.dialogue}</span></div>`:''}</div><div class="section"><div class="eyebrow">REQUIRED MASTER → AUTO LINK</div><div class="assetrefs">${refHtml||'<div class="lead">이 CUT은 MASTER 참조가 필요하지 않습니다.</div>'}</div><div class="lockbox"><b>MASTER 일치 강도</b><select onchange="masterLock=this.value;localStorage.setItem('wtal_master_lock',masterLock)"><option value="strict" ${masterLock==='strict'?'selected':''}>STRICT · 최대 고정</option><option value="balanced" ${masterLock==='balanced'?'selected':''}>BALANCED</option></select></div><div class="lockbox"><b>구도/포즈 고정</b><select onchange="compositionLock=this.value;localStorage.setItem('wtal_composition_lock',compositionLock)"><option value="strict" ${compositionLock==='strict'?'selected':''}>STRICT · 명세 그대로</option><option value="balanced" ${compositionLock==='balanced'?'selected':''}>BALANCED</option></select></div></div><div class="section"><div class="eyebrow">MANUAL MASTER OVERRIDE</div><div class="manual-list">${assets.map(a=>`<button class="manual-btn ${(manualLinks[stateKey(c.id)]||manualLinks[c.id]||[]).includes(a.id)?'on':''}" onclick="toggleManual(${c.id},'${a.id}')">${a.name}</button>`).join('')||'<span class="lead">등록된 MASTER가 없습니다.</span>'}</div></div><div class="section"><div class="eyebrow">IMAGE PROMPT</div><textarea class="prompt" id="promptBox">${c.prompt}</textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" onclick="savePrompt(${c.id})">프롬프트 저장</button><button class="btn dark" id="generateBtn" onclick="generateCut(${c.id})">Generate CUT</button>${st.status==='approved'?`<button class="btn" onclick="openSavedResult(${c.id})">채택 결과 보기</button>`:''}</div></div></aside>`}
+ return `<aside class="inspector"><div class="eyebrow">CUT INSPECTOR</div><h2>CUT ${String(c.id).padStart(3,'0')} · ${c.title}</h2><span class="mode ${modeClass(c.continuity)}">${c.continuity}</span><span class="statuspill status-${st.status}">${st.status}</span><div class="section"><div class="kv"><b>SCENE</b><span>${c.scene}</span></div><div class="kv"><b>SHOT</b><span>${c.shot}</span></div><div class="kv"><b>CAMERA</b><span>${c.camera}</span></div><div class="kv"><b>ACTION</b><span>${c.action}</span></div>${c.dialogue?`<div class="kv"><b>DIALOGUE</b><span>${c.dialogue}</span></div>`:''}</div><div class="section"><div class="eyebrow">SCENE VISUAL LOCK</div><div class="sceneLookBox"><b>LOOK</b>${sceneLookSummary(c.scene)}<br><b>LIGHT</b>${getSceneLook(c.scene).lighting}<br><b>WEATHER</b>${getSceneLook(c.scene).weather}</div><button class="btn small" style="margin-top:7px" onclick="editSceneLook(decodeURIComponent('${encodeURIComponent(c.scene)}'))">SCENE LOOK 수정</button></div><div class="section"><div class="eyebrow">REQUIRED MASTER → AUTO LINK</div><div class="assetrefs">${refHtml||'<div class="lead">이 CUT은 MASTER 참조가 필요하지 않습니다.</div>'}</div><div class="lockbox"><b>MASTER 일치 강도</b><select onchange="masterLock=this.value;localStorage.setItem('wtal_master_lock',masterLock)"><option value="strict" ${masterLock==='strict'?'selected':''}>STRICT · 최대 고정</option><option value="balanced" ${masterLock==='balanced'?'selected':''}>BALANCED</option></select></div><div class="lockbox"><b>구도/포즈 고정</b><select onchange="compositionLock=this.value;localStorage.setItem('wtal_composition_lock',compositionLock)"><option value="strict" ${compositionLock==='strict'?'selected':''}>STRICT · 명세 그대로</option><option value="balanced" ${compositionLock==='balanced'?'selected':''}>BALANCED</option></select></div></div><div class="section"><div class="eyebrow">MANUAL MASTER OVERRIDE</div><div class="manual-list">${assets.map(a=>`<button class="manual-btn ${(manualLinks[stateKey(c.id)]||manualLinks[c.id]||[]).includes(a.id)?'on':''}" onclick="toggleManual(${c.id},'${a.id}')">${a.name}</button>`).join('')||'<span class="lead">등록된 MASTER가 없습니다.</span>'}</div></div><div class="section"><div class="eyebrow">IMAGE PROMPT</div><textarea class="prompt" id="promptBox">${c.prompt}</textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" onclick="savePrompt(${c.id})">프롬프트 저장</button><button class="btn dark" id="generateBtn" onclick="generateCut(${c.id})">Generate CUT</button>${st.status==='approved'?`<button class="btn" onclick="openSavedResult(${c.id})">채택 결과 보기</button>`:''}</div></div></aside>`}
+
+function editSceneLook(scene){
+ const x=getSceneLook(scene);
+ modalShell(`<div class="eyebrow">SCENE VISUAL LOCK</div><h2>${scene}</h2><p class="lead">이 SCENE의 모든 CUT은 아래 조명·날씨·색온도·팔레트를 강제로 공유합니다.</p>
+ <div class="sceneForm">
+  <label>TIME<input id="slTime" value="${esc(x.time)}"></label>
+  <label>WEATHER<input id="slWeather" value="${esc(x.weather)}"></label>
+  <label>COLOR TEMPERATURE<input id="slTemp" value="${esc(x.temperature)}"></label>
+  <label>PALETTE<input id="slPalette" value="${esc(x.palette)}"></label>
+  <label style="grid-column:1/-1">LIGHTING<textarea id="slLight">${esc(x.lighting)}</textarea></label>
+  <label style="grid-column:1/-1">추가 고정 규칙<textarea id="slNotes">${esc(x.notes||'')}</textarea></label>
+ </div>
+ <div class="notice" style="margin-top:12px"><b>자동 연속성 참조</b><br>같은 SCENE에서 이미 채택된 가장 가까운 이전 CUT을 다음 CUT 생성 시 자동 참조합니다. 해당 CUT의 색감·광원·피부톤·의상색·배경 노출을 유지하는 용도입니다.</div>
+ <div class="right" style="margin-top:14px"><button class="btn" onclick="document.querySelector('#genResult')?.remove()">취소</button><button class="btn dark" id="saveSceneLookBtn">🔒 SCENE LOOK 저장</button></div>`);
+ document.querySelector('#saveSceneLookBtn').onclick=()=>{
+   Object.assign(x,{locked:true,time:document.querySelector('#slTime').value,weather:document.querySelector('#slWeather').value,temperature:document.querySelector('#slTemp').value,palette:document.querySelector('#slPalette').value,lighting:document.querySelector('#slLight').value,notes:document.querySelector('#slNotes').value,updatedAt:new Date().toISOString()});
+   saveSceneLooks();document.querySelector('#genResult')?.remove();render();
+ };
+}
+async function previousApprovedSceneCut(c){
+ const list=Object.values(cutsForEpisode()).filter(x=>x.scene===c.scene&&Number(x.id)<Number(c.id)).sort((a,b)=>b.id-a.id);
+ for(const prev of list){
+   if(cutState(prev.id).status==='approved'){
+     const r=await getResult(stateKey(prev.id));
+     if(r?.image)return {cut:prev,image:r.image};
+   }
+ }
+ return null;
+}
 function renderAssets(){
  const prod=assets.filter(a=>assetRole(a)==='production').length;
  const source=assets.length-prod;
@@ -400,8 +448,17 @@ async function generateCut(id){
       const dataUrl=await compressReferenceDataUrl(a.img,1200,0.78);
       compressedRefs.push({id:a.id,name:a.name,type:a.type,dataUrl});
     }
+    const sceneLook=getSceneLook(c.scene);saveSceneLooks();
+    const prevApproved=await previousApprovedSceneCut(c);
+    let continuityReference=null;
+    if(prevApproved?.image){
+      continuityReference={cutId:prevApproved.cut.id,dataUrl:await compressReferenceDataUrl(prevApproved.image,1000,0.72)};
+    }
     const requestBody={
       cutId:id,
+      scene:c.scene,
+      sceneLook,
+      continuityReference,
       prompt,
       continuity:c.continuity,
       shot:c.shot,
@@ -458,7 +515,7 @@ async function saveGenerated(c,image,model){lastGenerated={cutId:c.id,image,mode
 function showGeneratedResult(c,refs,image,model){
   modalShell(`<div class="eyebrow">GENERATION COMPLETE · ${model||''}</div><h2>CUT ${String(c.id).padStart(3,'0')} 생성 완료</h2><img src="${image}" style="display:block;width:min(430px,100%);max-height:68vh;object-fit:contain;margin:14px auto;border-radius:12px;background:#eee"><p style="font-size:12px;color:#777">MASTER ${refs.length}개 참조 · ${c.continuity} · ${c.shot} · ${masterLock.toUpperCase()} LOCK</p><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn" onclick="downloadDataUrl('${stateKey(c.id)}',${c.id})">다운로드</button><button class="btn" onclick="holdGenerated(${c.id})">보류 저장</button><button class="btn" onclick="document.querySelector('#genResult').remove();generateCut(${c.id})">다시 생성</button><button class="btn dark" onclick="approveGenerated(${c.id})">✓ 채택</button></div>`);
 }
-async function approveGenerated(id){const key=stateKey(id);let r=await getResult(key);if(!r&&lastGenerated?.cutId===id)r=lastGenerated;if(!r?.image)return alert('저장된 생성 결과가 없습니다.');r.status='approved';r.updatedAt=new Date().toISOString();await putResult(key,r);cutStates[key]={status:'approved',model:r.model,updatedAt:r.updatedAt};saveStates();document.querySelector('#genResult')?.remove();render();}
+async function approveGenerated(id){const key=stateKey(id);let r=await getResult(key);if(!r&&lastGenerated?.cutId===id)r=lastGenerated;if(!r?.image)return alert('저장된 생성 결과가 없습니다.');r.status='approved';r.updatedAt=new Date().toISOString();await putResult(key,r);cutStates[key]={status:'approved',model:r.model,updatedAt:r.updatedAt};const c=cutsForEpisode()[id];if(c){const sl=getSceneLook(c.scene);if(!sl.anchorCut)sl.anchorCut=id;sl.lastApprovedCut=id;saveSceneLooks()}saveStates();document.querySelector('#genResult')?.remove();render();}
 async function holdGenerated(id){const key=stateKey(id);let r=await getResult(key);if(r){r.status='generated';await putResult(key,r)}cutStates[key]={...(cutStates[key]||{}),status:'generated'};saveStates();document.querySelector('#genResult')?.remove();render();}
 async function openSavedResult(id){const r=await getResult(stateKey(id));if(!r?.image)return alert('저장된 결과가 없습니다.');const c=cutsForEpisode()[id];modalShell(`<div class="eyebrow">SAVED RESULT · ${r.status||cutState(id).status}</div><h2>CUT ${String(id).padStart(3,'0')} 저장 결과</h2><img src="${r.image}" style="display:block;width:min(430px,100%);max-height:68vh;object-fit:contain;margin:14px auto;border-radius:12px"><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="document.querySelector('#genResult').remove()">닫기</button><button class="btn" onclick="downloadDataUrl('${stateKey(id)}',${id})">다운로드</button>${cutState(id).status!=='approved'?`<button class="btn dark" onclick="approveGenerated(${id})">✓ 채택</button>`:''}</div>`)}
 async function downloadDataUrl(key,id){const r=await getResult(key);if(!r?.image)return;const a=document.createElement('a');a.href=r.image;a.download=`${activeEpisodeId}-CUT-${String(id).padStart(3,'0')}.webp`;a.click()}

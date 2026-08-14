@@ -31,3 +31,11 @@ Environment variable: `OPENAI_API_KEY`
 - Background conversion locks architecture, door/window/furniture positions and perspective.
 - Character conversion locks identity, age, hair, proportions, costume, pose and framing.
 - CUT automatic MASTER linking prioritizes approved WEBTOON PRODUCTION MASTER assets over SOURCE MASTER assets.
+
+
+## V8 — Scene Visual Lock
+- Each SCENE stores one locked visual profile: time, weather, color temperature, palette, lighting and background/set continuity.
+- All CUT image requests inherit the same Scene Look Profile.
+- The nearest previous APPROVED CUT from the same SCENE is automatically attached as a continuity reference for grade, white balance, lighting, skin tone, costume colors and background exposure only.
+- Previous CUT pose/camera/action are explicitly forbidden from overriding the current CUT specification.
+- Scene Look can be edited from each SCENE header or CUT inspector.

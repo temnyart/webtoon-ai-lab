@@ -19,7 +19,7 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
+    const {cutId,scene='',sceneLook=null,continuityReference=null,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
@@ -39,9 +39,25 @@ export async function POST(req){
       'Camera composition must obey SHOT and CAMERA. Do not default to centered portrait composition. Preserve negative space and off-center blocking when implied by the specification.',
       'If a background MASTER is present, the set continuity has higher priority than cinematic novelty.'
     ] : ['Follow the requested pose, blocking and camera while allowing minor compositional adaptation.'];
+    const sceneRules = sceneLook?.locked ? [
+      'STRICT SCENE VISUAL LOCK IS ACTIVE. All CUTs in this SCENE must look as if photographed/drawn moments apart under the exact same environmental conditions.',
+      `SCENE: ${scene||''}`,
+      `TIME OF DAY LOCK: ${sceneLook.time||''}`,
+      `WEATHER LOCK: ${sceneLook.weather||''}`,
+      `COLOR TEMPERATURE LOCK: ${sceneLook.temperature||''}`,
+      `PALETTE LOCK: ${sceneLook.palette||''}`,
+      `LIGHTING LOCK: ${sceneLook.lighting||''}`,
+      `BACKGROUND/SET LOCK: ${sceneLook.background||''}`,
+      `SCENE NOTES: ${sceneLook.notes||''}`,
+      'Do not reinterpret the time of day between cuts. Do not switch cool light to warm light or warm light to cool light.',
+      'Keep key-light direction, ambient fill, practical-light intensity, exposure, black level, saturation, skin tone, costume colors, wall/floor colors and background brightness consistent across the scene.',
+      'A candle/lantern may appear warm locally, but it must NOT recolor the entire scene if the locked scene is cool dawn/night.',
+      'Different shot sizes may change depth of field and visible background area, but NOT white balance, overall grade, weather, time, or material colors.'
+    ] : [];
     const content=[{type:'input_text',text:[
       'TASK: Render exactly one vertical Korean martial-arts webtoon CUT from a locked production specification.',
-      'PRIORITY ORDER: 1) CUT action/pose/blocking, 2) BACKGROUND MASTER spatial continuity, 3) CHARACTER/PROP MASTER identity, 4) SHOT/CAMERA, 5) visual style, 6) episode/lore context.',
+      'PRIORITY ORDER: 1) CUT action/pose/blocking, 2) SCENE VISUAL LOCK, 3) BACKGROUND MASTER spatial continuity, 4) CHARACTER/PROP MASTER identity, 5) SHOT/CAMERA, 6) visual style, 7) episode/lore context.',
+      ...sceneRules,
       ...identityRules,
       ...compositionRules,
       'WEBTOON STYLE: clean controlled line art, 2-3 step cel shading, readable Korean action-webtoon composition. Avoid photorealism, 3D render appearance, glossy novel-cover illustration, excessive skin texture, and unnecessary ornaments.',
@@ -61,8 +77,12 @@ export async function POST(req){
       storyVisual ? `Visual Bible constraints: ${storyVisual}` : '',
       characterCanon ? `Character canon for identity/personality only. Do not use it to invent a different pose or location:\n${characterCanon.slice(0,8000)}` : '',
       episodeContext ? `Episode context for narrative continuity only. Do not copy unrelated events, poses, locations, or props from this context:\n${episodeContext}` : '',
-      'FINAL CHECK BEFORE RENDERING: same set as background MASTER; same character as character MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
+      'FINAL CHECK BEFORE RENDERING: same SCENE color temperature/white balance/weather/lighting as the SCENE LOCK and previous approved CUT; same set as background MASTER; same character as character MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
     ].filter(Boolean).join('\n')}];
+    if(continuityReference?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(continuityReference.dataUrl)){
+      content.push({type:'input_text',text:`PREVIOUS APPROVED CUT CONTINUITY REFERENCE — CUT ${String(continuityReference.cutId||'').padStart(3,'0')}. Use this image ONLY as the authoritative reference for scene color grade, white balance, light direction, exposure, skin tone, costume colors, background brightness and rendering density. Do NOT copy its pose, camera angle, crop or action into the current CUT. Current CUT shot/camera/action remain authoritative.`});
+      content.push({type:'input_image',image_url:continuityReference.dataUrl,detail:'high'});
+    }
     let ri=0;
     for(const ref of references){
       if(ref?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(ref.dataUrl)){
