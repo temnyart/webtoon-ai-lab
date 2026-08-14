@@ -19,24 +19,40 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,prompt,references=[],continuity,shot,camera,action} = body || {};
+    const {cutId,prompt,references=[],continuity,shot,camera,action,masterLock='strict',projectStyle='',storyVisual='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
+    const strict = masterLock === 'strict';
+    const identityRules = strict ? [
+      'STRICT MASTER LOCK IS ACTIVE. Reference images are binding production constraints, not loose inspiration.',
+      'For CHARACTER references: preserve the exact recognizable identity, face shape, eye shape and spacing, nose/mouth proportions, hair silhouette, bangs/parting, body proportions, age impression, costume cut and major colors. Do not redesign, beautify, age up/down, change hairstyle, or substitute a similar-looking person.',
+      'For BACKGROUND references: preserve room/building geometry, window/door positions, major furniture placement, material language and spatial layout. Change only camera, lighting and action required by this CUT.',
+      'For PROP references: preserve silhouette, construction, materials and identifiable details. Do not invent replacements.',
+      'When text instructions conflict with a MASTER identity/design detail, MASTER wins for identity/design; text wins only for pose, expression, camera and action.'
+    ] : ['Use supplied MASTER references consistently while allowing small stylistic adaptation.'];
     const content=[{type:'input_text',text:[
       'Create exactly one vertical Korean martial-arts webtoon panel.',
-      'Preserve registered MASTER character identity, face, hair, body proportions, costume design, and MASTER background structure whenever reference images are supplied.',
+      ...identityRules,
       'Clean controlled line art, 2-3 step cel shading, clearly readable webtoon composition.',
       'Do not render speech bubbles, captions, sound effects, letters, logos, watermarks, or UI.',
       'Avoid photorealism, 3D render appearance, novel-cover illustration style, excessive skin texture, unnecessary ornaments or invented props.',
+      `Episode: ${episodeId}`,
       `CUT: ${String(cutId).padStart(3,'0')}`,
       `Continuity: ${continuity||'LOCKED'}`,
       `Shot: ${shot||''}`,
       `Camera: ${camera||''}`,
       `Action: ${action||''}`,
+      projectStyle ? `Project visual style: ${projectStyle}` : '',
+      storyVisual ? `Story Bible visual constraints: ${storyVisual}` : '',
       `Production specification: ${prompt}`
-    ].join('\n')}];
+    ].filter(Boolean).join('\n')}];
+    let ri=0;
     for(const ref of references){
-      if(ref?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(ref.dataUrl)) content.push({type:'input_image',image_url:ref.dataUrl,detail:'high'});
+      if(ref?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(ref.dataUrl)){
+        ri++;
+        content.push({type:'input_text',text:`MASTER REFERENCE ${ri}: ${ref.type||'ASSET'} — ${ref.name||ref.id||''}. Preserve this reference according to the MASTER LOCK rules above.`});
+        content.push({type:'input_image',image_url:ref.dataUrl,detail:'high'});
+      }
     }
     const payload={
       model: process.env.OPENAI_ORCHESTRATOR_MODEL || 'gpt-5',
