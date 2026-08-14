@@ -20,3 +20,7 @@ Add these Project Environment Variables and redeploy:
 - `OPENAI_ORCHESTRATOR_MODEL` (default `gpt-5`)
 
 MASTER uploads are currently browser-local. Persistent cloud asset storage is the next storage milestone.
+
+
+## Security patch
+- Next.js pinned to 15.5.21 (Maintenance LTS security release) for Vercel deployment compatibility.
