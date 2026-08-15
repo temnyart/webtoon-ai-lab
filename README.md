@@ -1531,3 +1531,42 @@ V40.6 changed the response transport from JSON/base64 to binary WEBP, but the ne
 - add `GENERATE_CUT_RUNTIME_ERROR` code to unexpected server failures
 
 No generation prompt, quality, MASTER input, or transport architecture was changed.
+
+
+## V40.9 — Request Completion Handoff Fix
+
+### Production diagnosis
+The latest CUT 016 request returned HTTP 200 from `/api/generate-cut`.
+The server/OpenAI/binary transport path therefore completed successfully.
+
+The remaining freeze was a client UI lifecycle bug introduced by V40.1 request-modal protection:
+
+1. Final generation request modal is marked `requestOperation='generate_cut'`.
+2. API returns successfully and IndexedDB save completes.
+3. `showGeneratedResult()` tries to replace the loading modal.
+4. `modalShell()` sees the old request modal as still active and refuses to replace it.
+5. The loading screen remains at ~55 seconds and a bottom-right warning appears:
+   “현재 API 작업이 실행 중입니다. 먼저 완료하거나 취소해주세요.”
+6. `finally` clears the request only after the result modal attempt has already been blocked.
+
+So the latest symptom was not an OpenAI generation failure and not proven to be an IndexedDB quota failure.
+
+### Fix
+Added an explicit request completion handoff:
+- `completeUiRequest(operation, cutId, note)`
+- clears the request controller
+- unlocks/removes request metadata from the active modal
+- only then opens the success/error result UI
+
+Applied to:
+- Final CUT generation
+- MASTER transform
+- Partial Edit
+
+Generate CUT error UI is also unlocked before `showGenerateError()`, preventing real errors from being hidden behind the loading modal.
+
+### Result
+A successful 200 Final generation now transitions:
+`OpenAI 생성 → 응답 수신 → IndexedDB 저장 → request unlock → 생성 결과 화면`
+
+instead of remaining on the generation spinner.
