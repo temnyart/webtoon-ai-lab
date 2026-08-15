@@ -1471,3 +1471,19 @@ After deploy:
 - watch which generation stage is slow.
 If it stops at `MASTER 전처리`, inspect the named MASTER.
 If it stops at `OpenAI 이미지 생성`, the request will self-terminate at 180 seconds.
+
+
+## V40.6 — Final Image Transport Fix
+
+### 변경 사항
+- `/api/generate-cut` 가 더 이상 `data:image/...;base64,...`를 JSON으로 반환하지 않습니다.
+- 이제 생성 이미지를 **binary image/webp 응답**으로 반환합니다.
+- 모델/프리셋 정보는 응답 헤더(`X-OpenAI-Model`, `X-Generation-Preset`)로 전달합니다.
+- 클라이언트 `generateCut()` 는 `content-type` 이 `image/*` 인 경우 Blob으로 읽은 뒤 Data URL로 변환하여 기존 IndexedDB 저장 파이프라인을 그대로 사용합니다.
+- 오류 응답은 기존처럼 JSON 유지합니다.
+
+### 해결되는 문제
+- Final 이미지 응답의 JSON/base64 팽창 제거
+- Vercel → Browser 응답 크기 증가 완화
+- `res.text() / JSON.parse()` 단계의 비효율 제거
+- 생성 완료 후 50초대 부근에서 멈춘 것처럼 보이는 응답 전달 문제 완화

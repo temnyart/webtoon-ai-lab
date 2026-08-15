@@ -175,7 +175,8 @@ export async function POST(req){
     if(!r.ok) return Response.json({error:data?.error?.message || 'OpenAI API request failed',details:data?.error || null},{status:r.status});
     const b64=imageResult(data);
     if(!b64) return Response.json({error:'이미지 결과를 찾지 못했습니다.',responseId:data?.id || null},{status:502});
-    return Response.json({ok:true,cutId,image:`data:image/webp;base64,${b64}`,responseId:data.id,model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5',preset:generationPreset?.id||'standard',quality:presetQuality,inputFidelity:presetInputFidelity});
+    const bytes=Buffer.from(b64,'base64');
+    return new Response(bytes,{status:200,headers:{'Content-Type':'image/webp','Content-Length':String(bytes.byteLength),'Cache-Control':'no-store','X-Image-Transport':'binary','X-OpenAI-Model':process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5','X-Generation-Preset':presetId || 'standard','X-Generation-Quality':presetQuality,'X-Input-Fidelity':presetInputFidelity}});
   }catch(err){
     console.error(err);
     return Response.json({error:err?.message || 'Unexpected server error'},{status:500});

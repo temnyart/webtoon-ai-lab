@@ -3484,14 +3484,27 @@ async function generateCut(id,opts={}){
     }
     if(requestSignal?.aborted)throw taskCancelledError();
     if(!silent)generationStage(id,'request','OpenAI에서 최종 이미지를 생성하고 있습니다. 최대 180초 후 자동 중단됩니다.');
-    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:requestSignal},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`,timeoutMs:180000});
+    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`,timeoutMs:180000});
     if(!silent)generationStage(id,'response','생성 응답을 수신하고 결과 이미지를 확인 중입니다.');
-    const raw=await res.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
-    if(!res.ok)throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
-    sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,responseId:data.responseId,model:data.model,preset:data.preset||genCfg.id,createdAt:new Date().toISOString()}));
+    const contentType=(res.headers.get('content-type')||'').toLowerCase();
+    let data={};
+    if(contentType.startsWith('image/')){
+      const image=await responseToDataUrl(res);
+      data={
+        ok:true,
+        image,
+        model:res.headers.get('x-openai-model')||'gpt-image-1.5',
+        preset:res.headers.get('x-generation-preset')||genCfg.id,
+        transport:res.headers.get('x-image-transport')||'binary'
+      };
+    }else{
+      const raw=await res.text();try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
+      if(!res.ok)throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
+    }
+    sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,episodeId:activeEpisodeId,model:data.model||'gpt-image-1.5',preset:data.preset||genCfg.id,transport:data.transport||'binary',createdAt:new Date().toISOString()}));
     if(!data.image)throw new Error('생성 응답에 이미지가 없습니다.');
     if(!silent)generationStage(id,'save','생성 결과를 IndexedDB에 저장하고 있습니다.');
-    await saveGenerated(c,data.image,data.model);
+    await saveGenerated(c,data.image,data.model,data.preset||genCfg.id);
     if(!silent)showGeneratedResult(c,refs,data.image,data.model,data.preset||genCfg.id);
     return {ok:true,image:data.image,model:data.model,preset:data.preset||genCfg.id};
   }catch(err){
@@ -3559,11 +3572,27 @@ function showGenerating(c,refs,preset=generationPreset(c.id)){
    <div class="genStageRow" id="gen-stage-response"><span class="genStageDot">4</span><span>응답 수신</span><span class="genStageTime">Decode</span></div>
    <div class="genStageRow" id="gen-stage-save"><span class="genStageDot">5</span><span>결과 저장</span><span class="genStageTime">IndexedDB</span></div>
   </div>
-  <div id="gen-stage-message" class="requestModalHint">생성 준비 중…</div><div id="genWatchdogNote" class="genWatchdog">경과 시간 <b id="genElapsed">0초</b> · 생성 요청이 멈춘 것처럼 보여도 단계별 상태를 확인할 수 있습니다.</div>
+  <div id="gen-stage-message" class="requestModalHint">생성 준비 중…</div><div id="genWatchdogNote" class="genWatchdog">경과 시간 <b id="genElapsed">0초</b> · OpenAI 생성 후 이미지는 Binary 응답으로 수신됩니다. 단계별 상태를 확인할 수 있습니다.</div>
   <div class="right"><button class="btn" onclick="toggleActivityPanel(true)">Activity</button><button class="btn cancelBtn" onclick="requestUiOperationCancel('generate_cut',${c.id})">생성 취소</button></div></div>`,{requestOperation:'generate_cut',cutId:c.id});
   generationUiStart(c.id);
 }
-async function saveGenerated(c,image,model){const preset=effectivePresetId(c.id);lastGenerated={cutId:c.id,image,model,preset};cutStates[stateKey(c.id)]={status:'generated',model,preset,updatedAt:new Date().toISOString()};saveStates();await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()})}
+async function responseToDataUrl(res){
+ const blob=await res.blob();
+ if(!blob||!blob.size)throw new Error('생성 응답 이미지가 비어 있습니다.');
+ return await blobToDataUrl(blob);
+}
+function blobToDataUrl(blob){
+ return new Promise((resolve,reject)=>{
+  const fr=new FileReader();
+  fr.onload=()=>resolve(fr.result);
+  fr.onerror=()=>reject(fr.error||new Error('Blob 변환 실패'));
+  fr.readAsDataURL(blob);
+ });
+}
+async function saveGenerated(c,image,model,presetId=effectivePresetId(c.id)){
+ const preset=GENERATION_PRESETS[presetId]||GENERATION_PRESETS.standard;
+ await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()});
+}
 function showGeneratedResult(c,refs,image,model,presetId=effectivePresetId(c.id)){
   const preset=GENERATION_PRESETS[presetId]||GENERATION_PRESETS.standard;
   modalShell(`<div class="eyebrow">GENERATION COMPLETE · ${model||''} · ${esc(preset.name)}</div><h2>CUT ${String(c.id).padStart(3,'0')} 생성 완료</h2><img src="${image}" style="display:block;width:min(430px,100%);max-height:68vh;object-fit:contain;margin:14px auto;border-radius:12px;background:#eee"><p style="font-size:12px;color:#777">MASTER ${refs.length}개 참조 · ${c.continuity} · ${c.shot} · ${esc(preset.name)} · ${preset.quality.toUpperCase()}</p><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn" onclick="downloadDataUrl('${stateKey(c.id)}',${c.id})">다운로드</button><button class="btn" onclick="holdGenerated(${c.id})">보류 저장</button><button class="btn" onclick="document.querySelector('#genResult').remove();generateCut(${c.id})">다시 생성</button><button class="btn dark" onclick="approveGenerated(${c.id})">✓ 채택</button></div>`);
