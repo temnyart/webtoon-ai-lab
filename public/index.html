@@ -250,6 +250,9 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 .letterPresetBar{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 9px}.letterPresetBar .btn{font-size:7px}
 
 .masterStorageNote{border:1px solid #d9e4f1;background:#f5f9fd;border-radius:10px;padding:9px 11px;font-size:8px;color:#496278;line-height:1.5}
+
+/* V40.5 — Generation Watchdog */
+.genStageBox{display:grid;gap:7px;margin:12px 0}.genStageRow{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:#fafafa;font-size:8px}.genStageDot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#eee;color:#777;font-size:7px;font-weight:800}.genStageRow.active .genStageDot{background:#fff0d6;color:#8c5907}.genStageRow.done .genStageDot{background:#eaf6ed;color:#27703b}.genStageRow.error .genStageDot{background:#fff0f0;color:#a12c2c}.genStageTime{font-size:7px;color:#888}.genWatchdog{margin-top:8px;padding:8px 10px;border-radius:9px;background:#f5f5f7;font-size:8px;color:#666;line-height:1.5}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -3392,6 +3395,12 @@ window.openMaster=(t='',n='')=>{if(t)type.value=t;if(n)name.value=n;modal.classL
 };
 
 
+function withTimeout(promise,ms,message='작업 시간이 초과되었습니다.'){
+ return new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(new Error(message)),ms);
+  Promise.resolve(promise).then(v=>{clearTimeout(timer);resolve(v)},e=>{clearTimeout(timer);reject(e)});
+ });
+}
 function compressReferenceDataUrl(dataUrl,maxSide=1200,quality=0.78){
   return new Promise((resolve,reject)=>{
     if(!dataUrl||!dataUrl.startsWith('data:image/')) return resolve(dataUrl);
@@ -3442,7 +3451,7 @@ async function generateCut(id,opts={}){
   const refs=[...new Map(req.map(r=>autoAsset(r)).filter(Boolean).concat(manual).map(a=>[a.id,a])).values()];
   const btn=document.querySelector('#generateBtn');
   if(btn&&!silent){btn.disabled=true;btn.textContent='GENERATING…';}
-  if(!silent)showGenerating(c,refs,genCfg);
+  if(!silent){showGenerating(c,refs,genCfg);generationStage(id,'prepare','CUT 명세와 생성 설정을 준비하고 있습니다.');}
   const uiSignal=!silent?requestModalSignal('generate_cut',id):null,requestSignal=combineAbortSignals(activeTaskSignalOr(signal),uiSignal);
   try{
     if(requestSignal?.aborted)throw taskCancelledError();
@@ -3470,14 +3479,18 @@ async function generateCut(id,opts={}){
     let bodyText=JSON.stringify(requestBody);
     if(bodyText.length>3200000){
       const smaller=[];
-      for(const a of refs)smaller.push({id:a.id,name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,Math.min(900,genCfg.refMaxSide),Math.min(.70,genCfg.refCompression))});
+      for(const a of refs){if(requestSignal?.aborted)throw taskCancelledError();smaller.push({id:a.id,name:a.name,type:a.type,dataUrl:await withTimeout(compressReferenceDataUrl(a.img,Math.min(900,genCfg.refMaxSide),Math.min(.70,genCfg.refCompression)),30000,`MASTER 재압축 시간 초과 · ${a.name}`)});}
       requestBody.references=smaller;bodyText=JSON.stringify(requestBody);
     }
     if(requestSignal?.aborted)throw taskCancelledError();
-    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:requestSignal},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`});
+    if(!silent)generationStage(id,'request','OpenAI에서 최종 이미지를 생성하고 있습니다. 최대 180초 후 자동 중단됩니다.');
+    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:requestSignal},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`,timeoutMs:180000});
+    if(!silent)generationStage(id,'response','생성 응답을 수신하고 결과 이미지를 확인 중입니다.');
     const raw=await res.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
     if(!res.ok)throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
     sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,responseId:data.responseId,model:data.model,preset:data.preset||genCfg.id,createdAt:new Date().toISOString()}));
+    if(!data.image)throw new Error('생성 응답에 이미지가 없습니다.');
+    if(!silent)generationStage(id,'save','생성 결과를 IndexedDB에 저장하고 있습니다.');
     await saveGenerated(c,data.image,data.model);
     if(!silent)showGeneratedResult(c,refs,data.image,data.model,data.preset||genCfg.id);
     return {ok:true,image:data.image,model:data.model,preset:data.preset||genCfg.id};
@@ -3486,7 +3499,7 @@ async function generateCut(id,opts={}){
     if(!silent)showGenerateError(c,err.message);
     return {ok:false,error:err.message};
   }finally{
-    if(!silent)finishUiRequest('generate_cut',id);
+    if(!silent){generationUiStop(id);finishUiRequest('generate_cut',id);}
     const b=document.querySelector('#generateBtn');if(b&&!silent){b.disabled=false;b.textContent='Generate CUT';}
   }
 }
@@ -3504,8 +3517,51 @@ function modalShell(inner,opts={}){
  box.addEventListener('click',e=>{if(e.target===box){if(opts.requestOperation){const cut=opts.cutId??null;requestUiOperationCancel(opts.requestOperation,cut,opts.requestNote||'')}else if(opts.longTask)requestLongTaskCancel();else box.remove()}});
  document.body.appendChild(box);return box;
 }
+
+const generationUiState=new Map();
+function generationUiStart(id){
+ generationUiState.set(id,{startedAt:Date.now(),stage:'prepare',timer:null,lastStageAt:Date.now()});
+ const st=generationUiState.get(id);
+ st.timer=setInterval(()=>updateGenerationElapsed(id),1000);
+}
+function generationUiStop(id){
+ const st=generationUiState.get(id);if(st?.timer)clearInterval(st.timer);generationUiState.delete(id);
+}
+function generationStage(id,stage,message=''){
+ const st=generationUiState.get(id);if(st){st.stage=stage;st.lastStageAt=Date.now()}
+ const stages=['prepare','references','request','response','save'];
+ stages.forEach(k=>{
+  const row=document.querySelector(`#gen-stage-${k}`);
+  if(!row)return;
+  const idx=stages.indexOf(k),cur=stages.indexOf(stage);
+  row.classList.toggle('done',idx<cur||stage==='done');
+  row.classList.toggle('active',k===stage);
+ });
+ const msg=document.querySelector('#gen-stage-message');if(msg&&message)msg.textContent=message;
+ updateGenerationElapsed(id);
+}
+function updateGenerationElapsed(id){
+ const st=generationUiState.get(id);if(!st)return;
+ const sec=Math.max(0,Math.floor((Date.now()-st.startedAt)/1000)),el=document.querySelector('#genElapsed');
+ if(el)el.textContent=sec<60?`${sec}초`:`${Math.floor(sec/60)}분 ${sec%60}초`;
+ const note=document.querySelector('#genWatchdogNote');
+ if(note){
+  if(st.stage==='request'&&sec>=120)note.innerHTML='<b>응답이 평소보다 오래 걸리고 있습니다.</b><br>최종 생성 요청은 180초에서 자동 중단됩니다. 다시 시도하면 됩니다.';
+  else if(st.stage==='references'&&Date.now()-st.lastStageAt>30000)note.innerHTML='<b>MASTER 전처리가 오래 걸리고 있습니다.</b><br>손상되거나 너무 큰 레퍼런스가 있는지 확인해주세요.';
+ }
+}
 function showGenerating(c,refs,preset=generationPreset(c.id)){
-  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p><p class="requestModalHint">다른 곳을 눌러도 이 창은 닫히지 않습니다. × 또는 생성 취소를 누르면 실제 작업 취소를 확인합니다.</p><div class="right"><button class="btn cancelBtn" onclick="requestUiOperationCancel('generate_cut',${c.id})">생성 취소</button></div></div>`,{requestOperation:'generate_cut',cutId:c.id});
+  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p>
+  <div class="genStageBox">
+   <div class="genStageRow active" id="gen-stage-prepare"><span class="genStageDot">1</span><span>생성 준비</span><span class="genStageTime">Prompt / Spec</span></div>
+   <div class="genStageRow" id="gen-stage-references"><span class="genStageDot">2</span><span>MASTER 전처리</span><span class="genStageTime">${refs.length} refs</span></div>
+   <div class="genStageRow" id="gen-stage-request"><span class="genStageDot">3</span><span>OpenAI 이미지 생성</span><span class="genStageTime">최대 180초</span></div>
+   <div class="genStageRow" id="gen-stage-response"><span class="genStageDot">4</span><span>응답 수신</span><span class="genStageTime">Decode</span></div>
+   <div class="genStageRow" id="gen-stage-save"><span class="genStageDot">5</span><span>결과 저장</span><span class="genStageTime">IndexedDB</span></div>
+  </div>
+  <div id="gen-stage-message" class="requestModalHint">생성 준비 중…</div><div id="genWatchdogNote" class="genWatchdog">경과 시간 <b id="genElapsed">0초</b> · 생성 요청이 멈춘 것처럼 보여도 단계별 상태를 확인할 수 있습니다.</div>
+  <div class="right"><button class="btn" onclick="toggleActivityPanel(true)">Activity</button><button class="btn cancelBtn" onclick="requestUiOperationCancel('generate_cut',${c.id})">생성 취소</button></div></div>`,{requestOperation:'generate_cut',cutId:c.id});
+  generationUiStart(c.id);
 }
 async function saveGenerated(c,image,model){const preset=effectivePresetId(c.id);lastGenerated={cutId:c.id,image,model,preset};cutStates[stateKey(c.id)]={status:'generated',model,preset,updatedAt:new Date().toISOString()};saveStates();await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()})}
 function showGeneratedResult(c,refs,image,model,presetId=effectivePresetId(c.id)){

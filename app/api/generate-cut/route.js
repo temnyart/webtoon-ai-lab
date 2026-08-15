@@ -161,7 +161,16 @@ export async function POST(req){
       tools:[{type:'image_generation',model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5',quality:presetQuality,size:'1024x1536',input_fidelity:presetInputFidelity,output_format:'webp',output_compression:presetCompression}],
       tool_choice:{type:'image_generation'}
     };
-    const r=await fetch('https://api.openai.com/v1/responses',{signal:req.signal,method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const upstreamController=new AbortController();
+    const upstreamTimer=setTimeout(()=>upstreamController.abort(new DOMException('OpenAI image generation timeout','AbortError')),175000);
+    const upstreamSignal=typeof AbortSignal!=='undefined'&&AbortSignal.any?AbortSignal.any([req.signal,upstreamController.signal]):upstreamController.signal;
+    let r;
+    try{
+      r=await fetch('https://api.openai.com/v1/responses',{signal:upstreamSignal,method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    }catch(err){
+      if(upstreamController.signal.aborted&&!req.signal.aborted)return Response.json({error:'OpenAI 이미지 생성이 175초를 초과해 자동 중단되었습니다. 다시 시도해주세요.',code:'UPSTREAM_TIMEOUT'},{status:504});
+      throw err;
+    }finally{clearTimeout(upstreamTimer)}
     const data=await r.json();
     if(!r.ok) return Response.json({error:data?.error?.message || 'OpenAI API request failed',details:data?.error || null},{status:r.status});
     const b64=imageResult(data);

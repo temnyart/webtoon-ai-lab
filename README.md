@@ -1425,3 +1425,49 @@ After deploying V40.4:
 - Data Integrity manual repair also strips legacy `img` before writing `wtal_assets`
 - no direct runtime save path intentionally writes MASTER image binaries back into LocalStorage
 - workspace clone/switch/delete, backup/full restore/MASTER restore reviewed for `masterImages`.
+
+
+## V40.5 — Final CUT Generation Watchdog
+
+Triggered by a real issue: CUT 015 Final generation could remain on the loading screen with no visible stage information.
+
+### Root causes addressed
+The previous Final generation UI showed only one spinner across several independent phases:
+1. reference compression,
+2. oversized payload recompression,
+3. browser → Vercel request,
+4. OpenAI image generation,
+5. response decode,
+6. IndexedDB result save.
+
+The browser request timeout was 240 seconds, and the Vercel route could wait up to 300 seconds. To the user this could look like an infinite wait.
+
+### V40.5 behavior
+Final generation now shows explicit stages:
+1. 생성 준비
+2. MASTER 전처리
+3. OpenAI 이미지 생성
+4. 응답 수신
+5. 결과 저장
+
+The dialog shows elapsed time and remains explicitly cancellable.
+
+### Watchdogs
+- each MASTER compression: max 30 seconds
+- Final CUT browser API request: max 180 seconds
+- server → OpenAI image generation: max 175 seconds
+- Vercel route `maxDuration=300` remains as platform ceiling, but the internal watchdog should exit first.
+
+If OpenAI does not return in time, the user gets a retryable timeout error instead of an indefinite spinner.
+
+### Important billing note
+A timeout/cancel request is best-effort. If upstream generation already completed or was nearly complete, API cost may still have been incurred.
+
+### CUT 015 test
+After deploy:
+- cancel any stale CUT 015 activity,
+- reload,
+- retry CUT 015 once,
+- watch which generation stage is slow.
+If it stops at `MASTER 전처리`, inspect the named MASTER.
+If it stops at `OpenAI 이미지 생성`, the request will self-terminate at 180 seconds.
