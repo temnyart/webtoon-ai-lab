@@ -1570,3 +1570,30 @@ A successful 200 Final generation now transitions:
 `OpenAI 생성 → 응답 수신 → IndexedDB 저장 → request unlock → 생성 결과 화면`
 
 instead of remaining on the generation spinner.
+
+
+## V41 — Canvas-first Lettering Editor Redesign
+Lettering is now edited directly on the CUT instead of through a long control form below the image.
+
+### Layout
+- Elements list on the left
+- large editable CUT canvas in the center
+- contextual Inspector on the right
+
+### Direct manipulation
+- click selects
+- drag moves
+- corner handles resize
+- top handle rotates
+- double-click edits text in place
+- zoom / fit
+- safe-area guide
+
+### Inspector
+Content, type, preset, X/Y, width, rotation, font size, weight, tracking, leading, alignment, font, opacity, layer Z, tail, duplicate/copy/delete.
+
+### Keyboard
+Arrow keys move, Shift+Arrow moves faster, Ctrl/Cmd+D duplicate, Ctrl/Cmd+C/V copy/paste, Delete removes, Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z redo.
+
+### Compatibility
+Existing `wtal_lettering` data remains supported through runtime normalization. No paid API call is used by the editor.
