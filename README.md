@@ -28,10 +28,25 @@
 
 ## V43.3.5 — Lettering Runtime Repair
 
-- Fixed malformed standalone Lettering HTML/script boundary (`<div id="toast" class="t<script>`).
-- Restored the missing Reliability Audit panel DOM referenced by the editor JavaScript.
-- Preserved V43.3.4 image source recovery: IndexedDB → Project Snapshot → Session fallback.
-- Added a visible `SOURCE · ...` badge so the actual image source path is observable.
-- Bumped Lettering route cache bust to V43.3.5.
+Root structural issue found during full re-check:
+- `public/lettering-editor.html` had a malformed HTML/script boundary: `<div id="toast" class="t<script>`.
+- The Audit panel controls were referenced by JavaScript but the panel DOM was missing.
 
-This patch does not require image regeneration.
+Repairs:
+- Restored a valid `<div id="toast" class="toast"></div>` followed by a real `<script>` tag.
+- Restored the Reliability Audit panel DOM.
+- Preserved V43.3.4 source fallback: IndexedDB / project snapshot / session source cache.
+- Added a visible `SOURCE · ...` badge showing where the Lettering source image was loaded from.
+- Main app opens Lettering with `v=43.3.5` plus timestamp cache busting.
+
+This patch specifically targets the standalone Lettering runtime boot path rather than requiring image regeneration.
+
+
+## V43.3.6 — Lettering Simplified UI + Webtoon Balloon
+- 오른쪽 Inspector를 Content / Bubble Style / Text / Quick Color / Quick Workflow 중심으로 축소.
+- 이동, 크기, 회전, 폭은 캔버스 직접 조작만 사용하고 Inspector에서 중복 노출 제거.
+- 세부 폰트 라이브러리, Auto Layout, 외곽선 등은 기본 닫힘 `고급 설정`으로 이동.
+- 기본 대사 말풍선을 웹툰에서 흔히 쓰는 흰색 타원 + 검정 외곽선 + 뾰족한 꼬리 형태로 교체.
+- 기존 50px rounded-rectangle 느낌 대신 `50% / 44%` 타원 geometry 사용.
+- 꼬리를 회전 사각형 방식에서 이중 삼각형(outline + fill) 방식으로 교체.
+- 새 말풍선 생성 시 기본 꼬리와 웹툰형 padding 적용.

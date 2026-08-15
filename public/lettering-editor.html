@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Webtoon AI Lab · Lettering V43.1</title>
+<title>Webtoon AI Lab · Lettering V43.3.6</title>
 <style>
 :root{--bg:#f4f4f6;--panel:#fff;--line:#e1e1e5;--text:#1d1d1f;--muted:#86868b;--accent:#111;--blue:#3578f6}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);overflow:hidden}
@@ -123,13 +123,35 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 .audit-body{overflow:auto;padding:12px}.audit-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}.audit-card{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa}.audit-card b{display:block;font-size:14px}.audit-card small{font-size:8px;color:#777}
 .audit-row{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:start;border-bottom:1px solid #eee;padding:8px 0;font-size:8px}.audit-row .pass{color:#257543;font-weight:800}.audit-row .warn{color:#996b00;font-weight:800}.audit-row .fail{color:#a22;font-weight:800}.audit-log{font-family:ui-monospace,Consolas,monospace;font-size:7px;white-space:pre-wrap;background:#111;color:#ddd;border-radius:8px;padding:9px;margin-top:10px;max-height:220px;overflow:auto}
 @media(max-width:800px){.audit-summary{grid-template-columns:repeat(2,1fr)}.audit-panel{inset:60px 10px 10px}}
+
+/* V43.3.6 — simplified inspector + standard webtoon balloons */
+.inspector{padding:12px 11px}.inspector .pane-title{position:sticky;top:-12px;background:#fff;z-index:5;padding:12px 0 8px;margin:0 0 4px}
+.inspector-intro{font-size:7px;line-height:1.55;color:#888;background:#f6f6f8;border-radius:8px;padding:8px;margin:6px 0 10px}
+.basic-style-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.basic-style-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 7px;text-align:left;cursor:pointer}.basic-style-btn:hover{background:#f5f5f7}.basic-style-btn.on{border-color:#111;box-shadow:inset 0 0 0 1px #111}.basic-style-btn b{display:block;font-size:8px}.basic-style-btn small{display:block;font-size:7px;color:#888;margin-top:2px}
+.basic-font-row{display:grid;grid-template-columns:1fr 74px;gap:6px}.quick-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.quick-mini .btn{padding:0 5px}
+.editor-advanced{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.editor-advanced>summary{cursor:pointer;list-style:none;font-size:8px;font-weight:900;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:#fafafa;display:flex;align-items:center;justify-content:space-between}.editor-advanced>summary::-webkit-details-marker{display:none}.editor-advanced>summary:after{content:'＋';color:#777}.editor-advanced[open]>summary:after{content:'−'}.advanced-body{padding:4px 1px 10px}.canvas-control-note{font-size:7px;line-height:1.55;color:#777;padding:8px;border:1px dashed #d7d7dc;border-radius:8px;background:#fafafa}.hidden-binding-controls{display:none!important}
+.item.dialogue.ellipse{min-height:64px}
+.item.thought.cloud{border-radius:48% 52% 46% 54% / 54% 47% 53% 46%!important}
+.tail{position:absolute;width:24px;height:22px;background:transparent!important;border:0!important;display:none;z-index:-1;overflow:visible}
+.item.has-tail .tail{display:block}
+.tail:before,.tail:after{content:'';position:absolute;left:0;top:0;width:0;height:0;border-style:solid}
+.tail:before{border-width:13px 10px 0 10px;border-color:var(--tail-stroke,#111) transparent transparent transparent}
+.tail:after{left:2px;top:-1px;border-width:10px 8px 0 8px;border-color:var(--tail-fill,#fff) transparent transparent transparent}
+.tail.bl{left:20%;bottom:-18px;transform:rotate(12deg)}
+.tail.br{right:20%;bottom:-18px;transform:rotate(-12deg)}
+.tail.tl{left:20%;top:-18px;transform:rotate(168deg)}
+.tail.tr{right:20%;top:-18px;transform:rotate(192deg)}
+.tail-direct{background:transparent!important;height:24px!important;z-index:-1}
+.tail-direct:before{left:0!important;top:2px!important;width:100%!important;height:20px!important;background:var(--tail-stroke,#111)!important;clip-path:polygon(0 33%,100% 50%,0 67%)!important}
+.tail-direct:after{content:'';position:absolute;left:0;top:4px;width:calc(100% - 2px);height:16px;background:var(--tail-fill,#fff);clip-path:polygon(0 35%,100% 50%,0 65%)}
+
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.5</span>
+    <span class="badge">LETTERING V43.3.6</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div><span id="sourceStatus" class="status" style="display:none"></span>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -144,7 +166,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
     <aside class="inspector"><div class="pane-title"><b>Inspector</b><small>선택 요소</small></div><div id="inspector"></div></aside>
   </div>
 </div>
-<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.5 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
+<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.6 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
 <div id="toast" class="toast"></div>
 <script>
 
@@ -375,7 +397,7 @@ function snapAngle(deg,step=15,threshold=4){const s=Math.round(deg/step)*step;re
 function updateTailGeometry(x,el){
  if(!el)return;const shaft=el.querySelector('.tail-direct'),handle=el.querySelector('.tail-handle');if(!shaft||!handle)return;
  const dx=x.tailDX||0,dy=x.tailDY||42,len=Math.max(18,Math.hypot(dx,dy)),ang=Math.atan2(dy,dx)*180/Math.PI;
- shaft.style.width=len+'px';shaft.style.transform=`rotate(${ang}deg)`;shaft.style.setProperty('--tail-fill',x.fill==='transparent'?x.textColor:x.fill);
+ shaft.style.width=len+'px';shaft.style.transform=`rotate(${ang}deg)`;shaft.style.setProperty('--tail-fill',x.fill==='transparent'?x.textColor:x.fill);shaft.style.setProperty('--tail-stroke',x.strokeColor||'#111111');
  handle.style.left=`calc(50% + ${dx}px)`;handle.style.top=`calc(50% + ${dy}px)`;handle.style.transform='translate(-50%,-50%)';
 }
 function showDragBadge(text,clientX,clientY){
@@ -485,7 +507,7 @@ function render(){
   const el=document.createElement('div');
   el.className=`item ${x.type} ${x.shape||'ellipse'}${x.vertical?' vertical':''}${x.tail&&x.tail!=='none'?' has-tail':''}${x.directTail?' has-direct-tail':''}${x.id===selected?' on':''}${isMultiSelected(x.id)?' multi-on':''}`;
   el.dataset.id=x.id;
-  el.style.cssText=`left:${x.x}%;top:${x.y}%;width:${x.width}%;font-size:${x.size}px;font-family:${x.font},sans-serif;font-weight:${x.weight};font-style:${x.fontStyle};letter-spacing:${x.letterSpacing}px;line-height:${x.lineHeight};opacity:${x.opacity};text-align:${x.align};z-index:${x.z};transform:translate(-50%,-50%) rotate(${x.rotate}deg) scale(${x.scale});color:${x.textColor};background:${hexToRgba(x.fill,x.bgOpacity)};border-color:${x.strokeColor};border-width:${x.strokeWidth}px;border-style:${x.strokeWidth>0?'solid':'none'};border-radius:${x.radius}px;box-shadow:${shadowCss(x.shadow)};text-shadow:${x.textStrokeWidth>0?`${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},-${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},0 ${x.textStrokeWidth}px 0 ${x.textStrokeColor},0 -${x.textStrokeWidth}px 0 ${x.textStrokeColor}`:textShadowCss(x)};padding:${x.paddingY}px ${x.paddingX}px`;
+  el.style.cssText=`left:${x.x}%;top:${x.y}%;width:${x.width}%;font-size:${x.size}px;font-family:${x.font},sans-serif;font-weight:${x.weight};font-style:${x.fontStyle};letter-spacing:${x.letterSpacing}px;line-height:${x.lineHeight};opacity:${x.opacity};text-align:${x.align};z-index:${x.z};transform:translate(-50%,-50%) rotate(${x.rotate}deg) scale(${x.scale});color:${x.textColor};background:${hexToRgba(x.fill,x.bgOpacity)};border-color:${x.strokeColor};border-width:${x.strokeWidth}px;border-style:${x.strokeWidth>0?'solid':'none'};border-radius:${bubbleRadiusCss(x)};--tail-fill:${hexToRgba(x.fill,x.bgOpacity)};--tail-stroke:${x.strokeColor};box-shadow:${shadowCss(x.shadow)};text-shadow:${x.textStrokeWidth>0?`${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},-${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},0 ${x.textStrokeWidth}px 0 ${x.textStrokeColor},0 -${x.textStrokeWidth}px 0 ${x.textStrokeColor}`:textShadowCss(x)};padding:${x.paddingY}px ${x.paddingX}px`;
   el.innerHTML=`<span class="txt">${esc(x.text)}</span><span class="tail ${x.tail||'none'}"></span><span class="tail-direct"></span><i class="tail-handle" data-h="tail"></i><i class="handle nw" data-h="scale"></i><i class="handle ne" data-h="scale"></i><i class="handle sw" data-h="scale"></i><i class="handle se" data-h="scale"></i><i class="handle w" data-h="width"></i><i class="handle e" data-h="width"></i><i class="handle rot" data-h="rotate"></i>`;
   $('#stage').appendChild(el);
   updateTailGeometry(x,el);
@@ -494,6 +516,12 @@ function render(){
 }
 
 
+function bubbleRadiusCss(x){
+ if(x.shape==='ellipse')return '50% / 44%';
+ if(x.shape==='cloud')return '48% 52% 46% 54% / 54% 47% 53% 46%';
+ if(x.shape==='borderless'||x.shape==='jagged')return '0px';
+ return `${x.radius}px`;
+}
 function hexToRgba(hex,alpha){
  if(hex==='transparent')return 'transparent';
  const h=String(hex||'#ffffff').replace('#','');
@@ -503,13 +531,13 @@ function hexToRgba(hex,alpha){
 }
 function applyCompleteStylePreset(x,id){
  const presets={
-  'bubble-white':{type:'dialogue',shape:'ellipse',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:2,radius:50,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff'},
+  'bubble-white':{type:'dialogue',shape:'ellipse',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:2,radius:50,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'br',directTail:false,paddingX:18,paddingY:14},
   'caption-black':{type:'caption',shape:'box',fill:'#111111',bgOpacity:1,textColor:'#ffffff',strokeWidth:0,radius:6,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff'},
   'narration-cream':{type:'narration',shape:'box',fill:'#f2eadf',bgOpacity:1,textColor:'#111111',strokeColor:'#8e806d',strokeWidth:1,radius:6,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff'},
   'monologue-dark':{type:'narration',shape:'box',fill:'#292a2d',bgOpacity:.92,textColor:'#ffffff',strokeWidth:0,radius:4,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic'},
   'emotion-red':{type:'dialogue',shape:'rounded',fill:'#fff4f4',bgOpacity:1,textColor:'#9d1c1c',strokeColor:'#c33434',strokeWidth:2.5,radius:20,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff'},
   'thought-cloud':{type:'thought',shape:'cloud',fill:'#ffffff',bgOpacity:.96,textColor:'#333333',strokeColor:'#777777',strokeWidth:1.5,radius:48,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff'},
-  'shout-jagged':{type:'dialogue',shape:'jagged',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:3,radius:0,shadow:'hard',textStrokeWidth:0,textStrokeColor:'#ffffff',weight:900},
+  'shout-jagged':{type:'dialogue',shape:'jagged',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:3,radius:0,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',weight:900,tail:'br',directTail:false},
   'borderless-monologue':{type:'narration',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic'},
   'sfx-impact-white':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:2,textStrokeColor:'#ffffff',weight:900},
   'sfx-impact-black':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#ffffff',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:3,textStrokeColor:'#111111',weight:900}
@@ -625,163 +653,70 @@ function syncFloatbar(){const x=items.find(v=>v.id===selected); if(x) showFloatb
 
 function renderInspector(){
  const x=items.find(v=>v.id===selected);
- if(!x){ $('#inspector').innerHTML='<div class="empty">말풍선 또는 SFX를 선택하세요.</div>'; hideFloatbar(); return; }
- const ps=x.type==='sfx'?presets.sfx:presets.dialogue;
- const colors=['#ffffff','#111111','#3b3b3d','#8e8e93','#f2eadf','#e35b5b','#3f6fd9','#f1c94a'];
- const sw=(field)=>`<div class="color-row">${colors.map(c=>`<button class="swatch ${String(x[field]).toLowerCase()===c?'on':''}" data-color-field="${field}" data-color="${c}" style="background:${c};color:${c==='#111111'?'#fff':'#111'}"></button>`).join('')}</div><div class="custom-color"><label>Custom<input data-color-text="${field}" value="${esc(x[field])}"></label><input type="color" data-color-picker="${field}" value="${/^#[0-9a-f]{6}$/i.test(x[field])?x[field]:'#ffffff'}"></div>`;
+ if(!x){ $('#inspector').innerHTML='<div class="empty">말풍선 또는 SFX를 선택하세요.<br><br>캔버스에서 직접 이동 · 크기 · 회전 · 폭 · 꼬리를 조절할 수 있습니다.</div>'; hideFloatbar(); return; }
+ const colors=['#ffffff','#111111','#3b3b3d','#f2eadf','#e35b5b','#3f6fd9'];
+ const sw=(field)=>`<div class="color-row">${colors.map(c=>`<button class="swatch ${String(x[field]).toLowerCase()===c?'on':''}" data-color-field="${field}" data-color="${c}" style="background:${c};color:${c==='#111111'?'#fff':'#111'}"></button>`).join('')}</div>`;
+ const simpleStyles=[
+  ['bubble-white','기본 대사','웹툰 표준 타원 + 꼬리'],
+  ['thought-cloud','생각','부드러운 생각 말풍선'],
+  ['shout-jagged','외침','각진 강조 말풍선'],
+  ['narration-cream','내레이션','설명/서술 박스'],
+  ['caption-black','캡션','검정 정보 박스'],
+  ['sfx-impact-white','효과음','배경 없는 SFX']
+ ];
+ const currentFont=resolveFont(x.fontKey);
+ const fontOptions=getFontCatalog().map(f=>`<option value="${esc(f.key)}" ${f.key===currentFont.key?'selected':''}>${esc(f.name)}</option>`).join('');
+ $('#inspector').innerHTML=`
+ <div class="inspector-intro"><b>캔버스에서 직접 조작</b><br>이동 · 크기 · 회전 · 말풍선 폭 · 꼬리 방향은 오른쪽 옵션에서 중복하지 않습니다.</div>
+ <div class="sec"><h3>대사</h3><textarea id="fText" placeholder="대사를 입력하세요">${esc(x.text)}</textarea></div>
+ <div class="sec"><h3>말풍선 스타일</h3><div class="basic-style-grid">${simpleStyles.map(([id,l,d])=>`<button class="basic-style-btn ${x.stylePresetId===id?'on':''}" data-complete-style="${id}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
+ <div class="sec"><h3>글자</h3><div class="basic-font-row"><label>폰트<select id="simpleFont">${fontOptions}</select></label><label>크기<input id="fSize" type="number" min="8" max="140" value="${x.size}"></label></div><div class="grid"><label>굵기<select id="fWeight"><option value="400" ${x.weight===400?'selected':''}>Regular</option><option value="500" ${x.weight===500?'selected':''}>Medium</option><option value="700" ${x.weight===700?'selected':''}>Bold</option><option value="900" ${x.weight===900?'selected':''}>Black</option></select></label><label>정렬<select id="fAlign">${['left','center','right'].map(v=>`<option ${v===x.align?'selected':''}>${v}</option>`).join('')}</select></label></div><label>쓰기 방향<select id="fVertical"><option value="0" ${!x.vertical?'selected':''}>가로쓰기</option><option value="1" ${x.vertical?'selected':''}>세로쓰기</option></select></label></div>
+ <div class="sec"><h3>빠른 색상</h3><div class="quick-label">말풍선</div>${sw('fill')}<div class="quick-label">글자</div>${sw('textColor')}</div>
+ <div class="sec"><h3>빠른 작업</h3><div class="quick-mini"><button id="copyLettering" class="btn">복사</button><button id="pasteLettering" class="btn">붙여넣기</button><button id="importPrevCut" class="btn">이전 CUT</button></div></div>
+ <details class="editor-advanced"><summary>고급 설정</summary><div class="advanced-body">
+  <div class="sec"><h3>말풍선 세부</h3><label>꼬리 직접 조작<select id="fDirectTail"><option value="0" ${!x.directTail?'selected':''}>기본 꼬리</option><option value="1" ${x.directTail?'selected':''}>주황 핸들로 직접 조작</option></select></label><label>Shadow<select id="fShadow"><option value="none" ${x.shadow==='none'?'selected':''}>없음</option><option value="soft" ${x.shadow==='soft'?'selected':''}>Soft</option><option value="hard" ${x.shadow==='hard'?'selected':''}>Hard</option></select></label><div class="grid"><label>외곽선<input id="fStroke" type="range" min="0" max="8" step=".5" value="${x.strokeWidth}"></label><label>투명도<input id="fBgOpacity" type="range" min="0" max="100" value="${Math.round(x.bgOpacity*100)}"></label></div><div class="quick-label">외곽선 색</div>${sw('strokeColor')}</div>
+  <div class="sec"><h3>타이포그래피 세부</h3><div class="grid"><label>자간<input id="fTrack" type="number" step=".1" value="${x.letterSpacing}"></label><label>행간<input id="fLead" type="number" step=".05" value="${x.lineHeight}"></label></div><label>Font Style<select id="fFontStyle"><option value="normal" ${x.fontStyle==='normal'?'selected':''}>Normal</option><option value="italic" ${x.fontStyle==='italic'?'selected':''}>Italic</option></select></label><div class="grid"><label>글자 외곽선<input id="fTextStrokeWidth" type="range" min="0" max="6" step=".5" value="${x.textStrokeWidth}"></label><label>외곽선색<input id="fTextStrokeColorPicker" type="color" value="${/^#[0-9a-f]{6}$/i.test(x.textStrokeColor)?x.textStrokeColor:'#ffffff'}"></label></div><input id="fTextStrokeColor" type="hidden" value="${esc(x.textStrokeColor)}"></div>
+  <div class="sec"><h3>자동 레이아웃</h3><div class="auto-grid"><label>자동 레이아웃<select id="fAutoLayout"><option value="1" ${x.autoLayout?'selected':''}>ON</option><option value="0" ${!x.autoLayout?'selected':''}>OFF</option></select></label><label>Auto Fit<select id="fAutoFit"><option value="1" ${x.autoFit?'selected':''}>ON</option><option value="0" ${!x.autoFit?'selected':''}>OFF</option></select></label><label>Auto Expand<select id="fAutoExpand"><option value="1" ${x.autoExpand?'selected':''}>ON</option><option value="0" ${!x.autoExpand?'selected':''}>OFF</option></select></label><label>Max Lines<input id="fMaxLines" type="number" min="1" max="20" value="${x.maxLines}"></label><label>Min Font<input id="fMinFontSize" type="number" min="8" max="40" value="${x.minFontSize}"></label><label>Padding X<input id="fPaddingX" type="number" min="0" max="60" value="${x.paddingX}"></label><label>Padding Y<input id="fPaddingY" type="number" min="0" max="60" value="${x.paddingY}"></label></div><div class="row"><button id="autoLayoutNow" class="btn">자동 배치</button><button id="autoBreaks" class="btn">줄바꿈 정리</button></div><div id="layoutStatus" class="layout-status"></div><div id="overflowWarn" class="overflow-warn">긴 대사가 말풍선 범위를 초과할 수 있습니다.</div></div>
+  <div class="sec"><h3>폰트 라이브러리</h3>${fontBrowserHtml(x.fontKey)}</div>
+  <div class="sec"><h3>저장 스타일</h3><div class="saved-style-row"><select id="savedStyleSelect"><option value="">저장 스타일 선택</option>${Object.keys(savedStyles).map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('')}</select><button id="saveStyle" class="btn">저장</button><button id="deleteStyle" class="btn">삭제</button></div></div>
+ </div></details>
+ <div class="hidden-binding-controls"><input id="fX" value="${x.x}"><input id="fY" value="${x.y}"><input id="fScale" value="${Math.round(x.scale*100)}"><input id="fRot" value="${x.rotate}"><input id="fScaleSlider" value="${Math.round(x.scale*100)}"><input id="fRotSlider" value="${x.rotate}"><input id="fTailDX" value="${x.tailDX}"><input id="fTailDY" value="${x.tailDY}"><input id="fRadius" value="${x.radius}"><input id="fOpacity" value="${Math.round(x.opacity*100)}"><select id="fType"><option selected>${x.type}</option></select><select id="savedStyleDummy"></select></div>`;
 
- $('#inspector').innerHTML = `
- <div class="sec"><h3>Content</h3><textarea id="fText">${esc(x.text)}</textarea></div>
-
- <div class="sec"><h3>Quick Workflow</h3><div class="quick-tools">
- <button id="copyLettering" class="btn">복사</button><button id="pasteLettering" class="btn">붙여넣기</button>
- <button id="importPrevCut" class="btn">이전 CUT 전체</button><button id="prevCutStyle" class="btn">이전 CUT 스타일</button>
- <button id="favCurrentStyle" class="btn">★ 스타일</button><button id="duplicateFast" class="btn">빠른 복제</button>
- </div>
- <div class="clipboard-box">Ctrl/Cmd+C/V 지원 · CUT 간 복사/붙여넣기 · 이전 CUT 레터링/스타일 가져오기 · 자동저장 350ms</div>
- <div class="quick-label">최근 스타일</div><div class="history-strip">${readJson(recentStyleKey,[]).map(v=>`<button class="history-chip" data-recent-style="${v.id}">${esc(v.label)}</button>`).join('')||'<span style="font-size:7px;color:#999">아직 없음</span>'}</div>
- <div class="quick-label">즐겨찾기 스타일</div><div class="history-strip">${readJson(favoriteStyleKey,[]).map(v=>`<button class="history-chip" data-favorite-style="${v.id}">${esc(v.label)}</button>`).join('')||'<span style="font-size:7px;color:#999">아직 없음</span>'}</div>
- </div>
- <div class="sec"><h3>Style Studio</h3>${styleStudioCards(x)}
- <div class="style-controls">
-  <label>배경 투명도<input id="fBgOpacity" type="range" min="0" max="100" value="${Math.round(x.bgOpacity*100)}"></label>
-  <label>글자 외곽선<input id="fTextStrokeWidth" type="range" min="0" max="6" step=".5" value="${x.textStrokeWidth}"></label>
- </div>
- <label>글자 외곽선 색<div class="custom-color"><input id="fTextStrokeColor" value="${esc(x.textStrokeColor)}"><input id="fTextStrokeColorPicker" type="color" value="${/^#[0-9a-f]{6}$/i.test(x.textStrokeColor)?x.textStrokeColor:'#ffffff'}"></div></label>
- <div id="outlineDemo" class="outline-demo" style="color:${x.textColor};background:${x.fill==='transparent'?'#ddd':hexToRgba(x.fill,x.bgOpacity)};text-shadow:${x.textStrokeWidth>0?`${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},-${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},0 ${x.textStrokeWidth}px 0 ${x.textStrokeColor},0 -${x.textStrokeWidth}px 0 ${x.textStrokeColor}`:'none'}">웹툰 스타일 미리보기</div>
- <div class="row"><button id="resetStyle" class="btn">기본 스타일로 초기화</button></div>
- </div>
- <div class="sec"><h3>Typography Presets</h3><div class="typo-preset-grid">
- ${typoPresets.map(p=>`<button class="typo-preset" data-typo-preset="${p.id}"><b>${esc(p.label)}</b><span>${esc(p.desc)}</span></button>`).join('')}
- </div></div>
-
- <div class="sec"><h3>Font Library</h3>${fontBrowserHtml(x.fontKey)}</div>
-
- <div class="sec"><h3>Style Preset</h3><div class="style-cards">
-   <button class="style-card" data-style="white"><b>화이트 말풍선</b><span>흰 배경 · 검정 글자</span></button>
-   <button class="style-card" data-style="black"><b>블랙 캡션</b><span>검정 박스 · 흰 글자</span></button>
-   <button class="style-card" data-style="cream"><b>내레이션</b><span>아이보리 · 검정 글자</span></button>
-   <button class="style-card" data-style="borderless"><b>무테 독백</b><span>투명 배경 · 글자만</span></button>
- </div></div>
-
- <div class="sec"><h3>Type</h3><label>종류<select id="fType">${['dialogue','thought','narration','caption','sfx'].map(v=>`<option ${v===x.type?'selected':''}>${v}</option>`).join('')}</select></label><div class="preset-grid">${Object.entries(ps).map(([k,l])=>`<button class="preset ${x.preset===k?'on':''}" data-preset="${k}">${l}</button>`).join('')}</div></div>
-
- <div class="sec"><h3>Colors</h3><div class="quick-label">배경색</div>${sw('fill')}<div class="quick-label">글자색</div>${sw('textColor')}<div class="quick-label">외곽선색</div>${sw('strokeColor')}</div>
-
- <div class="sec"><h3>Bubble Shape</h3><div class="shape-grid">${[
-   ['ellipse','타원'],['rounded','라운드'],['box','박스'],['cloud','생각'],['jagged','외침'],['borderless','무테']
-  ].map(([v,l])=>`<button class="shape-btn ${x.shape===v?'on':''}" data-shape="${v}">${l}</button>`).join('')}</div><label>세로쓰기<select id="fVertical"><option value="0" ${!x.vertical?'selected':''}>가로</option><option value="1" ${x.vertical?'selected':''}>세로</option></select></label></div>
-
- <div class="sec"><h3>Direct Tail</h3><label>꼬리 직접 조작<select id="fDirectTail"><option value="0" ${!x.directTail?'selected':''}>OFF</option><option value="1" ${x.directTail?'selected':''}>ON</option></select></label><div class="grid"><label>Tail X<input id="fTailDX" type="number" step="1" value="${x.tailDX}"></label><label>Tail Y<input id="fTailDY" type="number" step="1" value="${x.tailDY}"></label></div><div class="rotate-snap-note">ON 후 주황 핸들을 드래그하면 방향과 길이를 직접 조절합니다.</div></div>
- <div class="sec"><h3>Tail</h3><div class="shape-grid">${[['none','없음'],['bl','좌하'],['br','우하'],['tl','좌상'],['tr','우상']].map(([v,l])=>`<button class="shape-btn ${x.tail===v?'on':''}" data-tail="${v}">${l}</button>`).join('')}</div></div>
-
- <div class="sec"><h3>Saved Styles</h3><div class="saved-style-row"><select id="savedStyleSelect"><option value="">저장 스타일 선택</option>${Object.keys(savedStyles).map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('')}</select><button id="saveStyle" class="btn">저장</button><button id="deleteStyle" class="btn">삭제</button></div></div>
-
- <div class="sec"><h3>Reliability Audit</h3>
- <div class="auto-grid">
-  <label>자동 레이아웃<select id="fAutoLayout"><option value="1" ${x.autoLayout?'selected':''}>ON</option><option value="0" ${!x.autoLayout?'selected':''}>OFF</option></select></label>
-  <label>Auto Fit<select id="fAutoFit"><option value="1" ${x.autoFit?'selected':''}>ON</option><option value="0" ${!x.autoFit?'selected':''}>OFF</option></select></label>
-  <label>Auto Expand<select id="fAutoExpand"><option value="1" ${x.autoExpand?'selected':''}>ON</option><option value="0" ${!x.autoExpand?'selected':''}>OFF</option></select></label>
-  <label>Max Lines<input id="fMaxLines" type="number" min="1" max="20" value="${x.maxLines}"></label>
-  <label>Min Font<input id="fMinFontSize" type="number" min="8" max="40" value="${x.minFontSize}"></label>
-  <label>Padding X<input id="fPaddingX" type="number" min="0" max="60" value="${x.paddingX}"></label>
-  <label>Padding Y<input id="fPaddingY" type="number" min="0" max="60" value="${x.paddingY}"></label>
- </div>
- <div class="row"><button id="autoLayoutNow" class="btn">자동 배치</button><button id="autoBreaks" class="btn">줄바꿈 정리</button></div>
- <div id="layoutStatus" class="layout-status"></div>
- <div id="overflowWarn" class="overflow-warn">긴 대사가 현재 말풍선 범위를 초과할 수 있습니다. 폭을 늘리거나 글자 크기를 줄여주세요.</div>
- </div>
- <div class="sec"><h3>Transform</h3><div class="grid"><label>X<input id="fX" type="number" step=".1" value="${x.x}"></label><label>Y<input id="fY" type="number" step=".1" value="${x.y}"></label><label>Scale %<input id="fScale" type="number" min="40" max="300" value="${Math.round(x.scale*100)}"></label><label>Rotate °<input id="fRot" type="number" value="${x.rotate}"></label></div><label>Scale Slider<input id="fScaleSlider" type="range" min="40" max="300" value="${Math.round(x.scale*100)}"></label><label>Rotate Slider<input id="fRotSlider" type="range" min="-180" max="180" value="${x.rotate}"></label></div>
-
- <div class="sec"><h3>Appearance</h3><div class="grid"><label>Stroke<input id="fStroke" type="range" min="0" max="8" step=".5" value="${x.strokeWidth}"></label><label>Corner<input id="fRadius" type="range" min="0" max="50" value="${x.radius}"></label></div><label>Opacity<input id="fOpacity" type="range" min="10" max="100" value="${Math.round(x.opacity*100)}"></label></div>
-
- <div class="sec"><h3>Shadow & Align</h3><label>Shadow<select id="fShadow"><option value="none" ${x.shadow==='none'?'selected':''}>없음</option><option value="soft" ${x.shadow==='soft'?'selected':''}>Soft</option><option value="hard" ${x.shadow==='hard'?'selected':''}>Hard</option></select></label><div class="align-tools"><button class="btn" data-align-pos="left">← Left</button><button class="btn" data-align-pos="center">Center</button><button class="btn" data-align-pos="right">Right →</button><button class="btn" data-align-pos="top">↑ Top</button><button class="btn" data-align-pos="middle">Middle</button><button class="btn" data-align-pos="bottom">↓ Bottom</button></div></div>
-
- <div class="sec"><h3>Typography</h3><div class="grid"><label>Size<input id="fSize" type="number" min="8" max="140" value="${x.size}"></label><label>Weight<input id="fWeight" type="number" min="100" max="1000" step="100" value="${x.weight}"></label><label>Tracking<input id="fTrack" type="number" step=".1" value="${x.letterSpacing}"></label><label>Leading<input id="fLead" type="number" step=".05" value="${x.lineHeight}"></label></div><label>Font Style<select id="fFontStyle"><option value="normal" ${x.fontStyle==='normal'?'selected':''}>Normal</option><option value="italic" ${x.fontStyle==='italic'?'selected':''}>Italic</option></select></label><label>Align<select id="fAlign">${['left','center','right'].map(v=>`<option ${v===x.align?'selected':''}>${v}</option>`).join('')}</select></label></div>
-
- <div class="sec"><div class="row"><button id="duplicate" class="btn">복제</button><button id="remove" class="btn danger">삭제</button></div></div>`;
-
- const live=(id,field,conv=v=>v)=>{const el=$(id); if(!el) return; el.addEventListener('input',()=>{x[field]=conv(el.value); updateOne(x); persistQuiet(); syncFloatbar()})};
- const textEl=$('#fText');textEl.addEventListener('input',()=>{x.text=textEl.value;if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)}); live('#fX','x',Number); live('#fY','y',Number); live('#fScale','scale',v=>Math.max(.4,Math.min(3,Number(v)/100))); live('#fRot','rotate',Number); live('#fSize','size',Number); live('#fWeight','weight',Number); live('#fTrack','letterSpacing',Number); live('#fLead','lineHeight',Number); live('#fStroke','strokeWidth',Number); live('#fRadius','radius',Number); live('#fOpacity','opacity',v=>Number(v)/100);
- $('#fScaleSlider').addEventListener('input',()=>{x.scale=Number($('#fScaleSlider').value)/100; $('#fScale').value=Math.round(x.scale*100); updateOne(x); persistQuiet()});
- $('#fRotSlider').addEventListener('input',()=>{x.rotate=Number($('#fRotSlider').value); $('#fRot').value=x.rotate; updateOne(x); persistQuiet()});
- $('#fAlign').addEventListener('change',()=>{x.align=$('#fAlign').value; updateOne(x); persistQuiet()});
- $('#fFontStyle').addEventListener('change',()=>{x.fontStyle=$('#fFontStyle').value; updateOne(x); persistQuiet()});
- $('#fType').addEventListener('change',()=>{snapshot(); x.type=$('#fType').value; if(x.type==='sfx'&&!x.preset.startsWith('sfx-')) x.preset='sfx-impact'; render(); persist()});
- $('#fVertical').addEventListener('change',()=>{x.vertical=$('#fVertical').value==='1'; render(); persistQuiet()});
- $('#fDirectTail').addEventListener('change',()=>{x.directTail=$('#fDirectTail').value==='1';if(x.directTail)x.tail='none';render();persistQuiet()});
- live('#fTailDX','tailDX',Number);live('#fTailDY','tailDY',Number);
- $('#fShadow').addEventListener('change',()=>{x.shadow=$('#fShadow').value; updateOne(x); persistQuiet()});
-
- 
- $$('[data-complete-style]').forEach(b=>b.addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,b.dataset.completeStyle);updateOne(x);renderInspector();persistQuiet();toast('스타일 적용')}));
- $('#fBgOpacity').addEventListener('input',()=>{x.bgOpacity=Number($('#fBgOpacity').value)/100;updateOne(x);persistQuiet()});
- $('#fTextStrokeWidth').addEventListener('input',()=>{x.textStrokeWidth=Number($('#fTextStrokeWidth').value);updateOne(x);persistQuiet();renderInspector()});
- $('#fTextStrokeColor').addEventListener('change',()=>{x.textStrokeColor=$('#fTextStrokeColor').value||'#ffffff';updateOne(x);persistQuiet();renderInspector()});
- $('#fTextStrokeColorPicker').addEventListener('input',()=>{x.textStrokeColor=$('#fTextStrokeColorPicker').value;updateOne(x);persistQuiet();renderInspector()});
- $('#resetStyle').addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,'bubble-white');updateOne(x);renderInspector();persistQuiet();toast('기본 스타일로 초기화')});
-
- $$('[data-typo-preset]').forEach(b=>b.addEventListener('click',()=>{snapshot(); applyTypographyPreset(x,b.dataset.typoPreset);rememberStyle(x,'타이포 프리셋'); updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-style]').forEach(b=>b.addEventListener('click',()=>{snapshot(); applyStylePreset(x,b.dataset.style);rememberStyle(x,'스타일 프리셋'); updateOne(x); renderInspector(); persistQuiet()}));
- $$('.preset').forEach(b=>b.addEventListener('click',()=>{snapshot(); x.preset=b.dataset.preset; persistQuiet(); renderInspector()}));
- $$('[data-color-field]').forEach(b=>b.addEventListener('click',()=>{x[b.dataset.colorField]=b.dataset.color; updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-color-picker]').forEach(p=>p.addEventListener('input',()=>{const f=p.dataset.colorPicker; x[f]=p.value; const txt=$(`[data-color-text="${f}"]`); if(txt) txt.value=p.value; updateOne(x); persistQuiet()}));
- $$('[data-color-text]').forEach(inp=>inp.addEventListener('change',()=>{x[inp.dataset.colorText]=inp.value||'transparent'; updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-shape]').forEach(b=>b.addEventListener('click',()=>{x.shape=b.dataset.shape; if(x.shape==='borderless'){x.fill='transparent'; x.strokeWidth=0} updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-tail]').forEach(b=>b.addEventListener('click',()=>{x.tail=b.dataset.tail; updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-align-pos]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.alignPos; if(v==='left')x.x=12; else if(v==='center')x.x=50; else if(v==='right')x.x=88; else if(v==='top')x.y=10; else if(v==='middle')x.y=50; else if(v==='bottom')x.y=90; updateOne(x); renderInspector(); persistQuiet()}));
- $('#saveStyle').addEventListener('click',()=>{const name=prompt('스타일 이름'); if(!name) return; savedStyles[name]={fill:x.fill,textColor:x.textColor,strokeColor:x.strokeColor,strokeWidth:x.strokeWidth,radius:x.radius,opacity:x.opacity,shape:x.shape,tail:x.tail,vertical:x.vertical,shadow:x.shadow,size:x.size,weight:x.weight,letterSpacing:x.letterSpacing,lineHeight:x.lineHeight,align:x.align,font:x.font,fontKey:x.fontKey,fontStyle:x.fontStyle,stylePresetId:x.stylePresetId,bgOpacity:x.bgOpacity,textStrokeWidth:x.textStrokeWidth,textStrokeColor:x.textStrokeColor}; localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles)); renderInspector(); toast('스타일 저장됨')});
- $('#savedStyleSelect').addEventListener('change',()=>{const st=savedStyles[$('#savedStyleSelect').value]; if(!st) return; snapshot(); Object.assign(x,st); render(); persist()});
- $('#deleteStyle').addEventListener('click',()=>{const name=$('#savedStyleSelect').value; if(!name) return; delete savedStyles[name]; localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles)); renderInspector(); toast('스타일 삭제됨')});
-
- // Font library bindings
- $('#fontSearch').addEventListener('input',()=>{fontUI.search=$('#fontSearch').value; renderInspector()});
- $('#fontCategory').addEventListener('change',()=>{fontUI.category=$('#fontCategory').value; renderInspector()});
- $$('[data-font]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.font); x.fontKey=f.key; x.font=f.family; markRecentFont(f.key); updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-font-chip]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.fontChip); x.fontKey=f.key; x.font=f.family; markRecentFont(f.key); updateOne(x); renderInspector(); persistQuiet()}));
- $$('[data-fav-font]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault(); toggleFavoriteFont(b.dataset.favFont)}));
- $('#fontUpload').addEventListener('change',async ()=>{
-   const file=$('#fontUpload').files[0]; if(!file) return;
-   const ext=(file.name.split('.').pop()||'ttf').toLowerCase();
-   const format={ttf:'truetype',otf:'opentype',woff:'woff',woff2:'woff2'}[ext]||'truetype';
-   const dataUrl=await new Promise((res,rej)=>{const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsDataURL(file)});
-   const key='user-'+Date.now(), cssFamily='WTAL_User_'+key.replace(/[^a-z0-9_]/ig,'');
-   userFonts.push({key,name:file.name.replace(/\.[^.]+$/,''),category:'user',family:`'${cssFamily}'`,cssFamily,src:dataUrl,format});
-   localStorage.setItem(userFontKey,JSON.stringify(userFonts));
-   syncFontFaces();
-   x.fontKey=key; x.font=`'${cssFamily}'`; markRecentFont(key);
-   renderInspector(); updateOne(x); persistQuiet(); toast('사용자 폰트 등록됨');
- });
- $('#removeCurrentUserFont').addEventListener('click',()=>{
-   if(!x.fontKey.startsWith('user-')) return toast('현재 선택은 기본 폰트입니다');
-   userFonts=userFonts.filter(f=>f.key!==x.fontKey); localStorage.setItem(userFontKey,JSON.stringify(userFonts)); syncFontFaces();
-   const f=resolveFont('dialogue-basic'); x.fontKey=f.key; x.font=f.family; renderInspector(); updateOne(x); persistQuiet(); toast('현재 유저 폰트 제거됨');
- });
-
- 
- $('#copyLettering').addEventListener('click',copySelectedToClipboard);
- $('#pasteLettering').addEventListener('click',pasteFromClipboard);
- $('#importPrevCut').addEventListener('click',importPreviousCutLettering);
- $('#prevCutStyle').addEventListener('click',copyStyleFromPreviousCut);
- $('#favCurrentStyle').addEventListener('click',()=>toggleFavoriteStyle(x));
- $('#duplicateFast').addEventListener('click',()=>{snapshot();const c=norm({...x,id:`${cut}-${Date.now()}`,x:x.x+3,y:x.y+3});items.push(c);selected=String(c.id);selectedIds=[String(c.id)];render();persistQuiet();toast('빠른 복제')});
- $$('[data-recent-style]').forEach(b=>b.addEventListener('click',()=>{const v=readJson(recentStyleKey,[]).find(s=>s.id===b.dataset.recentStyle);applyStoredStyle(x,v?.style)}));
- $$('[data-favorite-style]').forEach(b=>b.addEventListener('click',()=>{const v=readJson(favoriteStyleKey,[]).find(s=>s.id===b.dataset.favoriteStyle);applyStoredStyle(x,v?.style)}));
-
- 
- $('#fAutoLayout').addEventListener('change',()=>{x.autoLayout=$('#fAutoLayout').value==='1';persistQuiet();renderInspector()});
- $('#fAutoFit').addEventListener('change',()=>{x.autoFit=$('#fAutoFit').value==='1';persistQuiet();renderInspector()});
- $('#fAutoExpand').addEventListener('change',()=>{x.autoExpand=$('#fAutoExpand').value==='1';persistQuiet();renderInspector()});
- live('#fMaxLines','maxLines',Number);live('#fMinFontSize','minFontSize',Number);live('#fPaddingX','paddingX',Number);live('#fPaddingY','paddingY',Number);
- $('#autoLayoutNow').addEventListener('click',()=>{snapshot();runAutoLayout(x);updateOne(x);renderInspector();persistQuiet()});
- $('#autoBreaks').addEventListener('click',()=>{snapshot();normalizeTextBreaks(x);runAutoLayout(x,{silent:true});updateOne(x);renderInspector();persistQuiet();toast('줄바꿈 정리됨')});
-
- $('#duplicate').addEventListener('click',()=>{snapshot(); const c=norm({...x,id:`${cut}-${Date.now()}`,x:x.x+4,y:x.y+4}); items.push(c); selected=c.id; render(); persist()});
- $('#remove').addEventListener('click',()=>{snapshot(); items=items.filter(v=>v.id!==x.id); selected=null; render(); persist()});
-
- refreshLayoutStatus(x);
- showFloatbar(x);
+ const live=(id,field,conv=v=>v)=>{const el=$(id);if(!el)return;el.addEventListener('input',()=>{x[field]=conv(el.value);updateOne(x);persistQuiet();syncFloatbar()})};
+ const on=(id,event,fn)=>{const el=$(id);if(el)el.addEventListener(event,fn)};
+ on('#fText','input',()=>{x.text=$('#fText').value;if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ live('#fSize','size',Number);live('#fTrack','letterSpacing',Number);live('#fLead','lineHeight',Number);live('#fStroke','strokeWidth',Number);
+ on('#fWeight','change',()=>{x.weight=Number($('#fWeight').value);updateOne(x);persistQuiet()});
+ on('#fAlign','change',()=>{x.align=$('#fAlign').value;updateOne(x);persistQuiet()});
+ on('#fVertical','change',()=>{x.vertical=$('#fVertical').value==='1';render();persistQuiet()});
+ on('#simpleFont','change',()=>{const f=resolveFont($('#simpleFont').value);x.fontKey=f.key;x.font=f.family;markRecentFont(f.key);updateOne(x);renderInspector();persistQuiet()});
+ on('#fDirectTail','change',()=>{x.directTail=$('#fDirectTail').value==='1';if(x.directTail)x.tail='none';else if(x.type==='dialogue'&&x.tail==='none')x.tail='br';render();persistQuiet()});
+ on('#fShadow','change',()=>{x.shadow=$('#fShadow').value;updateOne(x);persistQuiet()});
+ on('#fFontStyle','change',()=>{x.fontStyle=$('#fFontStyle').value;updateOne(x);persistQuiet()});
+ on('#fBgOpacity','input',()=>{x.bgOpacity=Number($('#fBgOpacity').value)/100;updateOne(x);persistQuiet()});
+ on('#fTextStrokeWidth','input',()=>{x.textStrokeWidth=Number($('#fTextStrokeWidth').value);updateOne(x);persistQuiet()});
+ on('#fTextStrokeColorPicker','input',()=>{x.textStrokeColor=$('#fTextStrokeColorPicker').value;updateOne(x);persistQuiet()});
+ $$('[data-complete-style]').forEach(b=>b.addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,b.dataset.completeStyle);if(b.dataset.completeStyle==='bubble-white'&&x.tail==='none')x.tail='br';updateOne(x);renderInspector();persistQuiet();toast('스타일 적용')}));
+ $$('[data-color-field]').forEach(b=>b.addEventListener('click',()=>{x[b.dataset.colorField]=b.dataset.color;updateOne(x);renderInspector();persistQuiet()}));
+ on('#copyLettering','click',copySelectedToClipboard);on('#pasteLettering','click',pasteFromClipboard);on('#importPrevCut','click',importPreviousCutLettering);
+ on('#savedStyleSelect','change',()=>{const st=savedStyles[$('#savedStyleSelect').value];if(!st)return;snapshot();Object.assign(x,st);render();persist()});
+ on('#saveStyle','click',()=>{const name=prompt('스타일 이름');if(!name)return;savedStyles[name]=stylePayload(x);localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles));renderInspector();toast('스타일 저장됨')});
+ on('#deleteStyle','click',()=>{const name=$('#savedStyleSelect').value;if(!name)return;delete savedStyles[name];localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles));renderInspector();toast('스타일 삭제됨')});
+ on('#fAutoLayout','change',()=>{x.autoLayout=$('#fAutoLayout').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ on('#fAutoFit','change',()=>{x.autoFit=$('#fAutoFit').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ on('#fAutoExpand','change',()=>{x.autoExpand=$('#fAutoExpand').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ ['#fMaxLines','#fMinFontSize','#fPaddingX','#fPaddingY'].forEach(id=>on(id,'input',()=>{const map={'#fMaxLines':'maxLines','#fMinFontSize':'minFontSize','#fPaddingX':'paddingX','#fPaddingY':'paddingY'};x[map[id]]=Number($(id).value);if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)}));
+ on('#autoLayoutNow','click',()=>{snapshot();runAutoLayout(x);updateOne(x);persistQuiet();refreshLayoutStatus(x)});on('#autoBreaks','click',()=>{snapshot();normalizeTextBreaks(x);runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();renderInspector()});
+ // Font library remains available only inside Advanced.
+ on('#fontSearch','input',()=>{fontUI.search=$('#fontSearch').value;renderInspector()});on('#fontCategory','change',()=>{fontUI.category=$('#fontCategory').value;renderInspector()});
+ $$('[data-font]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.font);x.fontKey=f.key;x.font=f.family;markRecentFont(f.key);updateOne(x);renderInspector();persistQuiet()}));
+ $$('[data-font-chip]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.fontChip);x.fontKey=f.key;x.font=f.family;markRecentFont(f.key);updateOne(x);renderInspector();persistQuiet()}));
+ $$('[data-fav-font]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();toggleFavoriteFont(b.dataset.favFont)}));
+ on('#fontUpload','change',async()=>{const file=$('#fontUpload').files[0];if(!file)return;const ext=(file.name.split('.').pop()||'ttf').toLowerCase(),format={ttf:'truetype',otf:'opentype',woff:'woff',woff2:'woff2'}[ext]||'truetype';const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(file)});const k='user-'+Date.now(),cssFamily='WTAL_User_'+k.replace(/[^a-z0-9_]/ig,'');userFonts.push({key:k,name:file.name.replace(/\.[^.]+$/,''),category:'user',family:`'${cssFamily}'`,cssFamily,src:dataUrl,format});localStorage.setItem(userFontKey,JSON.stringify(userFonts));syncFontFaces();x.fontKey=k;x.font=`'${cssFamily}'`;markRecentFont(k);renderInspector();updateOne(x);persistQuiet();toast('사용자 폰트 등록됨')});
+ on('#removeCurrentUserFont','click',()=>{if(!x.fontKey.startsWith('user-'))return toast('현재 선택은 기본 폰트입니다');userFonts=userFonts.filter(f=>f.key!==x.fontKey);localStorage.setItem(userFontKey,JSON.stringify(userFonts));syncFontFaces();const f=resolveFont('dialogue-basic');x.fontKey=f.key;x.font=f.family;renderInspector();updateOne(x);persistQuiet();toast('현재 유저 폰트 제거됨')});
+ refreshLayoutStatus(x);showFloatbar(x);
 }
+
 function refreshLayoutStatus(x){
  const m=estimateTextMetrics(x),o=overflowState(x),st=$('#layoutStatus'),warn=$('#overflowWarn');
  if(st)st.textContent=`예상 ${m.lines}줄 · 줄당 약 ${m.charsPerLine}자 · 폰트 ${Math.round(x.size)}px · 폭 ${Number(x.width).toFixed(1)}%`;
@@ -807,7 +742,7 @@ function updateOne(x){
  el.style.borderColor=x.strokeColor;
  el.style.borderWidth=x.strokeWidth+'px';
  el.style.borderStyle=x.strokeWidth>0?'solid':'none';
- el.style.borderRadius=x.radius+'px';el.style.padding=`${x.paddingY}px ${x.paddingX}px`;
+ el.style.borderRadius=bubbleRadiusCss(x);el.style.setProperty('--tail-fill',hexToRgba(x.fill,x.bgOpacity));el.style.setProperty('--tail-stroke',x.strokeColor);el.style.padding=`${x.paddingY}px ${x.paddingX}px`;
  el.style.transform=`translate(-50%,-50%) rotate(${x.rotate}deg) scale(${x.scale})`;
  el.style.boxShadow=shadowCss(x.shadow);
  el.style.textShadow=x.textStrokeWidth>0?`${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},-${x.textStrokeWidth}px 0 0 ${x.textStrokeColor},0 ${x.textStrokeWidth}px 0 ${x.textStrokeColor},0 -${x.textStrokeWidth}px 0 ${x.textStrokeColor}`:textShadowCss(x);
@@ -819,7 +754,7 @@ function updateOne(x){
 
 function add(type){
  snapshot();
- const x=norm({id:`${cut}-${Date.now()}`,type,text:type==='sfx'?'쾅!':'새 대사',x:50,y:25,preset:type==='sfx'?'sfx-impact':'dialogue-basic'});
+ const x=norm({id:`${cut}-${Date.now()}`,type,text:type==='sfx'?'쾅!':'새 대사',x:50,y:25,preset:type==='sfx'?'sfx-impact':'dialogue-basic',tail:type==='sfx'?'none':'br',paddingX:type==='sfx'?0:18,paddingY:type==='sfx'?0:14});
  if(type==='sfx'){ x.shape='borderless'; x.fill='transparent'; x.strokeWidth=0; x.fontKey='sfx-heavy'; x.font=resolveFont('sfx-heavy').family; }
  runAutoLayout(x,{silent:true});items.push(x); selected=String(x.id);selectedIds=[String(x.id)]; render(); persist();
 }
@@ -1100,7 +1035,7 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.5 준비 완료');
+ toast('LETTERING V43.3.6 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error · V43.3.5';
