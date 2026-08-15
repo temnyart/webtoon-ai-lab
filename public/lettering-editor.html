@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Webtoon AI Lab · Lettering V43.3.7</title>
+<title>Webtoon AI Lab · Lettering V43.3.8</title>
 <style>
 :root{--bg:#f4f4f6;--panel:#fff;--line:#e1e1e5;--text:#1d1d1f;--muted:#86868b;--accent:#111;--blue:#3578f6}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);overflow:hidden}
@@ -124,7 +124,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 .audit-row{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:start;border-bottom:1px solid #eee;padding:8px 0;font-size:8px}.audit-row .pass{color:#257543;font-weight:800}.audit-row .warn{color:#996b00;font-weight:800}.audit-row .fail{color:#a22;font-weight:800}.audit-log{font-family:ui-monospace,Consolas,monospace;font-size:7px;white-space:pre-wrap;background:#111;color:#ddd;border-radius:8px;padding:9px;margin-top:10px;max-height:220px;overflow:auto}
 @media(max-width:800px){.audit-summary{grid-template-columns:repeat(2,1fr)}.audit-panel{inset:60px 10px 10px}}
 
-/* V43.3.7 — simplified inspector + standard webtoon balloons */
+/* V43.3.8 — simplified inspector + standard webtoon balloons */
 .inspector{padding:12px 11px}.inspector .pane-title{position:sticky;top:-12px;background:#fff;z-index:5;padding:12px 0 8px;margin:0 0 4px}
 .inspector-intro{font-size:7px;line-height:1.55;color:#888;background:#f6f6f8;border-radius:8px;padding:8px;margin:6px 0 10px}
 .basic-style-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.basic-style-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 7px;text-align:left;cursor:pointer}.basic-style-btn:hover{background:#f5f5f7}.basic-style-btn.on{border-color:#111;box-shadow:inset 0 0 0 1px #111}.basic-style-btn b{display:block;font-size:8px}.basic-style-btn small{display:block;font-size:7px;color:#888;margin-top:2px}
@@ -151,7 +151,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.7</span>
+    <span class="badge">LETTERING V43.3.8</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div><span id="sourceStatus" class="status" style="display:none"></span>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -166,7 +166,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
     <aside class="inspector"><div class="pane-title"><b>Inspector</b><small>선택 요소</small></div><div id="inspector"></div></aside>
   </div>
 </div>
-<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.7 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
+<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.8 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
 <div id="toast" class="toast"></div>
 <script>
 
@@ -235,6 +235,7 @@ const typoPresets=[
 ];
 
 let all={},items=[],selected=null,selectedIds=[],zoom=1,safe=false,gesture=null,undo=[],redo=[],savedStyles={},userFonts=[],favoriteFonts=[],recentFonts=[],fontUI={search:'',category:'all'},marqueeState=null,groupSeq=1,autosaveTimer=null,lastSavedAt=0;
+let inspectorAdvancedOpen=sessionStorage.getItem('wtal_lettering_advanced_open')==='1';
 
 function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1500)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -694,18 +695,16 @@ function renderInspector(){
  const currentFont=resolveFont(x.fontKey);
  const fontOptions=getFontCatalog().map(f=>`<option value="${esc(f.key)}" ${f.key===currentFont.key?'selected':''}>${esc(f.name)}</option>`).join('');
  $('#inspector').innerHTML=`
- <div class="inspector-intro"><b>캔버스에서 직접 조작</b><br>이동 · 크기 · 회전 · 말풍선 폭 · 꼬리 방향은 오른쪽 옵션에서 중복하지 않습니다.</div>
+ <div class="inspector-intro"><b>캔버스에서 직접 조작</b><br>이동 · 크기 · 회전 · 말풍선 폭 · 꼬리는 캔버스에서 조절합니다. 오른쪽은 대사·스타일·글자 중심으로만 정리했습니다.</div>
  <div class="sec"><h3>대사</h3><textarea id="fText" placeholder="대사를 입력하세요">${esc(x.text)}</textarea></div>
  <div class="sec"><h3>말풍선 스타일</h3><div class="basic-style-grid">${simpleStyles.map(([id,l,d])=>`<button class="basic-style-btn ${x.stylePresetId===id?'on':''}" data-complete-style="${id}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
  <div class="sec"><h3>글자</h3><div class="basic-font-row"><label>폰트<select id="simpleFont">${fontOptions}</select></label><label>크기<input id="fSize" type="number" min="8" max="140" value="${x.size}"></label></div><div class="grid"><label>굵기<select id="fWeight"><option value="400" ${x.weight===400?'selected':''}>Regular</option><option value="500" ${x.weight===500?'selected':''}>Medium</option><option value="700" ${x.weight===700?'selected':''}>Bold</option><option value="900" ${x.weight===900?'selected':''}>Black</option></select></label><label>정렬<select id="fAlign">${['left','center','right'].map(v=>`<option ${v===x.align?'selected':''}>${v}</option>`).join('')}</select></label></div><label>쓰기 방향<select id="fVertical"><option value="0" ${!x.vertical?'selected':''}>가로쓰기</option><option value="1" ${x.vertical?'selected':''}>세로쓰기</option></select></label></div>
  <div class="sec"><h3>빠른 색상</h3><div class="quick-label">말풍선</div>${sw('fill')}<div class="quick-label">글자</div>${sw('textColor')}</div>
  <div class="sec"><h3>빠른 작업</h3><div class="quick-mini"><button id="copyLettering" class="btn">복사</button><button id="pasteLettering" class="btn">붙여넣기</button><button id="importPrevCut" class="btn">이전 CUT</button></div></div>
- <details class="editor-advanced"><summary>고급 설정</summary><div class="advanced-body">
-  <div class="sec"><h3>말풍선 세부</h3><label>꼬리 직접 조작<select id="fDirectTail"><option value="0" ${!x.directTail?'selected':''}>기본 꼬리</option><option value="1" ${x.directTail?'selected':''}>주황 핸들로 직접 조작</option></select></label><label>Shadow<select id="fShadow"><option value="none" ${x.shadow==='none'?'selected':''}>없음</option><option value="soft" ${x.shadow==='soft'?'selected':''}>Soft</option><option value="hard" ${x.shadow==='hard'?'selected':''}>Hard</option></select></label><div class="grid"><label>외곽선<input id="fStroke" type="range" min="0" max="8" step=".5" value="${x.strokeWidth}"></label><label>투명도<input id="fBgOpacity" type="range" min="0" max="100" value="${Math.round(x.bgOpacity*100)}"></label></div><div class="quick-label">외곽선 색</div>${sw('strokeColor')}</div>
-  <div class="sec"><h3>타이포그래피 세부</h3><div class="grid"><label>자간<input id="fTrack" type="number" step=".1" value="${x.letterSpacing}"></label><label>행간<input id="fLead" type="number" step=".05" value="${x.lineHeight}"></label></div><label>Font Style<select id="fFontStyle"><option value="normal" ${x.fontStyle==='normal'?'selected':''}>Normal</option><option value="italic" ${x.fontStyle==='italic'?'selected':''}>Italic</option></select></label><div class="grid"><label>글자 외곽선<input id="fTextStrokeWidth" type="range" min="0" max="6" step=".5" value="${x.textStrokeWidth}"></label><label>외곽선색<input id="fTextStrokeColorPicker" type="color" value="${/^#[0-9a-f]{6}$/i.test(x.textStrokeColor)?x.textStrokeColor:'#ffffff'}"></label></div><input id="fTextStrokeColor" type="hidden" value="${esc(x.textStrokeColor)}"></div>
-  <div class="sec"><h3>자동 레이아웃</h3><div class="auto-grid"><label>자동 레이아웃<select id="fAutoLayout"><option value="1" ${x.autoLayout?'selected':''}>ON</option><option value="0" ${!x.autoLayout?'selected':''}>OFF</option></select></label><label>Auto Fit<select id="fAutoFit"><option value="1" ${x.autoFit?'selected':''}>ON</option><option value="0" ${!x.autoFit?'selected':''}>OFF</option></select></label><label>Auto Expand<select id="fAutoExpand"><option value="1" ${x.autoExpand?'selected':''}>ON</option><option value="0" ${!x.autoExpand?'selected':''}>OFF</option></select></label><label>Max Lines<input id="fMaxLines" type="number" min="1" max="20" value="${x.maxLines}"></label><label>Min Font<input id="fMinFontSize" type="number" min="8" max="40" value="${x.minFontSize}"></label><label>Padding X<input id="fPaddingX" type="number" min="0" max="60" value="${x.paddingX}"></label><label>Padding Y<input id="fPaddingY" type="number" min="0" max="60" value="${x.paddingY}"></label></div><div class="row"><button id="autoLayoutNow" class="btn">자동 배치</button><button id="autoBreaks" class="btn">줄바꿈 정리</button></div><div id="layoutStatus" class="layout-status"></div><div id="overflowWarn" class="overflow-warn">긴 대사가 말풍선 범위를 초과할 수 있습니다.</div></div>
-  <div class="sec"><h3>폰트 라이브러리</h3>${fontBrowserHtml(x.fontKey)}</div>
-  <div class="sec"><h3>저장 스타일</h3><div class="saved-style-row"><select id="savedStyleSelect"><option value="">저장 스타일 선택</option>${Object.keys(savedStyles).map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('')}</select><button id="saveStyle" class="btn">저장</button><button id="deleteStyle" class="btn">삭제</button></div></div>
+ <details id="advancedDetails" class="editor-advanced" ${inspectorAdvancedOpen?'open':''}><summary>고급 설정</summary><div class="advanced-body">
+  <div class="sec"><h3>말풍선 마감</h3><div class="grid"><label>외곽선 두께<input id="fStroke" type="range" min="0" max="8" step=".5" value="${x.strokeWidth}"></label><label>배경 투명도<input id="fBgOpacity" type="range" min="0" max="100" value="${Math.round(x.bgOpacity*100)}"></label></div><div class="quick-label">외곽선 색</div>${sw('strokeColor')}</div>
+  <div class="sec"><h3>글자 세부</h3><div class="grid"><label>자간<input id="fTrack" type="number" step=".1" value="${x.letterSpacing}"></label><label>행간<input id="fLead" type="number" step=".05" value="${x.lineHeight}"></label></div><div class="grid"><label>글자 외곽선<input id="fTextStrokeWidth" type="range" min="0" max="6" step=".5" value="${x.textStrokeWidth}"></label><label>외곽선 색<input id="fTextStrokeColorPicker" type="color" value="${/^#[0-9a-f]{6}$/i.test(x.textStrokeColor)?x.textStrokeColor:'#ffffff'}"></label></div><input id="fTextStrokeColor" type="hidden" value="${esc(x.textStrokeColor)}"></div>
+  <div class="sec"><h3>대사 맞춤</h3><div class="grid"><label>Auto Fit<select id="fAutoFit"><option value="1" ${x.autoFit?'selected':''}>ON</option><option value="0" ${!x.autoFit?'selected':''}>OFF</option></select></label><label>최대 줄 수<input id="fMaxLines" type="number" min="1" max="20" value="${x.maxLines}"></label></div><div class="row"><button id="autoLayoutNow" class="btn">현재 대사 맞춤</button><button id="autoBreaks" class="btn">줄바꿈 정리</button></div><div id="layoutStatus" class="layout-status"></div><div id="overflowWarn" class="overflow-warn">긴 대사가 말풍선 범위를 초과할 수 있습니다.</div></div>
  </div></details>
  <div class="hidden-binding-controls"><input id="fX" value="${x.x}"><input id="fY" value="${x.y}"><input id="fScale" value="${Math.round(x.scale*100)}"><input id="fRot" value="${x.rotate}"><input id="fScaleSlider" value="${Math.round(x.scale*100)}"><input id="fRotSlider" value="${x.rotate}"><input id="fTailDX" value="${x.tailDX}"><input id="fTailDY" value="${x.tailDY}"><input id="fRadius" value="${x.radius}"><input id="fOpacity" value="${Math.round(x.opacity*100)}"><select id="fType"><option selected>${x.type}</option></select><select id="savedStyleDummy"></select></div>`;
 
@@ -726,21 +725,13 @@ function renderInspector(){
  $$('[data-complete-style]').forEach(b=>b.addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,b.dataset.completeStyle);render();persistQuiet();toast('스타일 적용')}));
  $$('[data-color-field]').forEach(b=>b.addEventListener('click',()=>{x[b.dataset.colorField]=b.dataset.color;updateOne(x);renderInspector();persistQuiet()}));
  on('#copyLettering','click',copySelectedToClipboard);on('#pasteLettering','click',pasteFromClipboard);on('#importPrevCut','click',importPreviousCutLettering);
- on('#savedStyleSelect','change',()=>{const st=savedStyles[$('#savedStyleSelect').value];if(!st)return;snapshot();Object.assign(x,st);render();persist()});
- on('#saveStyle','click',()=>{const name=prompt('스타일 이름');if(!name)return;savedStyles[name]=stylePayload(x);localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles));renderInspector();toast('스타일 저장됨')});
- on('#deleteStyle','click',()=>{const name=$('#savedStyleSelect').value;if(!name)return;delete savedStyles[name];localStorage.setItem(savedStyleKey,JSON.stringify(savedStyles));renderInspector();toast('스타일 삭제됨')});
  on('#fAutoLayout','change',()=>{x.autoLayout=$('#fAutoLayout').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
  on('#fAutoFit','change',()=>{x.autoFit=$('#fAutoFit').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ on('#fMaxLines','input',()=>{x.maxLines=Number($('#fMaxLines').value);if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
+ on('#advancedDetails','toggle',()=>{inspectorAdvancedOpen=$('#advancedDetails').open;sessionStorage.setItem('wtal_lettering_advanced_open',inspectorAdvancedOpen?'1':'0')});
  on('#fAutoExpand','change',()=>{x.autoExpand=$('#fAutoExpand').value==='1';if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)});
  ['#fMaxLines','#fMinFontSize','#fPaddingX','#fPaddingY'].forEach(id=>on(id,'input',()=>{const map={'#fMaxLines':'maxLines','#fMinFontSize':'minFontSize','#fPaddingX':'paddingX','#fPaddingY':'paddingY'};x[map[id]]=Number($(id).value);if(x.autoLayout)runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();refreshLayoutStatus(x)}));
  on('#autoLayoutNow','click',()=>{snapshot();runAutoLayout(x);updateOne(x);persistQuiet();refreshLayoutStatus(x)});on('#autoBreaks','click',()=>{snapshot();normalizeTextBreaks(x);runAutoLayout(x,{silent:true});updateOne(x);persistQuiet();renderInspector()});
- // Font library remains available only inside Advanced.
- on('#fontSearch','input',()=>{fontUI.search=$('#fontSearch').value;renderInspector()});on('#fontCategory','change',()=>{fontUI.category=$('#fontCategory').value;renderInspector()});
- $$('[data-font]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.font);x.fontKey=f.key;x.font=f.family;markRecentFont(f.key);updateOne(x);renderInspector();persistQuiet()}));
- $$('[data-font-chip]').forEach(b=>b.addEventListener('click',()=>{const f=resolveFont(b.dataset.fontChip);x.fontKey=f.key;x.font=f.family;markRecentFont(f.key);updateOne(x);renderInspector();persistQuiet()}));
- $$('[data-fav-font]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();toggleFavoriteFont(b.dataset.favFont)}));
- on('#fontUpload','change',async()=>{const file=$('#fontUpload').files[0];if(!file)return;const ext=(file.name.split('.').pop()||'ttf').toLowerCase(),format={ttf:'truetype',otf:'opentype',woff:'woff',woff2:'woff2'}[ext]||'truetype';const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(file)});const k='user-'+Date.now(),cssFamily='WTAL_User_'+k.replace(/[^a-z0-9_]/ig,'');userFonts.push({key:k,name:file.name.replace(/\.[^.]+$/,''),category:'user',family:`'${cssFamily}'`,cssFamily,src:dataUrl,format});localStorage.setItem(userFontKey,JSON.stringify(userFonts));syncFontFaces();x.fontKey=k;x.font=`'${cssFamily}'`;markRecentFont(k);renderInspector();updateOne(x);persistQuiet();toast('사용자 폰트 등록됨')});
- on('#removeCurrentUserFont','click',()=>{if(!x.fontKey.startsWith('user-'))return toast('현재 선택은 기본 폰트입니다');userFonts=userFonts.filter(f=>f.key!==x.fontKey);localStorage.setItem(userFontKey,JSON.stringify(userFonts));syncFontFaces();const f=resolveFont('dialogue-basic');x.fontKey=f.key;x.font=f.family;renderInspector();updateOne(x);persistQuiet();toast('현재 유저 폰트 제거됨')});
  refreshLayoutStatus(x);showFloatbar(x);
 }
 
@@ -1062,7 +1053,7 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.7 준비 완료');
+ toast('LETTERING V43.3.8 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error · V43.3.5';

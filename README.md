@@ -59,3 +59,8 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Non-balloon styles explicitly clear both preset tail and direct-tail state.
 - Caption / narration / monologue / thought / SFX no longer inherit a sharp tail from the previous balloon style.
 - Standard dialogue / emotion / shout styles restore a normal balloon tail when needed.
+
+## V43.3.8 — Advanced Inspector Cleanup
+- Advanced panel open state persists during Inspector rerenders.
+- Removed low-value/duplicated advanced UI: direct-tail selector, shadow, font browser/favorites, saved styles, Auto Layout master toggle, Auto Expand, Min Font, Padding X/Y.
+- Kept outline/opacity, tracking/leading, text outline, Auto Fit/max lines, fit-now, line-break cleanup.

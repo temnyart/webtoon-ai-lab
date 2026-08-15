@@ -1,0 +1,10 @@
+{
+  "syntax_files": 12,
+  "checks": {
+    "advanced_persist": true,
+    "trimmed": true,
+    "kept": true,
+    "version": true
+  },
+  "overall": "PASS"
+}
