@@ -19,7 +19,7 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,continuityReference=null,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
+    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,characterState={},spatialContext={},continuityReference=null,storyboardReference=null,storyboardNote='',prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
@@ -56,7 +56,7 @@ export async function POST(req){
     ] : [];
     const content=[{type:'input_text',text:[
       'TASK: Render exactly one vertical Korean martial-arts webtoon CUT from a locked production specification.',
-      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) CUT action/pose/blocking, 3) SCENE VISUAL LOCK, 4) BACKGROUND MASTER spatial continuity, 5) CHARACTER/PROP MASTER identity, 6) SHOT/CAMERA, 7) visual style, 8) episode/lore context.',
+      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) APPROVED STORYBOARD composition if supplied, 3) CUT action/pose/blocking, 4) SCENE VISUAL LOCK, 5) SPACE MAP/BACKGROUND MASTER continuity, 6) CHARACTER/PROP MASTER identity, 7) SHOT/CAMERA, 8) visual style, 9) episode/lore context.',
       ...(sceneDirecting ? [
         'SCENE DIRECTING CONTEXT:',
         `SCENE PURPOSE: ${sceneDirecting.purpose||''}`,
@@ -77,6 +77,26 @@ export async function POST(req){
         `AVOID ACTING — DO NOT SHOW ANY OF THESE: ${storyActing.avoidActing||''}`,
         `NEXT BEAT: ${storyActing.nextBeat||''}`,
         'Do not make the character emotionally aware of information they have not learned yet. Do not skip ahead to the emotion of the next CUT.'
+      ] : []),
+      ...(characterState && Object.keys(characterState).length ? [
+        'CHARACTER STATE LOCK — persistent visible state:',
+        JSON.stringify(characterState),
+        'Preserve injury, blood/dirt, clothing damage, equipment, hair and other persistent physical state unless the current CUT explicitly changes it.'
+      ] : []),
+      ...(spatialContext?.spaceMap ? [
+        'SPACE MAP LOCK — same physical set across camera angles:',
+        JSON.stringify(spatialContext.spaceMap),
+        'Fixed architecture and major furniture may not teleport or swap walls.'
+      ] : []),
+      ...(spatialContext?.cameraPlan ? [
+        'CAMERA PLAN:',
+        JSON.stringify(spatialContext.cameraPlan)
+      ] : []),
+      ...(storyboardReference ? [
+        'APPROVED STORYBOARD COMPOSITION LOCK IS ACTIVE.',
+        'Match its camera side, framing, character screen positions, body blocking, action timing and major negative space.',
+        'Use the storyboard ONLY for composition/staging. Do NOT copy its rough monochrome drawing style.',
+        storyboardNote ? `DIRECTOR CONTE NOTE: ${storyboardNote}` : ''
       ] : []),
       ...sceneRules,
       ...identityRules,
@@ -100,6 +120,10 @@ export async function POST(req){
       episodeContext ? `Episode context for narrative continuity only. Do not copy unrelated events, poses, locations, or props from this context:\n${episodeContext}` : '',
       'FINAL CHECK BEFORE RENDERING: same SCENE color temperature/white balance/weather/lighting as the SCENE LOCK and previous approved CUT; same set as background MASTER; same character as character MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
     ].filter(Boolean).join('\n')}];
+    if(storyboardReference && /^data:image\/(png|jpeg|webp);base64,/i.test(storyboardReference)){
+      content.push({type:'input_text',text:'APPROVED STORYBOARD · COMPOSITION/BLOCKING REFERENCE ONLY. Match framing and staging; render in the final locked webtoon style.'});
+      content.push({type:'input_image',image_url:storyboardReference,detail:'high'});
+    }
     if(continuityReference?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(continuityReference.dataUrl)){
       content.push({type:'input_text',text:`PREVIOUS APPROVED CUT CONTINUITY REFERENCE — CUT ${String(continuityReference.cutId||'').padStart(3,'0')}. Use this image ONLY as the authoritative reference for scene color grade, white balance, light direction, exposure, skin tone, costume colors, background brightness and rendering density. Do NOT copy its pose, camera angle, crop or action into the current CUT. Current CUT shot/camera/action remain authoritative.`});
       content.push({type:'input_image',image_url:continuityReference.dataUrl,detail:'high'});
