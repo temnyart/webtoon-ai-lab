@@ -129,7 +129,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.2.5</span>
+    <span class="badge">LETTERING V43.3.1</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -994,12 +994,17 @@ async function runStressAudit(){
  renderAuditResults(results,'실제 프로젝트 데이터는 변경하지 않고 메모리 임시 데이터로 30개 객체를 테스트했습니다.');
  toast(results.some(x=>x.status==='fail')?'Stress FAIL':'Stress PASS');
 }
+function letteringBlobToDataUrl(blob){
+ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Blob decode failed'));r.readAsDataURL(blob)});
+}
 async function imageLoad(){
  if(!key)throw new Error('Lettering target CUT is missing');
  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
  const rec=await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly'), r=tx.objectStore('results').get(key); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
- if(!rec?.image) throw new Error('Final image not found: '+key);
- $('#image').src=rec.image;
+ let image=rec?.image||null;
+ if(!image&&rec?.imageBlob instanceof Blob)image=await letteringBlobToDataUrl(rec.imageBlob);
+ if(!image) throw new Error('Final image not found: '+key);
+ $('#image').src=image;
 }
 
 try{all=JSON.parse(localStorage.getItem(storeKey)||'{}')||{}}catch{all={}}
@@ -1014,14 +1019,17 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.2.5 준비 완료');
+ toast('LETTERING V43.3.1 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error';
  $('#status').style.color='#a22';
  render();
  const stage=$('#stage');
- if(stage)stage.innerHTML=`<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div style="margin-top:8px;font-size:11px">${esc(err.message)}</div><button onclick="history.back()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← 이전 화면으로</button></div></div>`;
+ if(stage){
+   stage.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div id="letteringLoadError" style="margin-top:8px;font-size:11px"></div><button onclick="history.back()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← 이전 화면으로</button></div></div>';
+   const errEl=$('#letteringLoadError');if(errEl)errEl.textContent=err?.message||String(err);
+ }
  toast(err.message);
 });
 })();

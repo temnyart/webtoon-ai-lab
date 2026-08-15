@@ -330,7 +330,7 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 </header>
 <div class="shell">
   <aside class="appSidebar">
-    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · AUDIT V43.3</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
+    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · STORAGE FIX V43.3.1</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
     <nav class="primaryNav">
       <button class="nav active" data-page="HOME"><span class="navIcon">⌂</span><span>Home</span></button>
       <button class="nav" data-page="CREATE"><span class="navIcon">✦</span><span>Create</span></button>
@@ -1307,16 +1307,79 @@ async function showHistoryDetail(id){
 async function createNamedHistoryCheckpoint(){const n=prompt('Checkpoint 이름','중요 수정 전');if(!n?.trim())return;await historyCreateCheckpoint(n.trim());document.querySelector('#genResult')?.remove();openProjectHistory()}
 function persistEpisodes(){localStorage.setItem('wtal_episodes',JSON.stringify(episodes));localStorage.setItem('wtal_dynamic_cuts',JSON.stringify(dynamicCuts));saveCutSpecMaps();}
 function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('results'))r.result.createObjectStore('results');if(!r.result.objectStoreNames.contains('history')){const h=r.result.createObjectStore('history',{keyPath:'id'});h.createIndex('at','at',{unique:false});h.createIndex('episodeId','episodeId',{unique:false})}if(!r.result.objectStoreNames.contains('projects')){const p=r.result.createObjectStore('projects',{keyPath:'id'});p.createIndex('updatedAt','updatedAt',{unique:false})}if(!r.result.objectStoreNames.contains('master_images')){const m=r.result.createObjectStore('master_images',{keyPath:'key'});m.createIndex('projectId','projectId',{unique:false});m.createIndex('assetId','assetId',{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-async function putResult(key,value){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readwrite');tx.objectStore('results').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted'))})}catch(e){recordFailure({operation:'indexeddb_write',endpoint:String(key),message:e?.name+': '+e?.message,retryable:false});reliabilityToast('이미지 결과 저장에 실패했습니다. Backup/저장공간을 확인하세요.','error');throw e}}
-async function getResult(key){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly');const r=tx.objectStore('results').get(key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}catch(e){recordFailure({operation:'indexeddb_read',endpoint:String(key),message:e?.name+': '+e?.message,retryable:false});throw e}}
+function dataUrlToBlob(dataUrl){
+ const [head,body]=String(dataUrl||'').split(',');
+ if(!head||body==null)throw new Error('Invalid image Data URL');
+ const mime=(head.match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+ const bin=atob(body),bytes=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+ return new Blob([bytes],{type:mime});
+}
+function blobToDataUrl(blob){
+ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Blob decode failed'));r.readAsDataURL(blob)});
+}
+async function hydrateResultRecord(rec){
+ if(!rec)return null;
+ if(rec.image)return rec;
+ if(rec.imageBlob instanceof Blob){
+  const image=await blobToDataUrl(rec.imageBlob);
+  return {...rec,image};
+ }
+ return rec;
+}
+async function rawPutResult(key,value){
+ const db=await openDb();
+ return await new Promise((resolve,reject)=>{
+  const tx=db.transaction('results','readwrite');
+  tx.objectStore('results').put(value,key);
+  tx.oncomplete=()=>resolve(true);
+  tx.onerror=()=>reject(tx.error||new Error('IndexedDB write failed'));
+  tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted'));
+ });
+}
+async function putResult(key,value){
+ try{
+  return await rawPutResult(key,value);
+ }catch(firstError){
+  // Data URLs use ~33% more space than the binary image. Retry once with Blob storage.
+  if(value?.image&&typeof value.image==='string'&&value.image.startsWith('data:image/')){
+   try{
+    const imageBlob=dataUrlToBlob(value.image);
+    const compact={...value,image:null,imageBlob,storageEncoding:'blob-v1'};
+    await rawPutResult(key,compact);
+    recordFailure({operation:'indexeddb_write_recovered',endpoint:String(key),message:`${firstError?.name||'Error'} recovered with Blob`,retryable:false});
+    reliabilityToast('이미지 저장을 Blob 방식으로 복구했습니다.','warn');
+    return true;
+   }catch(secondError){
+    secondError.wtalStorageFailure=true;
+    secondError.originalStorageError=firstError;
+    recordFailure({operation:'indexeddb_write',endpoint:String(key),message:`${secondError?.name||'Error'}: ${secondError?.message||''} / first=${firstError?.name||''}:${firstError?.message||''}`,retryable:false});
+    reliabilityToast(`이미지 저장 실패 · ${secondError?.name||'StorageError'} · 재생성하지 마세요.`,'error');
+    throw secondError;
+   }
+  }
+  firstError.wtalStorageFailure=true;
+  recordFailure({operation:'indexeddb_write',endpoint:String(key),message:`${firstError?.name||'Error'}: ${firstError?.message||''}`,retryable:false});
+  reliabilityToast(`이미지 저장 실패 · ${firstError?.name||'StorageError'} · 재생성하지 마세요.`,'error');
+  throw firstError;
+ }
+}
+async function getResult(key){
+ try{
+  const db=await openDb();
+  const rec=await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly');const r=tx.objectStore('results').get(key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});
+  return await hydrateResultRecord(rec);
+ }catch(e){recordFailure({operation:'indexeddb_read',endpoint:String(key),message:e?.name+': '+e?.message,retryable:false});throw e}
+}
 async function getAllResults(){
  const db=await openDb();
- return new Promise((resolve,reject)=>{
-  const tx=db.transaction('results','readonly'),store=tx.objectStore('results'),out=[];
+ const out=await new Promise((resolve,reject)=>{
+  const tx=db.transaction('results','readonly'),store=tx.objectStore('results'),rows=[];
   const req=store.openCursor();
-  req.onsuccess=()=>{const cur=req.result;if(cur){out.push({key:cur.key,value:cur.value});cur.continue()}else resolve(out)};
+  req.onsuccess=()=>{const cur=req.result;if(cur){rows.push({key:cur.key,value:cur.value});cur.continue()}else resolve(rows)};
   req.onerror=()=>reject(req.error);
  });
+ return await Promise.all(out.map(async item=>({key:item.key,value:await hydrateResultRecord(item.value)})));
 }
 async function replaceAllResults(entries){
  const db=await openDb();
@@ -3189,8 +3252,8 @@ async function runExportPreflight(renderCanvas=true){
 function renderAssemble(){refreshLetteringCache();
  const layout=assemblyLayout(),cuts=cutsForEpisode(),ex=exportSettings();
  const items=layout.map((a,i)=>{const c=cuts[a.cutId];if(!c)return '';const crop=Math.max(0,a.cropTop||0)+Math.max(0,a.cropBottom||0),visible=Math.max(10,100-crop);return `<div class="assembleItem" draggable="true" ondragstart="dragAssemblyStart(event,'${a.uid}')" ondragend="dragAssemblyEnd(event)" ondragover="dragAssemblyOver(event,'${a.uid}')" ondragleave="dragAssemblyLeave(event)" ondrop="dropAssembly(event,'${a.uid}')"><div class="assembleHead"><span class="dragHandle">☰ DRAG · CUT ${String(c.id).padStart(3,'0')} ${a.uid.includes(String(c.id)+'-')?'':''}</span><span>${c.title} ${letterItems(c).length?`<span class="letterBadge">LETTER ${letterItems(c).length}</span>`:''}</span></div><div class="assembleFrame" id="frame-${a.uid}" style="background:${a.bg==='black'?'#000':'#fff'};padding-top:${a.cropTop||0}%;padding-bottom:${a.cropBottom||0}%;"><div class="assembleInner" style="width:${a.scale||100}%;margin-top:-${a.cropTop||0}%;margin-bottom:-${a.cropBottom||0}%;"><span class="previewBadge">${a.scale||100}% · CROP ${a.cropTop||0}/${a.cropBottom||0}</span><img class="assemblyCut" id="assembly-${a.uid}">${letterItems(c).map(x=>letterHtml(x)).join('')}</div></div><div class="assembleControls"><label>확대/축소 %<input type="number" min="25" max="160" value="${a.scale||100}" onchange="setAssembly('${a.uid}','scale',this.value)"></label><label>상단 크롭 %<input type="number" min="0" max="45" value="${a.cropTop||0}" onchange="setAssembly('${a.uid}','cropTop',this.value)"></label><label>하단 크롭 %<input type="number" min="0" max="45" value="${a.cropBottom||0}" onchange="setAssembly('${a.uid}','cropBottom',this.value)"></label><label>다음 여백 px<input type="number" min="0" max="2000" value="${a.gap??80}" onchange="setAssembly('${a.uid}','gap',this.value)"></label></div><div class="assembleHead"><div class="assembleMini"><button class="btn small" onclick="renderLetterEditor(${c.id})">LETTERING</button><button class="btn small" onclick="duplicateAssembly('${a.uid}')">컷 복제</button><button class="btn small" onclick="deleteAssembly('${a.uid}')">어셈블에서 삭제</button></div><div class="assembleMini"><button class="btn small" onclick="setGapColor('${a.uid}','white')">흰 여백</button><button class="btn small" onclick="setGapColor('${a.uid}','black')">검은 여백</button><button class="btn small" onclick="addSceneGap('${a.uid}')">SCENE 긴 여백</button></div></div></div>${i<layout.length-1?`<div class="gapVisual ${a.sceneBreak?'sceneDivider':''}" style="height:${Math.min(500,a.gap??80)}px;background:${a.bg==='black'?'#000':'#fff'};color:${a.bg==='black'?'#fff':'#888'}">${a.sceneBreak?'SCENE TRANSITION · ':''}${a.gap??80}px</div>`:''}`}).join('');
- const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.3</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
- view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.3 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
+ const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.3.1</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
+ view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.3.1 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
 }
 async function hydrateAssemblyLayout(layout){await ensureTypographyFontsLoaded();refreshLetteringCache();const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
 
@@ -4201,8 +4264,14 @@ async function generateCut(id,opts={}){
   }catch(err){
     if(!silent){generationUiStop(id);completeUiRequest('generate_cut',id);}
     if(err?.cancelled||err?.name==='AbortError'||/작업이 취소/.test(err?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 생성을 취소했습니다.`,'warn')}return {ok:false,cancelled:true,error:'사용자 취소'};}
-    if(!silent)showGenerateError(c,err.message);
-    return {ok:false,error:err.message};
+    if(!silent){
+      if(err?.wtalStorageFailure&&lastGenerated?.image&&Number(lastGenerated.cutId)===Number(id)){
+        showStorageRecovery(c,lastGenerated.image,lastGenerated.model||'gpt-image-1.5',err);
+      }else{
+        showGenerateError(c,err.message);
+      }
+    }
+    return {ok:false,error:err.message,storageFailure:!!err?.wtalStorageFailure};
   }finally{
     if(!silent){generationUiStop(id);finishUiRequest('generate_cut',id);}
     const b=document.querySelector('#generateBtn');if(b&&!silent){b.disabled=false;b.textContent='Generate CUT';}
@@ -4283,7 +4352,38 @@ function blobToDataUrl(blob){
 }
 async function saveGenerated(c,image,model,presetId=effectivePresetId(c.id)){
  const preset=GENERATION_PRESETS[presetId]||GENERATION_PRESETS.standard;
- await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()});
+ const record={cutId:c.id,episodeId:activeEpisodeId,image,model,preset,status:'generated',updatedAt:new Date().toISOString()};
+ // Keep the paid generation result in RAM before any browser storage write.
+ lastGenerated=record;
+ await putResult(stateKey(c.id),record);
+ return record;
+}
+async function retryLastGeneratedSave(id){
+ if(!lastGenerated?.image||Number(lastGenerated.cutId)!==Number(id))return alert('현재 세션에 복구할 생성 이미지가 없습니다.');
+ try{
+  await putResult(stateKey(id),lastGenerated);
+  reliabilityToast(`CUT ${String(id).padStart(3,'0')} 저장 복구 완료`,'success');
+  const c=cutsForEpisode()[id];
+  if(c)showGeneratedResult(c,[],lastGenerated.image,lastGenerated.model,lastGenerated.preset?.id||lastGenerated.preset||effectivePresetId(id));
+ }catch(e){
+  reliabilityToast(`저장 재시도 실패 · ${e?.name||'StorageError'} · 이미지 다운로드 후 저장공간을 확보하세요.`,'error');
+ }
+}
+function showStorageRecovery(c,image,model,error){
+ lastGenerated={...(lastGenerated||{}),cutId:c.id,episodeId:activeEpisodeId,image,model,status:'generated',updatedAt:new Date().toISOString()};
+ completeUiRequest('generate_cut',c.id);
+ modalShell(`<div class="eyebrow">GENERATION COMPLETE · STORAGE RECOVERY</div>
+ <h2>CUT ${String(c.id).padStart(3,'0')} 이미지는 생성됐지만 브라우저 저장에 실패했습니다.</h2>
+ <img src="${image}" style="display:block;width:min(430px,100%);max-height:58vh;object-fit:contain;margin:14px auto;border-radius:12px;background:#eee">
+ <div class="backupWarn"><b>중요: 다시 생성하지 마세요.</b><br>OpenAI 생성은 이미 완료된 결과입니다. 현재 이미지는 이 브라우저 탭의 메모리에 남아 있습니다.<br><small>${esc(error?.name||'StorageError')} · ${esc(error?.message||'')}</small></div>
+ <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button class="btn" onclick="downloadLastGeneratedImage(${c.id})">현재 이미지 다운로드</button>
+  <button class="btn dark" onclick="retryLastGeneratedSave(${c.id})">저장만 다시 시도</button>
+ </div>`,{replaceActiveRequest:true});
+}
+function downloadLastGeneratedImage(id){
+ if(!lastGenerated?.image||Number(lastGenerated.cutId)!==Number(id))return alert('복구 이미지가 없습니다.');
+ const a=document.createElement('a');a.href=lastGenerated.image;a.download=`${activeEpisodeId}_CUT_${String(id).padStart(3,'0')}_RECOVERY.webp`;document.body.appendChild(a);a.click();a.remove();
 }
 function showGeneratedResult(c,refs,image,model,presetId=effectivePresetId(c.id)){
   const preset=GENERATION_PRESETS[presetId]||GENERATION_PRESETS.standard;

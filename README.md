@@ -2042,3 +2042,27 @@ Audit file:
 Important:
 - All main/editor/API JavaScript files pass syntax validation.
 - This is a static regression audit; a deployed browser smoke test is still the final proof for event/runtime behavior.
+
+
+## V43.3.1 — Generation Storage Recovery
+
+Observed production case:
+- `/api/generate-cut` completed successfully.
+- The client failed in the final IndexedDB save stage.
+- Lettering then could not find a Final image because no result record had been persisted.
+
+Hardening:
+- Generated image is kept in `lastGenerated` RAM before storage begins.
+- IndexedDB write first tries the existing Data URL record.
+- If that fails, storage automatically retries with the image as a binary `Blob` (`blob-v1`), avoiding Base64 storage overhead.
+- `getResult()` transparently hydrates Blob-backed records back into Data URLs.
+- Full result enumeration also hydrates Blob-backed records so backup/export remain compatible.
+- On total storage failure, the user gets a **Storage Recovery** modal with:
+  - the already-generated image
+  - direct download
+  - **save-only retry**
+  - explicit warning not to regenerate
+- Standalone Lettering can read either legacy Data URL records or new Blob-backed records.
+- Lettering load error text is now rendered with `textContent`.
+
+This patch does not regenerate an image during recovery.
