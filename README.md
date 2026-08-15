@@ -1635,3 +1635,9 @@ V41.1 still did not respond reliably in the deployed browser. V41.2 removes the 
 - `Test` button verifies the canvas, inspector, lettering layer and pointer controller are loaded.
 - Double-click editor remains an on-canvas textarea overlay.
 - Existing lettering and Assemble data remain compatible.
+
+
+## V41.3 — Lettering Event Delegation Fix
+Core Lettering controls no longer rely on inline onclick handlers. After the editor renders, toolbar, Elements, Inspector, presets, canvas pointer gestures and keyboard shortcuts are bound with `addEventListener`.
+
+A visible `V41.3 LIVE` badge confirms the deployed build. `Test` verifies real DOM controls and controllers. `Log` opens a client-side event/error log so dead controls can no longer fail silently.
