@@ -28,6 +28,7 @@ export async function POST(req){
     const presetInputFidelity=['low','high'].includes(generationPreset?.inputFidelity)?generationPreset.inputFidelity:'high';
     const presetFocus=['speed','balanced','final','character','background'].includes(generationPreset?.focus)?generationPreset.focus:'balanced';
     const presetCompression=Math.max(70,Math.min(100,Number(generationPreset?.outputCompression)||92));
+    const resolvedPresetId=generationPreset?.id||'standard';
     const presetRules=[
       `GENERATION PRESET: ${generationPreset?.name||generationPreset?.id||'Standard'} · quality ${presetQuality} · focus ${presetFocus}.`,
       ...(presetFocus==='speed'?['DRAFT SPEED FOCUS: preserve required identity/composition, but favor fast visual validation over micro-detail. Do not add unnecessary texture or decorative detail.']:[]),
@@ -176,9 +177,9 @@ export async function POST(req){
     const b64=imageResult(data);
     if(!b64) return Response.json({error:'이미지 결과를 찾지 못했습니다.',responseId:data?.id || null},{status:502});
     const bytes=Buffer.from(b64,'base64');
-    return new Response(bytes,{status:200,headers:{'Content-Type':'image/webp','Content-Length':String(bytes.byteLength),'Cache-Control':'no-store','X-Image-Transport':'binary','X-OpenAI-Model':process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5','X-Generation-Preset':presetId || 'standard','X-Generation-Quality':presetQuality,'X-Input-Fidelity':presetInputFidelity}});
+    return new Response(bytes,{status:200,headers:{'Content-Type':'image/webp','Content-Length':String(bytes.byteLength),'Cache-Control':'no-store','X-Image-Transport':'binary','X-OpenAI-Model':process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5','X-Generation-Preset':resolvedPresetId,'X-Generation-Quality':presetQuality,'X-Input-Fidelity':presetInputFidelity}});
   }catch(err){
-    console.error(err);
-    return Response.json({error:err?.message || 'Unexpected server error'},{status:500});
+    console.error('[generate-cut]',{name:err?.name||'Error',message:err?.message||String(err),stack:err?.stack||'',at:new Date().toISOString()});
+    return Response.json({error:err?.message || 'Unexpected server error',code:'GENERATE_CUT_RUNTIME_ERROR'},{status:500});
   }
 }

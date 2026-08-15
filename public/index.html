@@ -253,11 +253,14 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 
 /* V40.5 — Generation Watchdog */
 .genStageBox{display:grid;gap:7px;margin:12px 0}.genStageRow{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:#fafafa;font-size:8px}.genStageDot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#eee;color:#777;font-size:7px;font-weight:800}.genStageRow.active .genStageDot{background:#fff0d6;color:#8c5907}.genStageRow.done .genStageDot{background:#eaf6ed;color:#27703b}.genStageRow.error .genStageDot{background:#fff0f0;color:#a12c2c}.genStageTime{font-size:7px;color:#888}.genWatchdog{margin-top:8px;padding:8px 10px;border-radius:9px;background:#f5f5f7;font-size:8px;color:#666;line-height:1.5}
+
+/* V40.7 — Recovery UI Polish */
+.recoveryHeaderBtn{display:inline-flex!important;align-items:center;gap:5px}.recoveryHeaderBadge{display:none;min-width:15px;height:15px;padding:0 5px;border-radius:999px;place-items:center;background:#d94a42;color:#fff;font-size:7px;font-weight:800}.recoveryHeaderBtn.hasIssues .recoveryHeaderBadge{display:inline-grid}.compactRecoveryNotice{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #ead4a9;background:#fff8eb;border-radius:9px;padding:6px 9px;margin-bottom:8px;font-size:8px;color:#765316}.compactRecoveryNotice button{border:0;background:transparent;font-size:8px;font-weight:700;cursor:pointer;color:inherit;padding:2px 4px}.compactRecoveryNotice.offline{border-color:#ecc9c9;background:#fff3f3;color:#8c3333}.recoveryHistoryNote{font-size:7px;color:#8b8b91}.recoverySeverity{display:inline-flex;border-radius:999px;padding:2px 5px;font-size:6px;font-weight:800;margin-left:5px;background:#f1f1f3;color:#777}.recoverySeverity.critical{background:#ffeded;color:#a12c2c}.recoverySeverity.review{background:#fff5df;color:#875c08}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
   <button class="commandTrigger" onclick="openCommandPalette()"><span>Search or jump to…</span><kbd>⌘ K</kbd></button>
-  <div class="topActions"><button class="iconBtn helpBtn tooltipHelp" data-help="도움말 · 단축키 · 제작 흐름" onclick="openHelpCenter()">?</button><button class="iconBtn" onclick="openProjectHistory()">History</button><button class="iconBtn" onclick="toggleActivityPanel()">Activity <span id="activityCount" class="activityCount">0</span></button><span class="cloudState">● Ready</span></div>
+  <div class="topActions"><button class="iconBtn helpBtn tooltipHelp" data-help="도움말 · 단축키 · 제작 흐름" onclick="openHelpCenter()">?</button><button class="iconBtn" onclick="openProjectHistory()">History</button><button id="recoveryHeaderBtn" class="iconBtn recoveryHeaderBtn" onclick="openReliabilityCenter()">Recovery <span id="recoveryHeaderBadge" class="recoveryHeaderBadge">0</span></button><button class="iconBtn" onclick="toggleActivityPanel()">Activity <span id="activityCount" class="activityCount">0</span></button><span class="cloudState">● Ready</span></div>
 </header>
 <div class="shell">
   <aside class="appSidebar">
@@ -627,12 +630,28 @@ function recordFailure({operation='unknown',endpoint='',episodeId=activeEpisodeI
  const cls=classifyFailure({status,message,operation}),existing=failureLog.find(x=>!x.resolved&&x.operation===operation&&x.episodeId===episodeId&&x.cutId===cutId&&x.code===cls.code);
  const item=existing||{id:`fail_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,at:new Date().toISOString(),operation,endpoint,episodeId,cutId,status,code:cls.code,title:cls.title,hint:cls.hint,message:String(message||cls.title).slice(0,1200),note,retryable:!!retryable,resolved:false,count:0};
  item.count=(item.count||0)+1;item.lastAt=new Date().toISOString();item.status=status;item.message=String(message||item.message).slice(0,1200);item.hint=cls.hint;item.title=cls.title;item.retryable=!!retryable;
- if(!existing)failureLog.push(item);saveFailureLog();renderActivity();return item;
+ if(!existing)failureLog.push(item);saveFailureLog();renderActivity();updateRecoveryBadge();return item;
 }
 function resolveFailures(operation,episodeId=activeEpisodeId,cutId=null){
- let changed=false;failureLog.forEach(x=>{if(!x.resolved&&x.operation===operation&&x.episodeId===episodeId&&(cutId==null||x.cutId===cutId)){x.resolved=true;x.resolvedAt=new Date().toISOString();changed=true}});if(changed)saveFailureLog();
+ let changed=false;failureLog.forEach(x=>{if(!x.resolved&&x.operation===operation&&x.episodeId===episodeId&&(cutId==null||x.cutId===cutId)){x.resolved=true;x.resolvedAt=new Date().toISOString();changed=true}});if(changed){saveFailureLog();updateRecoveryBadge();}
 }
 function unresolvedFailures(episodeId=null){return failureLog.filter(x=>!x.resolved&&(!episodeId||x.episodeId===episodeId))}
+function failureIsCancellationLike(f){
+ const text=`${f?.message||''} ${f?.note||''}`.toLowerCase();
+ return /사용자 취소|cancelled|canceled|user cancel/.test(text)&&f?.code!=='timeout';
+}
+function failureSeverity(f){
+ if(failureIsCancellationLike(f))return 'history';
+ if(['auth','permission','quota','payload','storage','indexeddb'].includes(f?.code))return 'critical';
+ if(['server','unknown'].includes(f?.code))return 'review';
+ return 'history';
+}
+function actionableFailures(episodeId=null){return unresolvedFailures(episodeId).filter(f=>failureSeverity(f)!=='history')}
+function criticalFailures(episodeId=null){return unresolvedFailures(episodeId).filter(f=>failureSeverity(f)==='critical')}
+function updateRecoveryBadge(){
+ const btn=document.querySelector('#recoveryHeaderBtn'),badge=document.querySelector('#recoveryHeaderBadge');if(!btn||!badge)return;
+ const count=actionableFailures(activeEpisodeId).length;badge.textContent=count>99?'99+':String(count);btn.classList.toggle('hasIssues',count>0);btn.title=count?`확인 필요한 Recovery ${count}건`:'확인 필요한 Recovery 없음';
+}
 function failureOperationLabel(op){return {generate_cut:'Generate CUT',partial_edit:'Partial Edit',storyboard:'Generate Conte',continuity_qc:'Continuity QC',character_state:'Character State',space_map:'Space Map',transform_master:'Master Convert',episode_story:'Episode Story',episode_specs:'CUT Specs'}[op]||op}
 async function retryFailure(id){
  const f=failureLog.find(x=>x.id===id);if(!f)return;
@@ -650,7 +669,7 @@ async function retryFailure(id){
   // trackedFetch resolves the matching failure on a successful API response.
  }finally{f.retrying=false;saveFailureLog();renderActivity()}
 }
-function dismissFailure(id){const f=failureLog.find(x=>x.id===id);if(f){f.resolved=true;f.resolvedAt=new Date().toISOString();saveFailureLog();renderActivity();render()}}
+function dismissFailure(id){const f=failureLog.find(x=>x.id===id);if(f){f.resolved=true;f.resolvedAt=new Date().toISOString();saveFailureLog();renderActivity();updateRecoveryBadge();render()}}
 function safeStorageSet(key,value,{quiet=false,label=''}={}){
  const before=localStorage.getItem(key);
  try{localStorage.setItem(key,value);historyRecordStorage(key,before,value,label);return true}
@@ -661,21 +680,23 @@ function reliabilityStorageEstimate(){
  return navigator.storage.estimate().catch(()=>({usage:0,quota:0}));
 }
 function reliabilityBannerHtml(){
- const fails=unresolvedFailures(activeEpisodeId),offline=!reliabilityOnline;
- if(!fails.length&&!offline)return '';
- return `<div class="reliabilityBanner ${offline?'offline':''}"><span><b>${offline?'인터넷 연결이 끊겼습니다.':`${fails.length}개의 작업 오류가 확인 필요합니다.`}</b><small>${offline?'온라인 상태가 될 때까지 API 생성 작업을 시작하지 않는 것이 안전합니다.':'실패한 CUT과 원인을 Recovery Center에서 확인할 수 있습니다.'}</small></span><button class="btn" onclick="openReliabilityCenter()">Recovery Center</button></div>`;
+ const critical=criticalFailures(activeEpisodeId),offline=!reliabilityOnline;
+ if(!offline&&!critical.length)return '';
+ if(offline)return `<div class="compactRecoveryNotice offline"><span><b>● Offline</b> · API 생성 작업을 시작하지 않는 것이 안전합니다.</span><button onclick="openReliabilityCenter()">확인</button></div>`;
+ return `<div class="compactRecoveryNotice"><span><b>⚠ 제작 차단 가능 오류 ${critical.length}건</b> · 인증/한도/저장공간 등 확인이 필요합니다.</span><button onclick="openReliabilityCenter()">Recovery</button></div>`;
 }
 async function openReliabilityCenter(){
- const all=unresolvedFailures(),episode=unresolvedFailures(activeEpisodeId),storage=await reliabilityStorageEstimate(),api=await checkApi(),usage=storage.quota?Math.round((storage.usage/storage.quota)*100):0;
- const failedCuts=[...new Set(episode.filter(x=>x.cutId!=null).map(x=>x.cutId))];
+ const all=unresolvedFailures(),episode=unresolvedFailures(activeEpisodeId),actionable=actionableFailures(),episodeActionable=actionableFailures(activeEpisodeId),historical=all.filter(f=>failureSeverity(f)==='history'),storage=await reliabilityStorageEstimate(),api=await checkApi(),usage=storage.quota?Math.round((storage.usage/storage.quota)*100):0;
+ const failedCuts=[...new Set(episodeActionable.filter(x=>x.cutId!=null).map(x=>x.cutId))];
  modalShell(`<div class="eyebrow">RELIABILITY / RECOVERY · V34</div><h2>Recovery Center</h2><p class="lead">실패한 작업을 지우지 않고 원인과 재시도 가능 여부를 모아봅니다. 유료 생성 API는 자동으로 반복 호출하지 않습니다.</p>
- <div class="reliabilityStats"><div class="reliabilityStat"><small>UNRESOLVED</small><b>${all.length}</b></div><div class="reliabilityStat"><small>THIS EPISODE</small><b>${episode.length}</b></div><div class="reliabilityStat"><small>FAILED CUTS</small><b>${failedCuts.length}</b></div><div class="reliabilityStat"><small>STORAGE</small><b>${storage.quota?usage+'%':'—'}</b></div></div>
+ <div class="reliabilityStats"><div class="reliabilityStat"><small>NEEDS ACTION</small><b>${actionable.length}</b></div><div class="reliabilityStat"><small>THIS EPISODE</small><b>${episodeActionable.length}</b></div><div class="reliabilityStat"><small>FAILED CUTS</small><b>${failedCuts.length}</b></div><div class="reliabilityStat"><small>STORAGE</small><b>${storage.quota?usage+'%':'—'}</b></div></div>
  <div class="healthCheckGrid" style="margin-top:10px"><div class="healthCheck"><b><span class="networkDot ${navigator.onLine?'':'offline'}"></span>Network</b><span>${navigator.onLine?'Online':'Offline'}</span></div><div class="healthCheck"><b>OpenAI API</b><span>${api?.openaiConfigured?'Configured':'Not configured / unreachable'}</span></div><div class="healthCheck"><b>Data Schema</b><span>v${WTAL_SCHEMA_VERSION} · ${wtalStorageHealth().issues} issues</span></div></div>
- <div class="v27Divider"></div><div class="sectionTitle">실패 작업</div><div class="reliabilityPanel">${all.length?[...all].reverse().map(f=>failureRowHtml(f)).join(''):emptyStateHtml('미해결 오류가 없습니다','현재 기록된 실패 작업이 모두 정리되었습니다.','','✓')}</div>
+ <div class="v27Divider"></div><div class="sectionTitle">확인 필요한 작업</div><div class="reliabilityPanel">${actionable.length?[...actionable].reverse().map(f=>failureRowHtml(f)).join(''):emptyStateHtml('확인 필요한 오류가 없습니다','현재 제작을 막는 Recovery 항목이 없습니다.','','✓')}</div>
+ <div class="v27Divider"></div><div class="sectionTitle">과거 / 일시적 기록 <span class="recoveryHistoryNote">${historical.length}건 · 배지/홈 알림에는 포함하지 않음</span></div><div class="reliabilityPanel">${historical.length?[...historical].reverse().slice(0,20).map(f=>failureRowHtml(f)).join(''):emptyStateHtml('과거 기록 없음','일시적 네트워크/타임아웃/취소 기록이 없습니다.','','○')}</div>
  <div class="v27Divider"></div><div class="right"><button class="btn" onclick="document.querySelector('#genResult')?.remove();currentPage='BACKUP';render()">Backup</button><button class="btn" onclick="document.querySelector('#genResult')?.remove();openDataArchitecture()">Data Health</button><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
 }
 function failureRowHtml(f){
- return `<div class="failureRow error"><div><div class="failureTitle">${esc(f.title)} · ${esc(failureOperationLabel(f.operation))}${f.cutId!=null?` · CUT ${String(f.cutId).padStart(3,'0')}`:''}</div><div class="failureMeta">${esc(f.episodeId||'')} · ${new Date(f.lastAt||f.at).toLocaleString()} · ${f.status?`HTTP ${f.status}`:'client/network'} · ${f.count||1}회</div><div class="failureMessage">${esc(f.message||'')}</div><div class="failureHint">${esc(f.hint||'')}</div></div><div class="failureActions">${f.retryable&&['generate_cut','storyboard','continuity_qc','character_state','episode_story','episode_specs'].includes(f.operation)?`<button class="btn small" onclick="retryFailure('${f.id}')">${f.retrying?'재시도 중…':'Retry'}</button>`:''}<button class="btn small" onclick="dismissFailure('${f.id}');document.querySelector('#genResult')?.remove();openReliabilityCenter()">정리</button></div></div>`;
+ return `<div class="failureRow error"><div><div class="failureTitle">${esc(f.title)} · ${esc(failureOperationLabel(f.operation))}${f.cutId!=null?` · CUT ${String(f.cutId).padStart(3,'0')}`:''}<span class="recoverySeverity ${failureSeverity(f)}">${failureSeverity(f)==='critical'?'ACTION':failureSeverity(f)==='review'?'REVIEW':'HISTORY'}</span></div><div class="failureMeta">${esc(f.episodeId||'')} · ${new Date(f.lastAt||f.at).toLocaleString()} · ${f.status?`HTTP ${f.status}`:'client/network'} · ${f.count||1}회</div><div class="failureMessage">${esc(f.message||'')}</div><div class="failureHint">${esc(f.hint||'')}</div></div><div class="failureActions">${f.retryable&&['generate_cut','storyboard','continuity_qc','character_state','episode_story','episode_specs'].includes(f.operation)?`<button class="btn small" onclick="retryFailure('${f.id}')">${f.retrying?'재시도 중…':'Retry'}</button>`:''}<button class="btn small" onclick="dismissFailure('${f.id}');document.querySelector('#genResult')?.remove();openReliabilityCenter()">정리</button></div></div>`;
 }
 window.addEventListener('online',()=>{reliabilityOnline=true;reliabilityToast('인터넷 연결이 복구되었습니다.');render()});
 window.addEventListener('offline',()=>{reliabilityOnline=false;recordFailure({operation:'network',message:'Browser went offline',retryable:false});reliabilityToast('인터넷 연결이 끊겼습니다. API 작업을 잠시 멈춰주세요.','error');render()});
@@ -3341,6 +3362,7 @@ document.addEventListener('keydown',e=>{
 });
 
 function render(){
+ updateRecoveryBadge();
  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===currentPage));
  localStorage.setItem('wtal_ui_page',currentPage);
  const pn=document.querySelector('.projectMini strong');if(pn)pn.textContent=projectData.title||'Untitled Project';

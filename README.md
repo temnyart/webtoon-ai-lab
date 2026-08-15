@@ -1487,3 +1487,47 @@ If it stops at `OpenAI 이미지 생성`, the request will self-terminate at 180
 - Vercel → Browser 응답 크기 증가 완화
 - `res.text() / JSON.parse()` 단계의 비효율 제거
 - 생성 완료 후 50초대 부근에서 멈춘 것처럼 보이는 응답 전달 문제 완화
+
+
+## V40.7 — Recovery UI Polish
+
+The persistent large Home Recovery banner was distracting during production.
+
+### Changes
+- Recovery now lives primarily in the top header next to History / Activity.
+- The header shows `Recovery <count>` only for actionable unresolved failures.
+- Home shows no Recovery banner for ordinary historical failures, timeouts, transient network errors, or cancelled work.
+- Home only shows a compact one-line notice for:
+  - Offline state
+  - critical production blockers such as auth, permission, quota, payload, LocalStorage, or IndexedDB problems.
+- Recovery Center is split into:
+  - `확인 필요한 작업`
+  - `과거 / 일시적 기록`
+- Cancellation-like records never contribute to the Home warning or Recovery badge.
+- timeout/network records remain visible in history for diagnosis, but no longer dominate the production dashboard.
+- Successful matching API calls still automatically resolve their previous Recovery entries.
+
+
+## V40.8 — Generate CUT Runtime Fix
+
+### Production incident
+Vercel runtime logs showed an exact production error on `/api/generate-cut`:
+
+`ReferenceError: presetId is not defined`
+
+The request ran through OpenAI image generation and then failed while constructing the new V40.6 binary response headers.
+
+### Root cause
+V40.6 changed the response transport from JSON/base64 to binary WEBP, but the new header used:
+
+`X-Generation-Preset: presetId || 'standard'`
+
+`presetId` did not exist in the server route scope.
+
+### Fix
+- resolve preset once as `resolvedPresetId = generationPreset?.id || 'standard'`
+- use `resolvedPresetId` in the binary response header
+- add structured server runtime error logging
+- add `GENERATE_CUT_RUNTIME_ERROR` code to unexpected server failures
+
+No generation prompt, quality, MASTER input, or transport architecture was changed.
