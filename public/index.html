@@ -243,6 +243,11 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 /* V40 — Final Pre-Production Audit */
 .preflightGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.preflightStat{border:1px solid var(--line);background:#fafafa;border-radius:10px;padding:9px}.preflightStat small{display:block;font-size:7px;color:#999}.preflightStat b{display:block;font-size:15px;margin-top:2px}.preflightChecks{display:grid;gap:6px}.preflightRow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:9px;background:#fff;padding:8px}.preflightIcon{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#f1f1f3;font-size:9px;font-weight:800}.preflightIcon.ok{background:#eaf6ed;color:#27703b}.preflightIcon.warn{background:#fff4df;color:#8c5907}.preflightIcon.bad{background:#fff0f0;color:#a12c2c}.preflightRow b{display:block;font-size:9px}.preflightRow small{display:block;font-size:8px;color:#888;margin-top:2px}.preflightTag{font-size:7px;font-weight:800;border-radius:999px;padding:3px 6px;background:#f1f1f3;color:#666}.preflightPlan{border:1px solid var(--line);border-radius:11px;background:#fafafa;padding:11px;margin-top:10px}.preflightPlan h3{font-size:11px;margin:0 0 6px}.preflightCuts{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.preflightCuts button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 8px;font-size:8px;cursor:pointer}.auditFixList{display:grid;gap:6px;margin-top:8px}.auditFix{font-size:8px;color:#666;line-height:1.5;padding:7px 9px;border-left:3px solid #d7d7da;background:#fafafa}.auditFix b{color:#222}.preflightReady{border:1px solid #cfe5d5;background:#eff8f1;border-radius:10px;padding:10px;color:#27703b;font-size:9px;line-height:1.5}.preflightBlocked{border:1px solid #ead2a8;background:#fff7e9;border-radius:10px;padding:10px;color:#805b18;font-size:9px;line-height:1.5}
 @media(max-width:700px){.preflightGrid{grid-template-columns:1fr 1fr}.preflightRow{grid-template-columns:24px 1fr}.preflightTag{grid-column:2;width:max-content}}
+
+/* V40.1 — Request Modal Safety */
+.requestRunningBadge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 7px;background:#fff4df;border:1px solid #ead1a1;color:#8c5907;font-size:8px;font-weight:800}.requestRunningBadge:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:reqPulse 1s infinite alternate}@keyframes reqPulse{to{opacity:.35}}.requestCancelNotice{border:1px solid #ecd0d0;background:#fff6f6;border-radius:9px;padding:8px 10px;font-size:8px;color:#8b3737;line-height:1.5;margin-top:8px}.requestModalHint{font-size:8px;color:#888;line-height:1.5;margin-top:7px}.requestModalLocked{cursor:default}.requestModalLocked .v27ModalCard{box-shadow:0 20px 80px rgba(0,0,0,.28)}
+
+.letterPresetBar{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 9px}.letterPresetBar .btn{font-size:7px}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -696,6 +701,46 @@ function operationFromUrl(url){
 }
 function recordApiUsage(evt){apiUsageEvents.push({id:`evt_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,at:new Date().toISOString(),...evt});saveApiUsage()}
 
+
+const uiRequestControllers=new Map();
+function uiRequestKey(operation,cutId=null,note=''){return `${operation}:${cutId??''}:${note||''}`}
+function beginUiRequest(operation,cutId=null,note=''){
+ const key=uiRequestKey(operation,cutId,note);let c=uiRequestControllers.get(key);
+ if(!c||c.signal.aborted){c=new AbortController();uiRequestControllers.set(key,c)}
+ return c.signal;
+}
+function finishUiRequest(operation,cutId=null,note=''){uiRequestControllers.delete(uiRequestKey(operation,cutId,note))}
+function uiRequestActive(operation,cutId=null,note=''){const c=uiRequestControllers.get(uiRequestKey(operation,cutId,note));return !!c&&!c.signal.aborted}
+function combineAbortSignals(...signals){
+ const valid=signals.filter(Boolean);if(!valid.length)return null;if(valid.length===1)return valid[0];
+ if(typeof AbortSignal!=='undefined'&&AbortSignal.any)return AbortSignal.any(valid);
+ const c=new AbortController();for(const s of valid){if(s.aborted){c.abort(s.reason);break}s.addEventListener('abort',()=>{if(!c.signal.aborted)c.abort(s.reason)},{once:true})}return c.signal;
+}
+function bindExistingModalRequest(operation,cutId=null,note=''){
+ const box=document.querySelector('#genResult');if(!box)return beginUiRequest(operation,cutId,note);
+ const signal=beginUiRequest(operation,cutId,note);box.dataset.requestOperation=operation;box.dataset.requestCutId=cutId??'';box.dataset.requestNote=note||'';box.classList.add('requestModalLocked');
+ const bar=box.querySelector('.v27ModalBar');if(bar&&!bar.querySelector('.requestRunningBadge'))bar.insertAdjacentHTML('afterbegin','<span class="requestRunningBadge">작업 실행 중</span>');
+ return signal;
+}
+function requestModalSignal(operation,cutId=null,note=''){return uiRequestControllers.get(uiRequestKey(operation,cutId,note))?.signal||null}
+function requestUiOperationCancel(operation,cutId=null,note=''){
+ const key=uiRequestKey(operation,cutId,note),c=uiRequestControllers.get(key);
+ if(!c||c.signal.aborted)return;
+ if(!confirm('현재 작업이 실행 중입니다.\n\n작업을 실제로 취소할까요?\n완료된 서버 작업은 비용이 발생했을 수 있습니다.'))return;
+ c.abort(new DOMException('사용자 취소','AbortError'));cancelMatchingRequest(operation,cutId);
+ const box=document.querySelector('#genResult');if(box){const content=box.querySelector('.v27ModalContent');if(content&&!content.querySelector('.requestCancelNotice'))content.insertAdjacentHTML('afterbegin','<div class="requestCancelNotice"><b>취소 요청 중…</b><br>현재 API/준비 작업의 중단을 요청했습니다. 응답이 정리될 때까지 창을 유지합니다.</div>')}
+}
+function closeActiveRequestModal(){
+ const box=document.querySelector('#genResult');if(!box)return;
+ const op=box.dataset.requestOperation;
+ if(op){
+  const cut=box.dataset.requestCutId===''?null:Number(box.dataset.requestCutId),note=box.dataset.requestNote||'';
+  if(uiRequestActive(op,cut,note))return requestUiOperationCancel(op,cut,note);
+ }
+ if(activeLongTask?.status==='running'||activeLongTask?.status==='cancelling')return requestLongTaskCancel();
+ box.remove();
+}
+function isUserCancelled(e,signal=null){return !!(e?.cancelled||e?.name==='AbortError'||signal?.aborted||/작업이 취소|사용자 취소/.test(e?.message||''))}
 let activeLongTask=null;
 const runningRequestControllers=new Map();
 function taskCancelledError(){const e=new Error('작업이 취소되었습니다.');e.name='AbortError';e.cancelled=true;return e}
@@ -740,10 +785,6 @@ function cancelRequest(activityId){
 }
 function cancelMatchingRequest(operation,cutId=null){
  const a=[...activityItems].reverse().find(x=>x.status==='running'&&x.operation===operation&&(cutId==null||x.cutId===cutId));if(a)cancelRequest(a.id);else reliabilityToast('현재 취소 가능한 API 요청을 찾지 못했습니다.','warn');
-}
-function closeActiveModal(){
- if(activeLongTask?.status==='running'||activeLongTask?.status==='cancelling')return requestLongTaskCancel();
- document.querySelector('#genResult')?.remove();
 }
 async function trackedFetch(url,options={},meta={}){
  const op=meta.operation||operationFromUrl(url),started=performance.now(),cfg=costCfg(),activityId=activityStart(op,meta);
@@ -877,13 +918,12 @@ function scenePipe(scene){return scenePipelineState[scenePipeKey(scene)]||{statu
 function updateScenePipe(scene,patch){scenePipelineState[scenePipeKey(scene)]={...scenePipe(scene),...patch,updatedAt:new Date().toISOString()};saveScenePipeline()}
 function pipeLog(scene,stage,message,level='info'){const p=scenePipe(scene),logs=[...(p.logs||[]),{at:new Date().toISOString(),stage,message,level}].slice(-120);updateScenePipe(scene,{logs})}
 let autoRepairHistory=wtalReadJSON('wtal_auto_repair_history',{});
-let autoRepairEnabled=localStorage.getItem('wtal_auto_repair_enabled')!=='false';
 let autoRepairMaxAttempts=Math.max(1,Math.min(3,Number(localStorage.getItem('wtal_auto_repair_max')||2)));
+if(localStorage.getItem('wtal_auto_repair_enabled')!==null)localStorage.removeItem('wtal_auto_repair_enabled');
 function saveAutoRepairHistory(){return safeStorageSet('wtal_auto_repair_history',JSON.stringify(autoRepairHistory))}
 function autoRepairKey(id){return stateKey(id)}
 function repairHistory(id){return autoRepairHistory[autoRepairKey(id)]||[]}
 function addRepairHistory(id,item){autoRepairHistory[autoRepairKey(id)]=[...repairHistory(id),item].slice(-20);saveAutoRepairHistory()}
-function setAutoRepairEnabled(v){autoRepairEnabled=!!v;localStorage.setItem('wtal_auto_repair_enabled',String(autoRepairEnabled));if(currentPage==='PIPELINE')renderPipeline()}
 function setAutoRepairMax(v){autoRepairMaxAttempts=Math.max(1,Math.min(3,Number(v)||2));localStorage.setItem('wtal_auto_repair_max',String(autoRepairMaxAttempts))}
 
 
@@ -895,7 +935,6 @@ function saveStates(){return safeStorageSet('wtal_cut_states',JSON.stringify(cut
 let lettering=wtalReadJSON('wtal_lettering',{});
 let assemblyGaps=wtalReadJSON('wtal_assembly_gaps',{});
 function saveLettering(){return safeStorageSet('wtal_lettering',JSON.stringify(lettering))}
-function saveGaps(){localStorage.setItem('wtal_assembly_gaps',JSON.stringify(assemblyGaps))}
 let assemblyLayouts=wtalReadJSON('wtal_assembly_layouts',{});
 function saveAssemblyLayouts(){return safeStorageSet('wtal_assembly_layouts',JSON.stringify(assemblyLayouts),{label:'Assemble 레이아웃 변경'})}
 function defaultAssemblyEntry(cutId){return {uid:`${cutId}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,cutId:Number(cutId),scale:100,cropTop:0,cropBottom:0,bg:'white',gap:80,sceneBreak:false}}
@@ -954,12 +993,14 @@ function parseLettering(c){
 function letterItems(c){const k=stateKey(c.id);if(!lettering[k]){lettering[k]=parseLettering(c);saveLettering()}return lettering[k]}
 function setLetter(cutId,id,key,val,rerender=true){const arr=letterItems(cutsForEpisode()[cutId]);const x=arr.find(a=>a.id===id);if(!x)return;x[key]=['x','y','size','rotate','weight','letterSpacing','lineHeight'].includes(key)?Number(val):val;if(key==='type'){x.preset=guessPreset(val,x.text,cutsForEpisode()[cutId])}saveLettering();if(rerender)renderLetterEditor(cutId)}
 function applyPreset(cutId,id,preset){const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(!x)return;const pd=BALLOON_PRESETS[preset]||SFX_PRESETS[preset];if(!pd)return;x.preset=preset;x.type=pd.type||'sfx';if(pd.size)x.size=pd.size;if(pd.rotate!==undefined)x.rotate=pd.rotate;saveLettering();renderLetterEditor(cutId)}
+function presetButtons(cutId,x){
+ const source=x.type==='sfx'?SFX_PRESETS:BALLOON_PRESETS;
+ return `<div class="letterPresetBar">${Object.entries(source).map(([key,p])=>`<button type="button" class="btn small ${x.preset===key?'dark':''}" onclick="applyPreset(${cutId},'${x.id}','${key}')">${esc(p.label||key)}</button>`).join('')}</div>`;
+}
 function addLetter(cutId,type='dialogue'){const c=cutsForEpisode()[cutId],arr=letterItems(c),preset=type==='sfx'?'sfx-impact':'dialogue-basic';arr.push({id:`${cutId}-${Date.now()}`,type,text:type==='sfx'?'쾅!':'새 대사',preset,x:70,y:20,size:type==='sfx'?48:24,rotate:type==='sfx'?-8:0,tail:'bottom-left',font:'Noto Sans KR',weight:type==='sfx'?900:700,letterSpacing:0,lineHeight:1.25});saveLettering();renderLetterEditor(cutId)}
 function deleteLetter(cutId,id){const k=stateKey(cutId);lettering[k]=letterItems(cutsForEpisode()[cutId]).filter(x=>x.id!==id);saveLettering();renderLetterEditor(cutId)}
 function resetLetters(cutId){const c=cutsForEpisode()[cutId];lettering[stateKey(cutId)]=parseLettering(c);saveLettering();renderLetterEditor(cutId)}
 function letterHtml(x,editable=false){const cls=`letterItem ${x.type} ${x.preset||''}`;return `<div class="${cls}" data-letter="${x.id}" style="left:${x.x}%;top:${x.y}%;font-size:${x.size}px;font-family:${x.font||'Noto Sans KR'},sans-serif;font-weight:${x.weight||700};letter-spacing:${x.letterSpacing||0}px;line-height:${x.lineHeight||1.25};transform:translate(-50%,-50%) rotate(${x.rotate||0}deg)">${esc(x.text)}</div>`}
-function setGap(cutId,val){assemblyGaps[stateKey(cutId)]=Math.max(0,Number(val)||0);saveGaps();renderAssemble()}
-function gapFor(cutId){return assemblyGaps[stateKey(cutId)]??80}
 
 
 const HISTORY_TRACKED_KEYS=new Set(['wtal_project','wtal_story_bible_docs','wtal_story_bible_meta','wtal_cut_spec_maps','wtal_scene_looks','wtal_assembly_layouts','wtal_generation_settings','wtal_cut_generation_overrides','wtal_export_settings','wtal_cost_settings','wtal_master_primary']);
@@ -1097,7 +1138,6 @@ function renameEpisode(id){
  const e=episodes.find(x=>x.id===id);if(!e)return;const v=prompt('화 제목 수정',e.title);if(v===null)return;e.title=v.trim()||e.title;persistEpisodes();renderEpisodeManager();
 }
 
-function addCut(){createCutAfter(selectedCut||null)}
 
 function norm(s){return (s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'')}
 function assetMatches(req,a){const keys=[req,...(ALIASES[req]||[])].map(norm);const n=norm(a.name+' '+a.id);return keys.some(k=>k&&n.includes(k));}
@@ -1282,19 +1322,22 @@ async function storyboardReferences(c){
 }
 async function generateStoryboard(id,silent=false,signal=null){
  const c=cutsForEpisode()[id];if(!c)return;
- if(!silent)modalShell(`<div class="eyebrow">ROUGH STORYBOARD</div><h2>CUT ${String(id).padStart(3,'0')} 생성 중…</h2><p class="lead">구도·인물 위치·카메라·행동만 확인하는 러프 콘티를 생성합니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('storyboard',${id})">생성 취소</button></div>`);
+ if(!silent)modalShell(`<div class="eyebrow">ROUGH STORYBOARD</div><h2>CUT ${String(id).padStart(3,'0')} 생성 중…</h2><p class="lead">구도·인물 위치·카메라·행동만 확인하는 러프 콘티를 생성합니다.</p><p class="requestModalHint">생성 중 바깥 클릭으로 닫히지 않습니다. 취소 시 현재 요청과 이후 처리를 중단합니다.</p><div class="right"><button class="btn cancelBtn" onclick="requestUiOperationCancel('storyboard',${id})">생성 취소</button></div>`,{requestOperation:'storyboard',cutId:id});
+ const uiSignal=!silent?requestModalSignal('storyboard',id):null,requestSignal=combineAbortSignals(activeTaskSignalOr(signal),uiSignal);
  try{
-  const refs=await storyboardReferences(c);
+  if(requestSignal?.aborted)throw taskCancelledError();
+  const refs=await storyboardReferences(c);if(requestSignal?.aborted)throw taskCancelledError();
   const res=await trackedFetch('/api/generate-storyboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    episodeId:activeEpisodeId,cutId:id,scene:c.scene,title:c.title,shot:c.shot,camera:c.camera,action:c.action,characters:c.characters||[],backgrounds:c.backgrounds||[],props:c.props||[],
    storyActing:v2Spec(c),sceneLook:getSceneLook(c.scene),spatialContext:spatialContextForCut(c),characterState:currentCharacterStates(c),storyboardNote:storyboardState(id).note||c._storyboardNote||'',references:refs
-  }),signal:activeTaskSignalOr(signal)},{operation:'storyboard',episodeId:activeEpisodeId,cutId:id});
+  }),signal:requestSignal},{operation:'storyboard',episodeId:activeEpisodeId,cutId:id});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   await putStoryboard(id,{image:data.image,model:data.model,prompt:data.prompt||'',updatedAt:new Date().toISOString()});
   setStoryboardState(id,{status:'generated'});
   if(!silent){document.querySelector('#genResult')?.remove();reviewStoryboard(id)}
   return true;
- }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 콘티 생성을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('콘티 생성 실패: '+e.message)}return false}
+ }catch(e){if(isUserCancelled(e,requestSignal)){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 콘티 생성을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('콘티 생성 실패: '+e.message)}return false}
+ finally{if(!silent)finishUiRequest('storyboard',id)}
 }
 async function reviewStoryboard(id){
  const c=cutsForEpisode()[id],r=await getStoryboard(id);if(!r?.image)return alert('콘티가 없습니다.');
@@ -1625,11 +1668,6 @@ function masterUsage(a){
  }
  const seen=new Set();return usage.filter(x=>{const k=`${x.episodeId}:${x.cutId}`;if(seen.has(k))return false;seen.add(k);return true});
 }
-function masterUsageScenes(a){
- const u=masterUsage(a),m=new Map();
- u.forEach(x=>m.set(`${x.episodeId}|${x.scene}`,x));
- return [...m.values()];
-}
 function masterUsageSummary(a){
  const u=masterAllUsage(a),sc=[...new Map(u.map(x=>[`${x.episodeId}|${x.scene}`,x])).values()],eps=[...new Set(u.map(x=>x.episodeId))];
  if(!u.length)return '아직 제작명세에서 자동 연결된 등장 기록 없음';
@@ -1730,11 +1768,6 @@ function persistAssets(){
  if(!ok)reliabilityToast('MASTER 저장 실패 · 브라우저 저장 공간을 확인하세요.','error');
  return ok;
 }
-function setProductionPrimary(id){
- const a=assets.find(x=>x.id===id);if(!a)return;
- // automatic matching already prioritizes all production masters; this provides user feedback.
- alert(`${a.name}을(를) CUT 자동 연결에서 SOURCE보다 우선 사용합니다.`);
-}
 function downloadAsset(id){
  const a=assets.find(x=>x.id===id);if(!a)return;
  const link=document.createElement('a');link.href=a.img;link.download=(a.name||'master').replace(/[\\/:*?"<>|]/g,'_')+'.webp';link.click();
@@ -1743,20 +1776,25 @@ async function transformMaster(id){
  const a=assets.find(x=>x.id===id);if(!a)return;
  const existing=assets.find(x=>x.parentId===id&&assetRole(x)==='production');
  if(existing&&!confirm('이미 웹툰 MASTER가 있습니다. 새 변환본을 생성해서 기존 변환본과 비교할까요?'))return;
- modalShell(`<div class="eyebrow">MASTER → WEBTOON PRODUCTION MASTER</div><h2>${a.name} 변환 중…</h2><p class="lead">구조·정체성·구도는 고정하고 렌더링 스타일만 현재 웹툰 스타일로 변환합니다.</p><img src="${a.img}" style="width:100%;max-height:420px;object-fit:contain;background:#eee;border-radius:12px"><div class="flowbox"><b>LOCKED</b>${a.type==='BACKGROUND'?'공간 구조 · 문/창문 · 가구 위치 · 원근 · 카메라':'얼굴 · 헤어 · 체형 · 의상 · 포즈 · 프레이밍'}<br><b>CHANGE ONLY</b>강한 클린 선화 · 2~3단계 셀 채색 · 한국 액션 웹툰 렌더링</div>`);
+ modalShell(`<div class="eyebrow">MASTER → WEBTOON PRODUCTION MASTER</div><h2>${a.name} 변환 중…</h2><p class="lead">구조·정체성·구도는 고정하고 렌더링 스타일만 현재 웹툰 스타일로 변환합니다.</p><img src="${a.img}" style="width:100%;max-height:420px;object-fit:contain;background:#eee;border-radius:12px"><div class="flowbox"><b>LOCKED</b>${a.type==='BACKGROUND'?'공간 구조 · 문/창문 · 가구 위치 · 원근 · 카메라':'얼굴 · 헤어 · 체형 · 의상 · 포즈 · 프레이밍'}<br><b>CHANGE ONLY</b>강한 클린 선화 · 2~3단계 셀 채색 · 한국 액션 웹툰 렌더링</div><div class="right" style="margin-top:9px"><button class="btn cancelBtn" onclick="requestUiOperationCancel('transform_master',null,'${a.id}')">변환 취소</button></div>`,{requestOperation:'transform_master',requestNote:a.id});
+ const uiSignal=requestModalSignal('transform_master',null,a.id);
  try{
+  if(uiSignal?.aborted)throw taskCancelledError();
    const dataUrl=await compressReferenceDataUrl(a.img,1500,0.86);
+   if(uiSignal?.aborted)throw taskCancelledError();
    const res=await trackedFetch('/api/transform-master',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
      id:a.id,name:a.name,type:a.type,dataUrl,
      projectStyle:projectData.style,
      visualBible:storyBibleDocs.visual?.content||''
-   })},{operation:'transform_master',episodeId:activeEpisodeId,note:a.name});
+   }),signal:uiSignal},{operation:'transform_master',episodeId:activeEpisodeId,note:a.name});
    const raw=await res.text();let data={};try{data=JSON.parse(raw)}catch(e){data={error:raw}}
    if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
    showMasterTransformResult(a,data.image,data.model);
  }catch(err){
+   if(isUserCancelled(err,uiSignal)){document.querySelector('#genResult')?.remove();reliabilityToast(`${a.name} MASTER 변환을 취소했습니다.`,'warn');return}
    modalShell(`<div class="eyebrow">MASTER TRANSFORM ERROR</div><h2>변환 실패</h2><p>${esc(err.message)}</p><div class="right"><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
  }
+ finally{finishUiRequest('transform_master',null,a.id)}
 }
 function showMasterTransformResult(source,image,model){
  modalShell(`<div class="eyebrow">WEBTOON MASTER PREVIEW · ${model||'gpt-image-1.5'}</div>
@@ -1795,9 +1833,6 @@ function showMasterTransformResult(source,image,model){
 }
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
 
-function stageRowHtml(label,pct){
- return `<div class="stageRow"><div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>${label}</span><span>${pct===100?'✓':''}</span></div><div class="stageBar"><span style="width:${pct}%"></span></div></div><div class="stageValue">${pct}%</div>`;
-}
 
 function krw(usd){return Math.round(Number(usd||0)*Number(costCfg().fxKrw||0)).toLocaleString('ko-KR')+'원'}
 function usd(v){return '$'+Number(v||0).toFixed(2)}
@@ -2268,7 +2303,7 @@ function openEpisodeStageChecklist(id){
  </div><div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
 }
 
-function renderProject(){view.innerHTML=`<div class="eyebrow">PROJECT · NOTION MASTER DATA</div><h1>프로젝트 설정</h1><p class="lead">노션 「죽음을 기억하는 자 — 세계관 설정집」의 작품 핵심과 장기 구조를 실제 프로젝트 기본값으로 이식했습니다.</p><div class="formgrid"><div class="fieldbox"><label>작품명</label><input id="projTitle" value="${esc(projectData.title)}"></div><div class="fieldbox"><label>장르</label><input id="projGenre" value="${esc(projectData.genre)}"></div><div class="fieldbox"><label>핵심 주제</label><textarea id="projTheme">${esc(projectData.theme)}</textarea></div><div class="fieldbox"><label>주인공</label><textarea id="projProtagonist">${esc(projectData.protagonist)}</textarea></div><div class="fieldbox"><label>로그라인</label><textarea id="projLogline">${esc(projectData.logline)}</textarea></div><div class="fieldbox"><label>장기 구조</label><textarea id="projStructure">${esc(projectData.structure)}</textarea></div><div class="fieldbox"><label>기본 이미지 모델</label><input value="${esc(projectData.defaultModel)}" disabled></div><div class="fieldbox"><label>기본 비주얼 스타일</label><textarea id="projStyle">${esc(projectData.style)}</textarea></div></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn dark" onclick="saveProject()">프로젝트 저장</button><button class="btn" onclick="resetProjectFromNotion()">노션 기본값으로 복원</button></div>`}
+function renderProject(){view.innerHTML=`<div class="eyebrow">PROJECT · NOTION MASTER DATA</div><h1>프로젝트 설정</h1><p class="lead">노션 「죽음을 기억하는 자 — 세계관 설정집」의 작품 핵심과 장기 구조를 실제 프로젝트 기본값으로 이식했습니다.</p><div class="formgrid"><div class="fieldbox"><label>작품명</label><input id="projTitle" value="${esc(projectData.title)}"></div><div class="fieldbox"><label>장르</label><input id="projGenre" value="${esc(projectData.genre)}"></div><div class="fieldbox"><label>핵심 주제</label><textarea id="projTheme">${esc(projectData.theme)}</textarea></div><div class="fieldbox"><label>주인공</label><textarea id="projProtagonist">${esc(projectData.protagonist)}</textarea></div><div class="fieldbox"><label>로그라인</label><textarea id="projLogline">${esc(projectData.logline)}</textarea></div><div class="fieldbox"><label>장기 구조</label><textarea id="projStructure">${esc(projectData.structure)}</textarea></div><div class="fieldbox"><label>서버 이미지 모델</label><div class="readonlyField"><span data-server-final-model>${esc(serverRuntimeInfo?.imageModel||'확인 중…')}</span></div></div><div class="fieldbox"><label>기본 비주얼 스타일</label><textarea id="projStyle">${esc(projectData.style)}</textarea></div></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn dark" onclick="saveProject()">프로젝트 저장</button><button class="btn" onclick="resetProjectFromNotion()">노션 기본값으로 복원</button></div>`}
 function saveProject(){
  const get=id=>document.querySelector(id)?.value??'';
  projectData={...projectData,title:get('#projTitle').trim(),genre:get('#projGenre').trim(),theme:get('#projTheme').trim(),protagonist:get('#projProtagonist').trim(),logline:get('#projLogline').trim(),structure:get('#projStructure').trim(),style:get('#projStyle').trim()};
@@ -2342,13 +2377,15 @@ function saveSpaceMapModal(assetId){
 }
 async function autoAnalyzeSpaceMap(assetId){
  const a=assets.find(x=>x.id===assetId);if(!a)return;
+ const uiSignal=bindExistingModalRequest('space_map',null,a.id);
  const btn=[...document.querySelectorAll('#genResult button')].find(x=>x.textContent.includes('AI 공간 분석'));if(btn){btn.disabled=true;btn.textContent='분석 중…'}
  try{
-  const res=await trackedFetch('/api/analyze-space-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:a.name,type:a.type,image:await compressReferenceDataUrl(a.img,1300,.8)})},{operation:'space_map',episodeId:activeEpisodeId,note:a.name});
+  if(uiSignal?.aborted)throw taskCancelledError();
+  const res=await trackedFetch('/api/analyze-space-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:a.name,type:a.type,image:await compressReferenceDataUrl(a.img,1300,.8)}),signal:uiSignal},{operation:'space_map',episodeId:activeEpisodeId,note:a.name});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   document.querySelector('#smGeometry').value=data.map.geometry||'';document.querySelector('#smOrientation').value=data.map.orientation||'';document.querySelector('#smEntrances').value=data.map.entrances||'';document.querySelector('#smRules').value=data.map.fixedRules||'';
   document.querySelector('#anchorEditor').innerHTML=(data.map.anchors||[]).map(spaceAnchorRow).join('');
- }catch(e){alert('공간 분석 실패: '+e.message)}finally{if(btn){btn.disabled=false;btn.textContent='AI 공간 분석'}}
+ }catch(e){if(isUserCancelled(e,uiSignal)){reliabilityToast('공간 분석을 취소했습니다.','warn')}else alert('공간 분석 실패: '+e.message)}finally{finishUiRequest('space_map',null,a.id);if(btn){btn.disabled=false;btn.textContent='AI 공간 분석'}}
 }
 function openSpaceMapForCut(id){
  const c=cutsForEpisode()[id],m=spaceMapForCut(c);
@@ -2383,14 +2420,15 @@ function editCharacterState(cutId,name){
 }
 async function autoTrackCharacterStates(cutId,silent=false,signal=null){
  const c=cutsForEpisode()[cutId],chars=c.characters||[];if(!chars.length){if(!silent)alert('추적할 캐릭터가 없습니다.');return}
- if(!silent)modalShell(`<div class="eyebrow">CHARACTER STATE TRACKING</div><h2>CUT ${String(cutId).padStart(3,'0')} 분석 중…</h2><p class="lead">이전 상태 + 현재 STORY BEAT/ACTION/대사로 CUT 종료 시점의 상태 변화를 계산합니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('character_state',${cutId})">분석 취소</button></div>`);
+ if(!silent)modalShell(`<div class="eyebrow">CHARACTER STATE TRACKING</div><h2>CUT ${String(cutId).padStart(3,'0')} 분석 중…</h2><p class="lead">이전 상태 + 현재 STORY BEAT/ACTION/대사로 CUT 종료 시점의 상태 변화를 계산합니다.</p><div class="right"><button class="btn cancelBtn" onclick="requestUiOperationCancel('character_state',${cutId})">분석 취소</button></div>`,{requestOperation:'character_state',cutId});
  try{
   const previous={};for(const name of chars)previous[name]=previousCharacterState(cutId,name)||null;
-  const res=await trackedFetch('/api/track-character-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({episodeId:activeEpisodeId,cutId,scene:c.scene,characters:chars,previous,cut:{title:c.title,action:c.action,dialogue:c.dialogue||'',continuity:c.continuity,props:c.props||[]},storyActing:v2Spec(c),sceneDirecting:sceneV2(c)}),signal:activeTaskSignalOr(signal)},{operation:'character_state',episodeId:activeEpisodeId,cutId});
+  const res=await trackedFetch('/api/track-character-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({episodeId:activeEpisodeId,cutId,scene:c.scene,characters:chars,previous,cut:{title:c.title,action:c.action,dialogue:c.dialogue||'',continuity:c.continuity,props:c.props||[]},storyActing:v2Spec(c),sceneDirecting:sceneV2(c)}),signal:requestSignal},{operation:'character_state',episodeId:activeEpisodeId,cutId});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   for(const [name,st] of Object.entries(data.states||{}))characterStates[characterStateKey(cutId,name)]={...st,source:'auto',updatedAt:new Date().toISOString()};
   saveCharacterStates();if(!silent){document.querySelector('#genResult')?.remove();render()}return data.states;
- }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(cutId).padStart(3,'0')} 상태 분석을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('상태 분석 실패: '+e.message)}return null}
+ }catch(e){if(isUserCancelled(e,requestSignal)){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(cutId).padStart(3,'0')} 상태 분석을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('상태 분석 실패: '+e.message)}return null}
+ finally{if(!silent)finishUiRequest('character_state',cutId)}
 }
 function openCharacterStateTimeline(){
  const cs=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id);const rows=[];
@@ -2533,18 +2571,21 @@ async function checkContinuity(id,silent=false,includeGeneratedRefs=false,signal
  }
  const masters=[...new Map(requiredRefs(c).map(x=>autoAsset(x)).filter(Boolean).map(a=>[a.id,a])).values()];
  for(const a of masters)refs.push({role:'master',name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,900,.68)});
- if(!silent)modalShell(`<div class="eyebrow">CONTINUITY QC</div><h2>CUT ${String(id).padStart(3,'0')} 검수 중…</h2><p class="lead">같은 SCENE의 인접 채택 CUT과 MASTER를 비교하고 있습니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('continuity_qc',${id})">검수 취소</button></div>`);
+ if(!silent)modalShell(`<div class="eyebrow">CONTINUITY QC</div><h2>CUT ${String(id).padStart(3,'0')} 검수 중…</h2><p class="lead">같은 SCENE의 인접 채택 CUT과 MASTER를 비교하고 있습니다.</p><div class="right"><button class="btn cancelBtn" onclick="requestUiOperationCancel('continuity_qc',${id})">검수 취소</button></div>`,{requestOperation:'continuity_qc',cutId:id});
+ const uiSignal=!silent?requestModalSignal('continuity_qc',id):null,requestSignal=combineAbortSignals(activeTaskSignalOr(signal),uiSignal);
  try{
+  if(requestSignal?.aborted)throw taskCancelledError();
   const res=await trackedFetch('/api/check-continuity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    cutId:id,episodeId:activeEpisodeId,currentImage:await compressReferenceDataUrl(current.image,1200,.8),references:refs,
    scene:c.scene,sceneLook:getSceneLook(c.scene),cut:{title:c.title,characters:c.characters||[],backgrounds:c.backgrounds||[],props:c.props||[],shot:c.shot,camera:c.camera,action:c.action,continuity:c.continuity},
    storyActing:v2Spec(c),characterState:currentCharacterStates(c),spatialContext:spatialContextForCut(c),masterNames:masters.map(a=>({name:a.name,type:a.type}))
-  }),signal:activeTaskSignalOr(signal)},{operation:'continuity_qc',episodeId:activeEpisodeId,cutId:id});
+  }),signal:requestSignal},{operation:'continuity_qc',episodeId:activeEpisodeId,cutId:id});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   continuityReports[stateKey(id)]={...data.report,checkedAt:new Date().toISOString(),referenceCuts:refs.filter(x=>x.cutId).map(x=>x.cutId)};saveContinuityReports();
   if(!silent){document.querySelector('#genResult')?.remove();openContinuityReport(id)}
   return continuityReports[stateKey(id)];
- }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} Continuity 검수를 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('Continuity 검수 실패: '+e.message)}return null}
+ }catch(e){if(isUserCancelled(e,requestSignal)){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} Continuity 검수를 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('Continuity 검수 실패: '+e.message)}return null}
+ finally{if(!silent)finishUiRequest('continuity_qc',id)}
 }
 async function checkEpisodeContinuity(){
  const vals=Object.values(cutsForEpisode()).filter(c=>cutState(c.id).status==='approved');
@@ -2626,12 +2667,6 @@ function controlEpisodeStats(){
   items
  };
 }
-function controlStatusClass(s){
- if(s.blocker==='CUT 완료')return 'ok';
- if(['MASTER 누락','QC 문제'].includes(s.blocker))return 'issue';
- if(['CONTE 승인 대기','FINAL 승인 대기','레터링 미완료'].includes(s.blocker))return 'wait';
- return 'info';
-}
 function controlSceneHealth(){
  return sceneGroups().map(g=>{
   const rows=g.cuts.map(c=>cutControlState(c)),image=rows.filter(x=>x.imgNeeded),done=image.filter(x=>x.cut.status==='approved'&&x.qc?.severity==='ok').length,issues=image.filter(x=>['warning','critical'].includes(x.qc?.severity)).length,missing=rows.filter(x=>x.missing.length).length;
@@ -2644,25 +2679,11 @@ function controlBlockers(){
  for(const x of st.items){if(x.s.blocker==='CUT 완료'||x.s.blocker==='편집 CUT')continue;(groups[x.s.blocker]??=[]).push(x.c)}
  return Object.entries(groups).sort((a,b)=>cutControlState(a[1][0]).rank-cutControlState(b[1][0]).rank);
 }
-function setControlFilter(k,v){controlFilter[k]=v;renderControlCenter()}
-function controlQuickAction(c,s){
- if(s.missing.length)return `<button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">MASTER 연결</button>`;
- if(s.imgNeeded&&s.story.status!=='approved')return `<button class="btn small" onclick="currentPage='CONTE';render()">CONTE</button>`;
- if(s.imgNeeded&&s.cut.status==='draft')return `<button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">FINAL 생성</button>`;
- if(s.cut.status==='generated')return `<button class="btn small" onclick="openSavedResult(${c.id})">결과 승인</button>`;
- if(s.imgNeeded&&!s.qc)return `<button class="btn small" onclick="checkContinuity(${c.id})">QC 실행</button>`;
- if(['warning','critical'].includes(s.qc?.severity))return `<button class="btn small" onclick="autoRepairContinuity(${c.id})">⚡ AUTO FIX</button>`;
- if(s.cut.status==='approved'&&!s.letter)return `<button class="btn small" onclick="renderLetterEditor(${c.id})">레터링</button>`;
- return `<button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">열기</button>`;
-}
-function renderControlCenter(){
- renderHome();
-}
 function renderPipeline(){
  const groups=sceneGroups();
  view.innerHTML=`<div class="eyebrow">SCENE AUTO PIPELINE · V23</div><h1>EP.${String(ep().number).padStart(2,'0')} · SCENE 제작 파이프라인</h1>
  <p class="lead">SCENE 단위로 <b>캐릭터 상태 계산 → 러프 콘티 생성 → 사람의 콘티 승인 → 최종 CUT 생성 → Continuity QC</b>를 연결합니다. 사람의 승인 지점은 자동으로 건너뛰지 않습니다.</p>
- <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='CONTE';render()">CONTE 검수</button><button class="btn" onclick="currentPage='PRODUCTION';render()">PRODUCTION</button></div><div class="autoRepairSettings"><button class="btn ${autoRepairEnabled?'dark':''}" onclick="setAutoRepairEnabled(${!autoRepairEnabled})">${autoRepairEnabled?'⚡ AUTO REPAIR ON':'AUTO REPAIR OFF'}</button><span>최대</span><select onchange="setAutoRepairMax(this.value)"><option ${autoRepairMaxAttempts===1?'selected':''}>1</option><option ${autoRepairMaxAttempts===2?'selected':''}>2</option><option ${autoRepairMaxAttempts===3?'selected':''}>3</option></select><span>회</span></div></div>
+ <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='CONTE';render()">CONTE 검수</button><button class="btn" onclick="currentPage='PRODUCTION';render()">PRODUCTION</button></div><div class="autoRepairSettings"><span class="reliabilityBadge">AUTO REPAIR · MANUAL</span><span>수동 실행 최대</span><select onchange="setAutoRepairMax(this.value)"><option ${autoRepairMaxAttempts===1?'selected':''}>1</option><option ${autoRepairMaxAttempts===2?'selected':''}>2</option><option ${autoRepairMaxAttempts===3?'selected':''}>3</option></select><span>회</span></div></div>
  <div class="pipelineGrid">${groups.map(g=>pipelineCardHtml(g.scene,g.cuts)).join('')||'<div class="emptybig">제작명세가 없습니다.</div>'}</div>`;
 }
 function pipelineCardHtml(scene,cuts){
@@ -2739,8 +2760,8 @@ async function continueSceneFinal(scene){
     updateScenePipe(scene,{status:'qc'});
     let qr=await checkContinuity(c.id,true,true,task.controller.signal);
     if(task.controller.signal.aborted)throw taskCancelledError();
-    if(qr&&['warning','critical'].includes(qr.severity)&&autoRepairEnabled){
-      pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} → AUTO REPAIR는 전체 파이프라인 취소 안정성을 위해 수동 실행 대기`,'review');
+    if(qr&&['warning','critical'].includes(qr.severity)){
+      pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} → AUTO REPAIR는 수동 실행 대기`,'review');
     }
     if(qr&&['warning','critical'].includes(qr.severity)){issues++;pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} · ${qr.summary||''}`,'issue')}
     else pipeLog(scene,'QC',qr?`CUT ${c.id} QC PASS`:`CUT ${c.id} QC 실패`,qr?'info':'error');
@@ -2771,9 +2792,14 @@ function renderAssemble(){
  view.innerHTML=`${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout)
 }
 async function hydrateAssemblyLayout(layout){const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
-async function renderLetterEditor(cutId){const c=cutsForEpisode()[cutId],r=await getResult(stateKey(cutId));if(!r?.image)return alert('채택 이미지가 없습니다.');const arr=letterItems(c);view.innerHTML=`<div class="eyebrow">LETTERING EDITOR V2</div><h1>CUT ${String(c.id).padStart(3,'0')} · ${c.title}</h1><p class="lead">프리셋 자동 선택 후 위치·크기·회전·폰트·자간·행간을 수정합니다. SFX도 이미지 생성이 아니라 편집 가능한 타이포 레이어입니다.</p><div class="topbar"><button class="btn" onclick="renderAssemble()">← ASSEMBLE</button><div class="letterToolbar"><button class="btn" onclick="resetLetters(${c.id})">명세에서 다시 자동 적용</button><button class="btn" onclick="addLetter(${c.id},'sfx')">＋ SFX</button><button class="btn dark" onclick="addLetter(${c.id},'dialogue')">＋ 말풍선</button><button class="btn ${episodeLetterDone(activeEpisodeId,c.id)?'dark':''}" onclick="markLetteringDone(${c.id},${!episodeLetterDone(activeEpisodeId,c.id)});renderLetterEditor(${c.id})">${episodeLetterDone(activeEpisodeId,c.id)?'✓ 레터링 완료':'레터링 완료 처리'}</button></div></div><div class="letterStage" id="letterStage"><img src="${r.image}">${arr.map(x=>letterHtml(x,true)).join('')}</div><div class="letterPanel">${arr.map(x=>`<div class="letterRow"><b>${x.type.toUpperCase()} · ${(BALLOON_PRESETS[x.preset]||SFX_PRESETS[x.preset]||{}).label||'CUSTOM'}</b><input value="${esc(x.text)}" onchange="setLetter(${c.id},'${x.id}','text',this.value)"><select onchange="setLetter(${c.id},'${x.id}','type',this.value)">${['dialogue','thought','narration','sfx','caption'].map(t=>`<option ${x.type===t?'selected':''}>${t}</option>`).join('')}</select>${presetButtons(c.id,x)}<div class="letterControls"><label>X %<input type="number" value="${x.x}" onchange="setLetter(${c.id},'${x.id}','x',this.value)"></label><label>Y %<input type="number" value="${x.y}" onchange="setLetter(${c.id},'${x.id}','y',this.value)"></label><label>크기<input type="number" value="${x.size}" onchange="setLetter(${c.id},'${x.id}','size',this.value)"></label><label>회전<input type="number" value="${x.rotate||0}" onchange="setLetter(${c.id},'${x.id}','rotate',this.value)"></label><label>굵기<select onchange="setLetter(${c.id},'${x.id}','weight',this.value)">${[400,500,700,800,900].map(w=>`<option value="${w}" ${Number(x.weight||700)===w?'selected':''}>${w}</option>`).join('')}</select></label><label>자간<input type="number" step=".2" value="${x.letterSpacing||0}" onchange="setLetter(${c.id},'${x.id}','letterSpacing',this.value)"></label><label>행간<input type="number" step=".05" value="${x.lineHeight||1.25}" onchange="setLetter(${c.id},'${x.id}','lineHeight',this.value)"></label><label>꼬리<select onchange="setLetter(${c.id},'${x.id}','tail',this.value)">${['bottom-left','bottom-right','top-left','top-right','none'].map(t=>`<option ${x.tail===t?'selected':''}>${t}</option>`).join('')}</select></label><label>폰트<select onchange="setLetter(${c.id},'${x.id}','font',this.value)">${['Noto Sans KR','sans-serif','serif'].map(f=>`<option ${x.font===f?'selected':''}>${f}</option>`).join('')}</select></label></div><button class="btn small" onclick="deleteLetter(${c.id},'${x.id}')">삭제</button></div>`).join('')}</div>`;enableLetterDrag(c.id)}
+async function renderLetterEditor(cutId){
+ const c=cutsForEpisode()[cutId];if(!c)return alert('CUT 정보를 찾을 수 없습니다.');
+ try{
+  const r=await getResult(stateKey(cutId));if(!r?.image)return alert('레터링할 이미지가 없습니다. 먼저 Final 이미지를 생성·채택해주세요.');
+  const arr=letterItems(c);view.innerHTML=`<div class="eyebrow">LETTERING EDITOR V2</div><h1>CUT ${String(c.id).padStart(3,'0')} · ${c.title}</h1><p class="lead">프리셋 자동 선택 후 위치·크기·회전·폰트·자간·행간을 수정합니다. SFX도 이미지 생성이 아니라 편집 가능한 타이포 레이어입니다.</p><div class="topbar"><button class="btn" onclick="setCreateStage('lettering')">← LETTERING 목록</button><button class="btn" onclick="setCreateStage('assemble')">ASSEMBLE →</button><div class="letterToolbar"><button class="btn" onclick="resetLetters(${c.id})">명세에서 다시 자동 적용</button><button class="btn" onclick="addLetter(${c.id},'sfx')">＋ SFX</button><button class="btn dark" onclick="addLetter(${c.id},'dialogue')">＋ 말풍선</button><button class="btn ${episodeLetterDone(activeEpisodeId,c.id)?'dark':''}" onclick="markLetteringDone(${c.id},${!episodeLetterDone(activeEpisodeId,c.id)});renderLetterEditor(${c.id})">${episodeLetterDone(activeEpisodeId,c.id)?'✓ 레터링 완료':'레터링 완료 처리'}</button></div></div><div class="letterStage" id="letterStage"><img src="${r.image}">${arr.map(x=>letterHtml(x,true)).join('')}</div><div class="letterPanel">${arr.map(x=>`<div class="letterRow"><b>${x.type.toUpperCase()} · ${(BALLOON_PRESETS[x.preset]||SFX_PRESETS[x.preset]||{}).label||'CUSTOM'}</b><input value="${esc(x.text)}" onchange="setLetter(${c.id},'${x.id}','text',this.value)"><select onchange="setLetter(${c.id},'${x.id}','type',this.value)">${['dialogue','thought','narration','sfx','caption'].map(t=>`<option ${x.type===t?'selected':''}>${t}</option>`).join('')}</select>${presetButtons(c.id,x)}<div class="letterControls"><label>X %<input type="number" value="${x.x}" onchange="setLetter(${c.id},'${x.id}','x',this.value)"></label><label>Y %<input type="number" value="${x.y}" onchange="setLetter(${c.id},'${x.id}','y',this.value)"></label><label>크기<input type="number" value="${x.size}" onchange="setLetter(${c.id},'${x.id}','size',this.value)"></label><label>회전<input type="number" value="${x.rotate||0}" onchange="setLetter(${c.id},'${x.id}','rotate',this.value)"></label><label>굵기<select onchange="setLetter(${c.id},'${x.id}','weight',this.value)">${[400,500,700,800,900].map(w=>`<option value="${w}" ${Number(x.weight||700)===w?'selected':''}>${w}</option>`).join('')}</select></label><label>자간<input type="number" step=".2" value="${x.letterSpacing||0}" onchange="setLetter(${c.id},'${x.id}','letterSpacing',this.value)"></label><label>행간<input type="number" step=".05" value="${x.lineHeight||1.25}" onchange="setLetter(${c.id},'${x.id}','lineHeight',this.value)"></label><label>꼬리<select onchange="setLetter(${c.id},'${x.id}','tail',this.value)">${['bottom-left','bottom-right','top-left','top-right','none'].map(t=>`<option ${x.tail===t?'selected':''}>${t}</option>`).join('')}</select></label><label>폰트<select onchange="setLetter(${c.id},'${x.id}','font',this.value)">${['Noto Sans KR','sans-serif','serif'].map(f=>`<option ${x.font===f?'selected':''}>${f}</option>`).join('')}</select></label></div><button class="btn small" onclick="deleteLetter(${c.id},'${x.id}')">삭제</button></div>`).join('')}</div>`;enableLetterDrag(c.id);injectCreateHeader();
+ }catch(e){console.error('Lettering editor error',e);alert('레터링 편집기를 여는 중 오류가 발생했습니다: '+(e?.message||e))}
+}
 function enableLetterDrag(cutId){const stage=document.querySelector('#letterStage');if(!stage)return;stage.querySelectorAll('.letterItem').forEach(el=>{el.onpointerdown=e=>{e.preventDefault();el.setPointerCapture(e.pointerId);const move=ev=>{const r=stage.getBoundingClientRect(),x=Math.max(3,Math.min(97,(ev.clientX-r.left)/r.width*100)),y=Math.max(3,Math.min(97,(ev.clientY-r.top)/r.height*100));el.style.left=x+'%';el.style.top=y+'%';const item=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===el.dataset.letter);if(item){item.x=Math.round(x*10)/10;item.y=Math.round(y*10)/10}};el.onpointermove=move;el.onpointerup=()=>{el.onpointermove=null;saveLettering()}}})}
-async function hydrateAssembly(cs){for(const c of cs){const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${c.id}`);if(img&&r?.image)img.src=r.image}}
 function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function drawWrapped(ctx,text,cx,cy,maxW,lineH){const words=String(text).split(/\s+/),lines=[];let line='';for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);const top=cy-(lines.length-1)*lineH/2;lines.forEach((l,i)=>ctx.fillText(l,cx,top+i*lineH))}
 function drawLetter(ctx,x,W,H){const px=W*x.x/100,py=H*x.y/100,fs=x.size*(W/720);ctx.save();ctx.translate(px,py);ctx.rotate((x.rotate||0)*Math.PI/180);ctx.font=`${x.weight||700} ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';const maxW=W*.38;if(x.type==='sfx'){ctx.font=`${x.weight||900} ${fs}px sans-serif`;ctx.lineWidth=Math.max(2,fs*(x.preset==='sfx-heavy'?.13:.08));ctx.strokeStyle='#fff';ctx.strokeText(x.text,0,0);ctx.fillStyle='#111';ctx.fillText(x.text,0,0)}else{const lines=Math.max(1,Math.ceil(ctx.measureText(x.text).width/maxW)),bw=Math.min(maxW+fs,Math.max(fs*4,ctx.measureText(x.text).width+fs*1.4)),bh=lines*fs*(x.lineHeight||1.25)+fs;ctx.fillStyle=x.preset==='monologue-borderless'?'rgba(255,255,255,.0)':'#fff';ctx.strokeStyle='#111';ctx.lineWidth=x.preset==='monologue-borderless'?0:Math.max(1.5,fs*.06);if(x.type==='dialogue'||x.type==='thought'){ctx.beginPath();ctx.ellipse(0,0,bw/2,bh/2,0,0,Math.PI*2);ctx.fill();if(ctx.lineWidth)ctx.stroke()}else{roundRect(ctx,-bw/2,-bh/2,bw,bh,fs*.2);ctx.fill();if(ctx.lineWidth)ctx.stroke()}ctx.fillStyle='#111';drawWrapped(ctx,x.text,0,0,bw-fs,fs*(x.lineHeight||1.25))}ctx.restore()}
@@ -2787,7 +2813,6 @@ function crc32(bytes){let c=-1;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=
 function u16(n){return [n&255,(n>>>8)&255]}function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]}
 async function zipStore(files){const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=new Uint8Array(await f.blob.arrayBuffer()),crc=crc32(data),local=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);locals.push(local);const cen=new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]);centrals.push(cen);offset+=local.length}const csize=centrals.reduce((a,x)=>a+x.length,0),end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(csize),...u32(offset),...u16(0)]),total=offset+csize+end.length,out=new Uint8Array(total);let p=0;for(const x of [...locals,...centrals,end]){out.set(x,p);p+=x.length}return new Blob([out],{type:'application/zip'})}
 async function exportPlatformFiles(asZip){try{setExportStatus('최종 원고 렌더링 및 자동 분할 중…');const r=await makeSlices();if(asZip){setExportStatus(`${r.files.length}개 파일 ZIP 생성 중…`);const z=await zipStore(r.files);downloadBlob(z,`${r.ex.prefix}WEBTOON_EXPORT.zip`)}else{r.files.forEach((f,i)=>setTimeout(()=>downloadBlob(f.blob,f.name),i*120))}const mb=r.files.reduce((a,f)=>a+f.blob.size,0)/1024/1024;markOutputDone(true);setExportStatus(`완료 · ${r.files.length}개 · ${r.ex.format.toUpperCase()} · ${mb.toFixed(1)}MB · ${r.width}px 폭 · EP 완료 기록`)}catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}}
-async function exportAssembly(){return exportLongPNG()}
 
 
 
@@ -2799,9 +2824,9 @@ const CREATE_STAGES=[['story','Story'],['conte','Conte'],['generate','Generate']
 function saveActivity(){sessionStorage.setItem('wtal_activity',JSON.stringify(activityItems.slice(-80)));renderActivity()}
 function activityStart(operation,meta={}){
  const id=`act_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,label={generate_cut:'Generate CUT',partial_edit:'Partial Edit',storyboard:'Generate Conte',continuity_qc:'Continuity QC',character_state:'Character State',space_map:'Space Map',transform_master:'Master Convert',episode_story:'Story Draft',episode_specs:'Build Specs'}[operation]||operation;
- activityItems.push({id,operation,label,status:'running',cutId:meta.cutId??null,episodeId:meta.episodeId||activeEpisodeId,startedAt:new Date().toISOString()});saveActivity();return id;
+ activityItems.push({id,operation,label,status:'running',cutId:meta.cutId??null,episodeId:meta.episodeId||activeEpisodeId,pageAtStart:currentPage,stageAtStart:createStage,startedAt:new Date().toISOString()});saveActivity();return id;
 }
-function activitySetStatus(id,status){const a=activityItems.find(x=>x.id===id);if(a){a.status=status;a.finishedAt=status==='running'?null:new Date().toISOString();saveActivity()}}
+function activitySetStatus(id,status){const a=activityItems.find(x=>x.id===id);if(a){a.status=status;a.finishedAt=status==='running'?null:new Date().toISOString();saveActivity();if(status!=='running'&&(a.pageAtStart!==currentPage||a.stageAtStart!==createStage)){const subject=`${a.label}${a.cutId!=null?` · CUT ${String(a.cutId).padStart(3,'0')}`:''}`;reliabilityToast(`${subject} ${status==='done'?'완료':status==='cancelled'?'취소됨':'실패'}`,status==='error'?'error':status==='cancelled'?'warn':'')}}}
 function activityFinish(id,ok=true){activitySetStatus(id,ok?'done':'error')}
 function renderActivity(){
  const el=document.querySelector('#activityList'),badge=document.querySelector('#activityCount');if(!el)return;
@@ -3002,7 +3027,6 @@ function renderCommandResults(q=''){
  [...el.querySelectorAll('.commandItem')].forEach((node,i)=>node.onclick=()=>{rows[i].run();closeCommandPalette()});
  el._rows=rows;
 }
-function commandKeydown(e){const el=document.querySelector('#commandResults'),rows=el?._rows||[];if(e.key==='Escape')return closeCommandPalette();if(e.key==='ArrowDown'){e.preventDefault();commandSelection=Math.min(rows.length-1,commandSelection+1);renderCommandResults(document.querySelector('#commandInput').value)}if(e.key==='ArrowUp'){e.preventDefault();commandSelection=Math.max(0,commandSelection-1);renderCommandResults(document.querySelector('#commandInput').value)}if(e.key==='Enter'&&rows[commandSelection]){rows[commandSelection].run();closeCommandPalette()}}
 
 function preflightSampleCuts(){
  const cuts=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id);
@@ -3062,18 +3086,8 @@ function projectCompletion(){
  const filled=keys.filter(k=>projectFieldFilled(projectData[k])).length;
  return {filled,total:keys.length,pct:Math.round(filled/keys.length*100)};
 }
-function autoGrowProjectFields(){
- document.querySelectorAll('.projectAutoGrow').forEach(el=>{el.style.height='auto';el.style.height=Math.max(el.dataset.min||58,el.scrollHeight)+'px'});
-}
-function markProjectDirty(){
- const el=document.querySelector('#projectSaveState');if(el){el.textContent='저장되지 않은 변경사항';el.style.color='#b65d00'}
-}
 
 function byteSizeHuman(n){n=Number(n||0);if(n<1024)return `${n} B`;if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;return `${(n/1024/1024).toFixed(1)} MB`}
-function renderDataHealthCard(){
- const h=wtalStorageHealth(),stored=h.rows.filter(x=>x.status!=='empty').length;
- return `<section class="dataHealthCard"><div class="dataHealthHead"><div><div class="eyebrow">DATA HEALTH</div><h3>Project Data</h3><p class="sectionDesc">Schema v${h.version} · ${stored} stores · ${byteSizeHuman(h.totalBytes)}</p></div><div class="dataHealthScore ${h.issues?'warn':'good'}">${h.score}</div></div><div class="dataHealthRows"><div class="dataHealthRow"><span>Schema</span><b>v${h.version} / current v${WTAL_SCHEMA_VERSION}</b></div><div class="dataHealthRow"><span>Integrity issues</span><b>${h.issues}</b></div><div class="dataHealthRow"><span>Storage architecture</span><b>${h.issues?'<span class="dataHealthBadge warn">REVIEW</span>':'<span class="dataHealthBadge">HEALTHY</span>'}</b></div></div><button class="btn" style="width:100%;margin-top:10px" onclick="openDataArchitecture()">Data Architecture</button></section>`;
-}
 function openDataArchitecture(){
  const h=wtalStorageHealth(),logs=wtalReadJSON('wtal_migration_log',[]);
  const groups={};h.rows.forEach(r=>(groups[r.group]??=[]).push(r));
@@ -3114,7 +3128,6 @@ function setSettingsTab(tab){settingsTab=tab;localStorage.setItem('wtal_settings
 function settingsNavHtml(){return `<nav class="settingsNav"><div class="settingsNavTitle"><b>Project Settings</b><small>${esc(projectData.title||'Untitled')}</small></div>${SETTINGS_TABS.map(([k,ic,l])=>`<button class="${settingsTab===k?'on':''}" onclick="setSettingsTab('${k}')"><span class="settingsNavIcon">${ic}</span>${l}</button>`).join('')}</nav>`}
 function settingsHeader(title,desc){return `<div class="settingsSectionHead"><h2>${title}</h2><p>${desc}</p></div>`}
 function markSettingsDirty(){const e=document.querySelector('#settingsSaveState');if(e){e.textContent='저장되지 않은 변경사항';e.style.color='#b65d00'}}
-function settingsToggleHtml(on,handler){return `<button class="settingsToggle ${on?'on':''}" onclick="${handler}" aria-pressed="${on?'true':'false'}"></button>`}
 
 function renderSettingsGeneral(){
  const genres=String(projectData.genre||'').split('·').map(x=>x.trim()).filter(Boolean);
@@ -3128,11 +3141,20 @@ function renderSettingsGeneral(){
  </div></section>
  <section class="settingsSection">${settingsHeader('Story Data','세계관·캐릭터·무공·비주얼 Canon은 별도의 Story Bible에서 관리합니다.')}<div class="settingsForm"><div class="settingsRow"><div class="settingsLabel"><b>Story Bible</b><small>${Object.keys(storyBibleDocs||{}).length} Canon documents</small></div><div class="settingsControl"><button class="btn" onclick="currentPage='STORY BIBLE';render()">Story Bible 열기</button></div></div></div></section>`;
 }
+
+let serverRuntimeInfo=null;
+async function refreshServerRuntimeInfo(){
+ const d=await checkApi();serverRuntimeInfo=d||{};
+ const finalModel=serverRuntimeInfo.imageModel||'확인 실패',conteModel=serverRuntimeInfo.storyboardImageModel||finalModel;
+ document.querySelectorAll('[data-server-final-model]').forEach(el=>el.textContent=finalModel);
+ document.querySelectorAll('[data-server-conte-model]').forEach(el=>el.textContent=conteModel);
+ document.querySelectorAll('[data-server-api-state]').forEach(el=>el.textContent=serverRuntimeInfo.openaiConfigured?'API Key 연결됨':'API Key 확인 필요');
+}
 function renderSettingsGeneration(){
  const active=GENERATION_PRESETS[generationSettings.defaultPreset]||GENERATION_PRESETS.standard;
  return `<section class="settingsSection">${settingsHeader('Generation Presets','제작 목적에 맞는 생성 품질과 Reference Lock 조합을 프로젝트 기본값으로 지정합니다.')}<div class="settingsForm">
  <div class="settingsRow"><div class="settingsLabel"><b>Project Default Preset</b><small>CUT Override가 없는 모든 생성에 적용</small></div><div class="settingsControl"><div class="presetGrid">${Object.values(GENERATION_PRESETS).map(p=>`<button class="presetCard ${p.id===active.id?'on':''}" onclick="setProjectGenerationPreset('${p.id}')"><b>${esc(p.name)}</b><small>${esc(p.desc)}</small><div class="presetMeta"><span>${p.quality.toUpperCase()}</span><span>INPUT ${p.inputFidelity.toUpperCase()}</span><span>${p.focus}</span></div></button>`).join('')}</div><div class="generationEffective"><b>현재 기본값 · ${esc(active.name)}</b><br>${esc(active.desc)}</div></div></div>
- <div class="settingsRow"><div class="settingsLabel"><b>기본 이미지 모델</b><small>현재 서버 기본 모델</small></div><div class="settingsControl"><div class="readonlyField">${esc(projectData.defaultModel||'gpt-image-1.5')}</div></div></div>
+ <div class="settingsRow"><div class="settingsLabel"><b>실제 서버 이미지 모델</b><small>Vercel 환경변수 기준 · 프로젝트 저장값이 아님</small></div><div class="settingsControl"><div class="readonlyField"><b>FINAL</b> · <span data-server-final-model>${esc(serverRuntimeInfo?.imageModel||'확인 중…')}</span><br><b>CONTE</b> · <span data-server-conte-model>${esc(serverRuntimeInfo?.storyboardImageModel||'확인 중…')}</span><br><span class="settingsHint" data-server-api-state>${serverRuntimeInfo?.openaiConfigured?'API Key 연결됨':'서버 확인 중…'}</span></div></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>Base MASTER Lock</b><small>Preset이 inherit일 때 사용하는 프로젝트 기본값</small></div><div class="settingsControl"><div class="settingsChoice"><button class="${masterLock==='strict'?'on':''}" onclick="setSettingsLock('master','strict')">Strict</button><button class="${masterLock==='balanced'?'on':''}" onclick="setSettingsLock('master','balanced')">Balanced</button></div></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>Base Composition Lock</b><small>Preset이 inherit일 때 사용하는 기본값</small></div><div class="settingsControl"><div class="settingsChoice"><button class="${compositionLock==='strict'?'on':''}" onclick="setSettingsLock('composition','strict')">Strict</button><button class="${compositionLock==='balanced'?'on':''}" onclick="setSettingsLock('composition','balanced')">Balanced</button></div></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>기본 비주얼 스타일</b><small>모든 CUT 프롬프트에 공통 적용</small></div><div class="settingsControl"><textarea id="setStyle" style="min-height:110px" oninput="markSettingsDirty()">${esc(projectData.style||'')}</textarea></div></div>
@@ -3146,14 +3168,13 @@ function setSettingsLock(kind,value){
  markSettingsDirty();renderProjectHub();
 }
 function renderSettingsContinuity(){
- return `<section class="settingsSection">${settingsHeader('Continuity','SCENE 연속성 검사와 자동 수정 정책을 관리합니다.')}<div class="settingsForm">
- <div class="settingsRow"><div class="settingsLabel"><b>Auto Repair</b><small>QC FAIL 시 부분 수정 → 재검수 자동 실행</small></div><div class="settingsControl settingsInline">${settingsToggleHtml(autoRepairEnabled,`toggleSettingsAutoRepair()`)}<span>${autoRepairEnabled?'사용':'사용 안 함'}</span></div></div>
- <div class="settingsRow"><div class="settingsLabel"><b>최대 자동 수정 횟수</b><small>CUT 하나당 1–3회</small></div><div class="settingsControl"><select id="setAutoRepairMax" onchange="autoRepairMaxAttempts=Math.max(1,Math.min(3,Number(this.value)));localStorage.setItem('wtal_auto_repair_max',String(autoRepairMaxAttempts));markSettingsDirty()"><option value="1" ${autoRepairMaxAttempts===1?'selected':''}>1회</option><option value="2" ${autoRepairMaxAttempts===2?'selected':''}>2회</option><option value="3" ${autoRepairMaxAttempts===3?'selected':''}>3회</option></select></div></div>
+ return `<section class="settingsSection">${settingsHeader('Continuity','SCENE 연속성 검사와 수동 수정 정책을 관리합니다.')}<div class="settingsForm">
+ <div class="settingsRow"><div class="settingsLabel"><b>Continuity Repair 방식</b><small>QC 문제를 확인한 뒤 사용자가 명시적으로 실행</small></div><div class="settingsControl"><div class="readonlyField">Manual only · 자동 연쇄 실행 안 함</div></div></div>
+ <div class="settingsRow"><div class="settingsLabel"><b>수동 Auto Repair 최대 시도</b><small>문제 CUT에서 ⚡ AUTO FIX 실행 시 1–3회</small></div><div class="settingsControl"><select id="setAutoRepairMax" onchange="autoRepairMaxAttempts=Math.max(1,Math.min(3,Number(this.value)));setAutoRepairMax(autoRepairMaxAttempts);markSettingsDirty()"><option value="1" ${autoRepairMaxAttempts===1?'selected':''}>1회</option><option value="2" ${autoRepairMaxAttempts===2?'selected':''}>2회</option><option value="3" ${autoRepairMaxAttempts===3?'selected':''}>3회</option></select></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>Scene Look Lock</b><small>같은 SCENE의 시간·색온도·광원·팔레트 유지</small></div><div class="settingsControl"><div class="readonlyField">Enabled · Scene Look V2</div></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>QC categories</b><small>자동 연속성 검사 항목</small></div><div class="settingsControl"><div class="projectGenreChips">${['색온도/조명','캐릭터 정체성','의상','배경 구조','소품 위치','상처/손상'].map(x=>`<span class="projectGenreChip">${x}</span>`).join('')}</div></div></div>
  </div></section>`;
 }
-function toggleSettingsAutoRepair(){autoRepairEnabled=!autoRepairEnabled;localStorage.setItem('wtal_auto_repair_enabled',String(autoRepairEnabled));markSettingsDirty();renderProjectHub()}
 function renderSettingsExport(){
  const ex=exportSettings();
  return `<section class="settingsSection">${settingsHeader('Export','Assemble 완료 후 플랫폼 출력에 사용하는 기본값입니다.')}<div class="settingsForm">
@@ -3223,11 +3244,12 @@ function saveUnifiedSettings(){
 function settingsNeedsSave(){return ['general','generation','export','cost'].includes(settingsTab)}
 function renderProjectHub(){
  view.innerHTML=`<div class="settingsShell">${pageHeaderHtml('PROJECT','Project Settings','작품 정보부터 생성·연속성·출력·비용·백업까지 프로젝트 설정을 한곳에서 관리합니다.',`<button class="btn" onclick="goPage('PROJECTS')">Projects</button>`)}<div class="settingsLayout">${settingsNavHtml()}<main class="settingsBody">${renderSettingsBody()}${settingsNeedsSave()?`<div class="settingsFooter"><span id="settingsSaveState" class="settingsStatus">현재 저장된 설정</span><button class="btn dark" onclick="saveUnifiedSettings()">변경사항 저장</button></div>`:''}</main></div></div>`;
+ if(settingsTab==='generation'||!serverRuntimeInfo)refreshServerRuntimeInfo();
 }
 window.addEventListener('beforeunload',()=>updateWorkspaceProjectMeta(activeProjectId,{title:projectData?.title||'Untitled Project',genre:projectData?.genre||'',lastOpenedAt:new Date().toISOString()}));
 document.addEventListener('keydown',e=>{
  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCommandPalette();return}
- if(e.key==='Escape'){if(tourActive)stopGuidedTour();closeCommandPalette();toggleActivityPanel(false);return}
+ if(e.key==='Escape'){if(document.querySelector('#genResult')){closeActiveRequestModal();return}if(tourActive)stopGuidedTour();closeCommandPalette();toggleActivityPanel(false);return}
  const tag=(document.activeElement?.tagName||'').toLowerCase();
  if(e.key==='?'&&!['input','textarea','select'].includes(tag)&&!document.activeElement?.isContentEditable){e.preventDefault();openHelpCenter();return}
  handleGoShortcut(e);
@@ -3320,7 +3342,9 @@ async function generateCut(id,opts={}){
   const btn=document.querySelector('#generateBtn');
   if(btn&&!silent){btn.disabled=true;btn.textContent='GENERATING…';}
   if(!silent)showGenerating(c,refs,genCfg);
+  const uiSignal=!silent?requestModalSignal('generate_cut',id):null,requestSignal=combineAbortSignals(activeTaskSignalOr(signal),uiSignal);
   try{
+    if(requestSignal?.aborted)throw taskCancelledError();
     const compressedRefs=[];
     for(const a of refs){
       const dataUrl=await compressReferenceDataUrl(a.img,genCfg.refMaxSide,genCfg.refCompression);
@@ -3348,7 +3372,8 @@ async function generateCut(id,opts={}){
       for(const a of refs)smaller.push({id:a.id,name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,Math.min(900,genCfg.refMaxSide),Math.min(.70,genCfg.refCompression))});
       requestBody.references=smaller;bodyText=JSON.stringify(requestBody);
     }
-    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:activeTaskSignalOr(signal)},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`});
+    if(requestSignal?.aborted)throw taskCancelledError();
+    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:requestSignal},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`});
     const raw=await res.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
     if(!res.ok)throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
     sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,responseId:data.responseId,model:data.model,preset:data.preset||genCfg.id,createdAt:new Date().toISOString()}));
@@ -3360,19 +3385,26 @@ async function generateCut(id,opts={}){
     if(!silent)showGenerateError(c,err.message);
     return {ok:false,error:err.message};
   }finally{
+    if(!silent)finishUiRequest('generate_cut',id);
     const b=document.querySelector('#generateBtn');if(b&&!silent){b.disabled=false;b.textContent='Generate CUT';}
   }
 }
 
 function modalShell(inner,opts={}){
- let old=document.querySelector('#genResult');if(old)old.remove();
+ let old=document.querySelector('#genResult');
+ if(old){
+  const op=old.dataset.requestOperation,cut=old.dataset.requestCutId===''?null:Number(old.dataset.requestCutId),note=old.dataset.requestNote||'';
+  if(op&&uiRequestActive(op,cut,note)&&!opts.replaceActiveRequest){reliabilityToast('현재 API 작업이 실행 중입니다. 먼저 완료하거나 취소해주세요.','warn');return old}
+  old.remove();
+ }
  const box=document.createElement('div');box.id='genResult';box.className='v27ModalBackdrop';box.dataset.longTask=opts.longTask?'1':'0';
- box.innerHTML=`<div class="v27ModalCard" role="dialog" aria-modal="true"><div class="v27ModalBar"><button class="v27ModalClose" aria-label="${opts.longTask?'작업 취소':'닫기'}" onclick="closeActiveModal()">×</button></div><div class="v27ModalContent">${inner}</div></div>`;
- box.addEventListener('click',e=>{if(e.target===box){if(opts.longTask)requestLongTaskCancel();else box.remove()}});
- document.body.appendChild(box);
+ if(opts.requestOperation){box.dataset.requestOperation=opts.requestOperation;box.dataset.requestCutId=opts.cutId??'';box.dataset.requestNote=opts.requestNote||'';box.classList.add('requestModalLocked');beginUiRequest(opts.requestOperation,opts.cutId??null,opts.requestNote||'')}
+ box.innerHTML=`<div class="v27ModalCard" role="dialog" aria-modal="true"><div class="v27ModalBar">${opts.requestOperation?'<span class="requestRunningBadge">작업 실행 중</span>':''}<button class="v27ModalClose" aria-label="${opts.longTask||opts.requestOperation?'작업 취소':'닫기'}" onclick="closeActiveRequestModal()">×</button></div><div class="v27ModalContent">${inner}</div></div>`;
+ box.addEventListener('click',e=>{if(e.target===box){if(opts.requestOperation){const cut=opts.cutId??null;requestUiOperationCancel(opts.requestOperation,cut,opts.requestNote||'')}else if(opts.longTask)requestLongTaskCancel();else box.remove()}});
+ document.body.appendChild(box);return box;
 }
 function showGenerating(c,refs,preset=generationPreset(c.id)){
-  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p><p class="lead">Activity에서도 진행 상태를 확인할 수 있습니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('generate_cut',${c.id})">생성 취소</button></div></div>`);
+  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p><p class="requestModalHint">다른 곳을 눌러도 이 창은 닫히지 않습니다. × 또는 생성 취소를 누르면 실제 작업 취소를 확인합니다.</p><div class="right"><button class="btn cancelBtn" onclick="requestUiOperationCancel('generate_cut',${c.id})">생성 취소</button></div></div>`,{requestOperation:'generate_cut',cutId:c.id});
 }
 async function saveGenerated(c,image,model){const preset=effectivePresetId(c.id);lastGenerated={cutId:c.id,image,model,preset};cutStates[stateKey(c.id)]={status:'generated',model,preset,updatedAt:new Date().toISOString()};saveStates();await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()})}
 function showGeneratedResult(c,refs,image,model,presetId=effectivePresetId(c.id)){
@@ -3413,8 +3445,10 @@ async function generatePartialEdit(id){
  const c=cutsForEpisode()[id],source=await getResult(stateKey(id));if(!source?.image)return alert('수정할 원본 결과가 없습니다.');
  const mode=document.querySelector('#partialEditMode')?.value||'expression';
  const instruction=(document.querySelector('#partialEditInstruction')?.value||'').trim();
+ const uiSignal=bindExistingModalRequest('partial_edit',id);
  const btn=document.querySelector('#partialEditBtn');if(btn){btn.disabled=true;btn.textContent='EDITING…'}
  try{
+   if(uiSignal?.aborted)throw taskCancelledError();
    const req=requiredRefs(c),manual=(manualLinks[stateKey(id)]||manualLinks[id]||[]).map(aid=>assets.find(a=>a.id===aid)).filter(Boolean);
    const refs=[...new Map(req.map(x=>autoAsset(x)).filter(Boolean).concat(manual).map(a=>[a.id,a])).values()];
    const compactRefs=[];
@@ -3427,13 +3461,14 @@ async function generatePartialEdit(id){
      shot:c.shot,camera:c.camera,action:c.action,characters:c.characters||[],backgrounds:c.backgrounds||[],props:c.props||[],
      projectStyle:projectData.style,storyVisual:storyBibleDocs.visual?.content||''
    };
-   const res=await trackedFetch('/api/edit-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)},{operation:'partial_edit',episodeId:activeEpisodeId,cutId:id});
+   if(uiSignal?.aborted)throw taskCancelledError();
+   const res=await trackedFetch('/api/edit-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:uiSignal},{operation:'partial_edit',episodeId:activeEpisodeId,cutId:id});
    const raw=await res.text();let data={};try{data=JSON.parse(raw)}catch(e){data={error:raw}}
    if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
    lastPartialEdit={id,mode,instruction,before:source.image,after:data.image,model:data.model};
    showPartialEditResult(c,lastPartialEdit);
- }catch(err){showGenerateError(c,'부분 수정 실패: '+err.message)}
- finally{if(btn){btn.disabled=false;btn.textContent='부분 수정 생성'}}
+ }catch(err){if(isUserCancelled(err,uiSignal)){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 부분 수정을 취소했습니다.`,'warn')}else showGenerateError(c,'부분 수정 실패: '+err.message)}
+ finally{finishUiRequest('partial_edit',id);if(btn){btn.disabled=false;btn.textContent='부분 수정 생성'}}
 }
 function showPartialEditResult(c,edit){
  const label=PARTIAL_EDIT_MODES[edit.mode]?.label||edit.mode;

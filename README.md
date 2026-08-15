@@ -1226,3 +1226,126 @@ without immediately paying for a large Episode batch.
 6. only then expand to full EP01.
 
 V40 intentionally does **not** automatically start the sample production test.
+
+
+## V40.1 — Request Modal Safety Patch
+Prompted by a real workflow issue: a single Conte generation window could disappear while the API request continued.
+
+### Root cause
+V39 protected only shared Long Task modals. Single-request modals still used the generic modal behavior:
+- backdrop click removed the dialog,
+- `×` removed the dialog,
+- underlying API could continue,
+- user lost visual confirmation of running/completed/cancelled state.
+
+### Generic request-bound modal
+V40.1 adds a shared request-modal lifecycle:
+- `requestOperation`
+- optional CUT id / asset note
+- UI AbortController
+- protected backdrop
+- protected `×`
+- explicit cancel confirmation
+- browser signal + trackedFetch signal combined.
+
+While a request is active:
+- backdrop click does **not** silently close the dialog,
+- `×` means “request cancellation”, not “hide UI”,
+- opening another modal cannot silently replace the running request modal.
+
+### Covered request UI
+Request-bound behavior is now applied to:
+- Final CUT generation
+- single Conte generation
+- Character State analysis
+- Continuity QC
+- MASTER → Production MASTER transform
+- Space Map AI analysis
+- Partial Edit.
+
+### Background navigation
+Some operations are intentionally inline rather than modal-based, including Episode Story / Episode Specs.
+Activity now records the page/stage where a request started. If the user navigates elsewhere before it finishes, a completion / cancellation / failure toast is shown.
+
+### Keyboard safety
+`Esc` respects active API dialogs:
+- active request → cancellation confirmation
+- active Long Task → cancellation confirmation
+- normal dialog → close.
+
+### Audit principle
+A running API task must now have one of two explicit UX models:
+1. request-bound modal with cancellation, or
+2. Activity-tracked background task with completion notification.
+
+No paid/API task should become invisible merely because the user clicks outside its loading UI.
+
+
+## V40.2 — Lettering Editor Fix
+A runtime bug was found in the `Edit Lettering` path.
+
+### Root cause
+`renderLetterEditor()` rendered `${presetButtons(c.id,x)}`, but `presetButtons()` had never been defined.
+The application passed JavaScript syntax checks because the missing symbol is a runtime reference, not a syntax error.
+Result: clicking `Edit Lettering` could appear to do nothing after the image was loaded.
+
+### Fix
+- Added `presetButtons(cutId, x)`.
+- Dialogue/thought/narration/caption rows show Balloon preset buttons.
+- SFX rows show SFX preset buttons.
+- Active preset is visually selected.
+- Preset buttons call the existing `applyPreset()` implementation.
+- Lettering editor now catches runtime/open errors and shows a visible message instead of failing silently.
+- Lettering editor re-injects the Create header after replacing the page body.
+- Back navigation now returns to the Lettering list; Assemble remains a separate forward action.
+
+### Audit note
+This bug demonstrates why syntax-only validation is insufficient for template-driven UI.
+V40.2 adds a targeted undefined UI-helper reference scan to the release validation.
+
+
+## V40.3 — Pre-Test Cleanup Patch
+
+### AUTO REPAIR
+- Removed misleading `AUTO REPAIR ON/OFF`.
+- Scene Pipeline remains `FINAL → QC → manual repair decision`.
+- UI now says `AUTO REPAIR · MANUAL`.
+- `1–3회` is only the maximum attempt count when the user explicitly runs `⚡ AUTO FIX`.
+- Removed obsolete `wtal_auto_repair_enabled` browser setting.
+
+### Actual server model
+Project Settings → Generation now displays the actual runtime models from `/api/health`:
+- FINAL: `OPENAI_IMAGE_MODEL`
+- CONTE: `OPENAI_STORYBOARD_IMAGE_MODEL`, with FINAL fallback.
+The health route exposes both values.
+
+### Legacy cleanup
+Removed 15 confirmed declaration-only legacy functions:
+- closeActiveModal
+- setGap
+- gapFor
+- addCut
+- masterUsageScenes
+- setProductionPrimary
+- stageRowHtml
+- controlStatusClass
+- setControlFilter
+- controlQuickAction
+- hydrateAssembly
+- exportAssembly
+- autoGrowProjectFields
+- markProjectDirty
+- renderDataHealthCard
+
+### Next
+No paid API test is started in V40.3.
+Next planned step:
+`V40 Preflight → Full Backup → EP01 CUT 013–016 sample production test`.
+
+### Additional dead-code cleanup
+Removed declaration-only leftovers after the first cleanup pass:
+- saveGaps
+- renderControlCenter
+- settingsToggleHtml
+
+- commandKeydown
