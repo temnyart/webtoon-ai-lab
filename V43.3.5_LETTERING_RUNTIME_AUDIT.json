@@ -1,0 +1,19 @@
+{
+  "version": "V43.3.5",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "html_checks": {
+    "toast_dom": true,
+    "audit_panel_dom": true,
+    "stage_dom": true,
+    "image_dom": true,
+    "script_count": true,
+    "no_malformed_boundary": true,
+    "editor_version": true,
+    "main_version": true,
+    "session_fallback": true,
+    "session_cache": true
+  },
+  "html_pass": true,
+  "chromium_smoke": "not available in this container (Chromium hangs on DBus/headless startup)"
+}

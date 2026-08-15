@@ -129,9 +129,9 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.2</span>
+    <span class="badge">LETTERING V43.3.5</span>
     <span id="status" class="status">Reliability Audit</span>
-    <div id="title" class="title">CUT</div>
+    <div id="title" class="title">CUT</div><span id="sourceStatus" class="status" style="display:none"></span>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
     <button id="addBubble" class="btn dark">＋ 말풍선</button><button id="addSfx" class="btn">＋ SFX</button>
     <button id="zoomOut" class="btn">−</button><span id="zoomText" style="font-size:8px;min-width:38px;text-align:center">100%</span><button id="zoomIn" class="btn">＋</button>
@@ -144,7 +144,9 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
     <aside class="inspector"><div class="pane-title"><b>Inspector</b><small>선택 요소</small></div><div id="inspector"></div></aside>
   </div>
 </div>
-<div id="toast" class="t<script>
+<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.5 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
+<div id="toast" class="toast"></div>
+<script>
 
 (()=>{
 const q=new URLSearchParams(location.search);
@@ -153,6 +155,20 @@ const queryCut=Number(q.get('cut'));
 const episode=queryEpisode||localStorage.getItem('wtal_last_lettering_episode')||localStorage.getItem('wtal_active_episode')||'EP01';
 const cut=Number.isFinite(queryCut)&&queryCut>0?queryCut:Number(localStorage.getItem('wtal_last_lettering_cut')||0);
 const key=cut>0?`${episode}:${cut}`:'';
+
+const LETTERING_SOURCE_SESSION_INDEX='wtal_lettering_source_index';
+function letteringSourceSessionKey(resultKey){return `wtal_lettering_source::${resultKey}`}
+function readSessionLetteringSource(resultKey){
+ try{const raw=sessionStorage.getItem(letteringSourceSessionKey(resultKey));if(!raw)return null;const parsed=JSON.parse(raw);return parsed&&parsed.image?parsed:null}catch(e){return null}
+}
+async function letteringPersistSessionRecovery(db,requestKey,image,meta={}){
+ if(!db||!requestKey||!image)return false;
+ const record={episodeId:meta.episodeId||episode,cutId:Number(meta.cutId||cut),status:meta.status||'generated',model:meta.model||'',updatedAt:new Date().toISOString(),image};
+ try{
+  await new Promise((resolve,reject)=>{const tx=db.transaction('results','readwrite');tx.objectStore('results').put(record,requestKey);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('session repair aborted'))});
+  return true;
+ }catch(e){console.warn('Lettering session recovery persist skipped',e);return false}
+}
 
 const storeKey='wtal_lettering';
 if(cut>0){
@@ -1053,14 +1069,22 @@ async function letteringResultInventory(db){
 async function imageLoad(){
  if(!key)throw new Error('Lettering target CUT is missing');
  const {db,rec,source}=await resolveLetteringResult(key);
- let image=rec?.image||null;
+ let image=rec?.image||null,sourceLabel=source||key,usedSession=false;
  if(!image&&rec?.imageBlob instanceof Blob)image=await letteringBlobToDataUrl(rec.imageBlob);
  if(!image){
+  const sessionRec=readSessionLetteringSource(key);
+  if(sessionRec?.image){
+   image=sessionRec.image;usedSession=true;sourceLabel=`session:${sessionRec?.meta?.sourceKind||'launch'}`;
+   await letteringPersistSessionRecovery(db,key,image,sessionRec.meta||{});
+  }
+ }
+ if(!image){
   const keys=await letteringResultInventory(db);
-  const err=new Error(`Final image not found: ${key} · 저장된 Final 결과 ${keys.length}개`);
+  const err=new Error(`Final image not found: ${key} · 저장된 Final 결과 ${keys.length}개 · session fallback 없음`);
   err.resultKeys=keys.slice(0,20);throw err;
  }
- if(source!==key)console.info('[LETTERING result recovered]',{requested:key,source});
+ if(source!==key||usedSession)console.info('[LETTERING result recovered]',{requested:key,source:sourceLabel});
+ const sourceStatus=$('#sourceStatus');if(sourceStatus){sourceStatus.style.display='inline-flex';sourceStatus.textContent=`SOURCE · ${sourceLabel}`}
  $('#image').src=image;
 }
 
@@ -1076,10 +1100,10 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.2 준비 완료');
+ toast('LETTERING V43.3.5 준비 완료');
 }).catch(err=>{
  console.error(err);
- $('#status').textContent='Image load error';
+ $('#status').textContent='Image load error · V43.3.5';
  $('#status').style.color='#a22';
  render();
  const stage=$('#stage');

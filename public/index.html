@@ -330,7 +330,7 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 </header>
 <div class="shell">
   <aside class="appSidebar">
-    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · RESULT FIX V43.3.2</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
+    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · LETTERING FIX V43.3.5</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
     <nav class="primaryNav">
       <button class="nav active" data-page="HOME"><span class="navIcon">⌂</span><span>Home</span></button>
       <button class="nav" data-page="CREATE"><span class="navIcon">✦</span><span>Create</span></button>
@@ -677,6 +677,10 @@ function markOutputDone(val=true){setStageFlag(activeEpisodeId,'output',val);if(
 
 let activeEpisodeId=localStorage.getItem('wtal_active_episode')||'EP01';
 let apiUsageEvents=wtalReadJSON('wtal_api_usage_events',[]);
+if(apiUsageEvents.length>500){
+ apiUsageEvents=apiUsageEvents.slice(-500);
+ try{localStorage.setItem('wtal_api_usage_events',JSON.stringify(apiUsageEvents))}catch(e){console.warn('API usage startup trim could not persist',e)}
+}
 let costSettings=wtalReadJSON('wtal_cost_settings',{});
 
 let failureLog=wtalReadJSON('wtal_failure_log',[]);
@@ -743,10 +747,22 @@ async function retryFailure(id){
  }finally{f.retrying=false;saveFailureLog();renderActivity()}
 }
 function dismissFailure(id){const f=failureLog.find(x=>x.id===id);if(f){f.resolved=true;f.resolvedAt=new Date().toISOString();saveFailureLog();renderActivity();updateRecoveryBadge();render()}}
+function trimNonCriticalStoragePressure(){
+ try{let ev=wtalReadJSON('wtal_api_usage_events',[]);if(ev.length>200)localStorage.setItem('wtal_api_usage_events',JSON.stringify(ev.slice(-200)))}catch(e){}
+ try{let f=wtalReadJSON('wtal_failure_log',[]);if(f.length>100)localStorage.setItem('wtal_failure_log',JSON.stringify(f.slice(-100)))}catch(e){}
+ try{let m=wtalReadJSON('wtal_migration_log',[]);if(Array.isArray(m)&&m.length>50)localStorage.setItem('wtal_migration_log',JSON.stringify(m.slice(-50)))}catch(e){}
+}
 function safeStorageSet(key,value,{quiet=false,label=''}={}){
  const before=localStorage.getItem(key);
  try{localStorage.setItem(key,value);historyRecordStorage(key,before,value,label);return true}
- catch(e){recordFailure({operation:'storage_write',endpoint:key,status:0,message:e?.name+': '+e?.message,note:key,retryable:false});if(!quiet)reliabilityToast('브라우저 저장에 실패했습니다. Backup과 저장 공간을 확인하세요.','error');return false}
+ catch(first){
+  if(first?.name==='QuotaExceededError'||/quota/i.test(first?.message||'')){
+   trimNonCriticalStoragePressure();
+   try{localStorage.setItem(key,value);historyRecordStorage(key,before,value,label);if(!quiet)reliabilityToast(`저장공간 압박 정리 후 ${key} 저장 복구`,'warn');return true}
+   catch(second){recordFailure({operation:'storage_write',endpoint:key,status:0,message:`${second?.name||'Error'}: ${second?.message||''}`,note:key,retryable:false});if(!quiet)reliabilityToast(`브라우저 저장 실패 · ${key} · ${second?.name||'StorageError'}`,'error');return false}
+  }
+  recordFailure({operation:'storage_write',endpoint:key,status:0,message:first?.name+': '+first?.message,note:key,retryable:false});if(!quiet)reliabilityToast(`브라우저 저장 실패 · ${key} · ${first?.name||'StorageError'}`,'error');return false
+ }
 }
 function reliabilityStorageEstimate(){
  if(!navigator.storage?.estimate)return Promise.resolve({usage:0,quota:0});
@@ -758,11 +774,16 @@ function reliabilityBannerHtml(){
  if(offline)return `<div class="compactRecoveryNotice offline"><span><b>● Offline</b> · API 생성 작업을 시작하지 않는 것이 안전합니다.</span><button onclick="openReliabilityCenter()">확인</button></div>`;
  return `<div class="compactRecoveryNotice"><span><b>⚠ 제작 차단 가능 오류 ${critical.length}건</b> · 인증/한도/저장공간 등 확인이 필요합니다.</span><button onclick="openReliabilityCenter()">Recovery</button></div>`;
 }
+function localStorageUsageRows(){
+ const rows=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i),value=localStorage.getItem(key)||'';rows.push({key,bytes:(key.length+value.length)*2})}
+ return rows.sort((a,b)=>b.bytes-a.bytes);
+}
+function byteLabel(n){return n>1024*1024?(n/1024/1024).toFixed(2)+' MB':n>1024?(n/1024).toFixed(1)+' KB':n+' B'}
 async function openReliabilityCenter(){
  const all=unresolvedFailures(),episode=unresolvedFailures(activeEpisodeId),actionable=actionableFailures(),episodeActionable=actionableFailures(activeEpisodeId),historical=all.filter(f=>failureSeverity(f)==='history'),storage=await reliabilityStorageEstimate(),api=await checkApi(),usage=storage.quota?Math.round((storage.usage/storage.quota)*100):0;
  const failedCuts=[...new Set(episodeActionable.filter(x=>x.cutId!=null).map(x=>x.cutId))];
  modalShell(`<div class="eyebrow">RELIABILITY / RECOVERY · V34</div><h2>Recovery Center</h2><p class="lead">실패한 작업을 지우지 않고 원인과 재시도 가능 여부를 모아봅니다. 유료 생성 API는 자동으로 반복 호출하지 않습니다.</p>
- <div class="reliabilityStats"><div class="reliabilityStat"><small>NEEDS ACTION</small><b>${actionable.length}</b></div><div class="reliabilityStat"><small>THIS EPISODE</small><b>${episodeActionable.length}</b></div><div class="reliabilityStat"><small>FAILED CUTS</small><b>${failedCuts.length}</b></div><div class="reliabilityStat"><small>STORAGE</small><b>${storage.quota?usage+'%':'—'}</b></div></div>
+ <div class="reliabilityStats"><div class="reliabilityStat"><small>NEEDS ACTION</small><b>${actionable.length}</b></div><div class="reliabilityStat"><small>THIS EPISODE</small><b>${episodeActionable.length}</b></div><div class="reliabilityStat"><small>FAILED CUTS</small><b>${failedCuts.length}</b></div><div class="reliabilityStat"><small>STORAGE</small><b>${storage.quota?usage+'%':'—'}</b></div></div><div class="historyWarning" style="margin-top:10px"><b>LocalStorage 큰 항목:</b><br>${localStorageUsageRows().slice(0,8).map(x=>`${esc(x.key)} · ${byteLabel(x.bytes)}`).join('<br>')}</div>
  <div class="healthCheckGrid" style="margin-top:10px"><div class="healthCheck"><b><span class="networkDot ${navigator.onLine?'':'offline'}"></span>Network</b><span>${navigator.onLine?'Online':'Offline'}</span></div><div class="healthCheck"><b>OpenAI API</b><span>${api?.openaiConfigured?'Configured':'Not configured / unreachable'}</span></div><div class="healthCheck"><b>Data Schema</b><span>v${WTAL_SCHEMA_VERSION} · ${wtalStorageHealth().issues} issues</span></div></div>
  <div class="v27Divider"></div><div class="sectionTitle">확인 필요한 작업</div><div class="reliabilityPanel">${actionable.length?[...actionable].reverse().map(f=>failureRowHtml(f)).join(''):emptyStateHtml('확인 필요한 오류가 없습니다','현재 제작을 막는 Recovery 항목이 없습니다.','','✓')}</div>
  <div class="v27Divider"></div><div class="sectionTitle">과거 / 일시적 기록 <span class="recoveryHistoryNote">${historical.length}건 · 배지/홈 알림에는 포함하지 않음</span></div><div class="reliabilityPanel">${historical.length?[...historical].reverse().slice(0,20).map(f=>failureRowHtml(f)).join(''):emptyStateHtml('과거 기록 없음','일시적 네트워크/타임아웃/취소 기록이 없습니다.','','○')}</div>
@@ -790,9 +811,20 @@ const COST_DEFAULTS={
 };
 function costCfg(){return {...COST_DEFAULTS,...costSettings}}
 function saveCostSettings(){return safeStorageSet('wtal_cost_settings',JSON.stringify(costSettings),{label:'Cost 설정 변경'})}
+function compactApiUsage(limit=500){
+ if(apiUsageEvents.length>limit)apiUsageEvents=apiUsageEvents.slice(-limit);
+}
 function saveApiUsage(){
- if(apiUsageEvents.length>5000)apiUsageEvents=apiUsageEvents.slice(-5000);
- localStorage.setItem('wtal_api_usage_events',JSON.stringify(apiUsageEvents));
+ compactApiUsage(500);
+ try{
+  localStorage.setItem('wtal_api_usage_events',JSON.stringify(apiUsageEvents));
+  return true;
+ }catch(e){
+  console.warn('API usage log storage pressure',e);
+  compactApiUsage(200);
+  try{localStorage.setItem('wtal_api_usage_events',JSON.stringify(apiUsageEvents));return true}
+  catch(e2){console.warn('API usage log save skipped',e2);return false}
+ }
 }
 function operationFromUrl(url){
  const map={'/api/generate-cut':'generate_cut','/api/edit-cut':'partial_edit','/api/generate-storyboard':'storyboard','/api/generate-episode-story':'episode_story','/api/generate-episode-specs':'episode_specs','/api/check-continuity':'continuity_qc','/api/track-character-state':'character_state','/api/analyze-space-map':'space_map','/api/transform-master':'transform_master'};
@@ -1017,6 +1049,34 @@ const view=document.querySelector('#view');
 function ep(){return episodes.find(e=>e.id===activeEpisodeId)||episodes[0]}
 function cutsForEpisode(){return cutSpecMaps[activeEpisodeId]||(ep().builtin?CUTS:(dynamicCuts[activeEpisodeId]||{}))}
 function stateKey(cutId){return `${activeEpisodeId}:${cutId}`}
+const LETTERING_SOURCE_SESSION_INDEX='wtal_lettering_source_index';
+function letteringSourceSessionKey(resultKey){return `wtal_lettering_source::${resultKey}`}
+function letteringSourceSessionList(){try{return JSON.parse(sessionStorage.getItem(LETTERING_SOURCE_SESSION_INDEX)||'[]')}catch(_){return []}}
+function cacheLetteringSource(resultKey,image,meta={}){
+ if(!resultKey||!image)return false;
+ try{
+  const payload={key:resultKey,image,meta:{...meta,cachedAt:new Date().toISOString()}};
+  sessionStorage.setItem(letteringSourceSessionKey(resultKey),JSON.stringify(payload));
+  let keys=letteringSourceSessionList().filter(x=>x!==resultKey);
+  keys.push(resultKey);
+  while(keys.length>3){const old=keys.shift();try{sessionStorage.removeItem(letteringSourceSessionKey(old))}catch(_){}}
+  sessionStorage.setItem(LETTERING_SOURCE_SESSION_INDEX,JSON.stringify(keys));
+  return true;
+ }catch(e){console.warn('Lettering source session cache skipped',e);return false}
+}
+async function cacheLetteringSourceFromRecord(resultKey,record,meta={}){
+ if(!record)return false;
+ let image=record.image||null;
+ if((!image||String(image).startsWith('blob:'))&&record.imageBlob instanceof Blob){
+  try{image=await blobToDataUrl(record.imageBlob)}catch(e){console.warn('Lettering source blob decode skipped',e)}
+ }
+ return image?cacheLetteringSource(resultKey,image,{episodeId:record.episodeId,cutId:record.cutId,model:record.model,status:record.status,...meta}):false;
+}
+function domImageForCut(cutId){
+ const selectors=[`#prodimg-${cutId} img`,`#conte-thumb-${cutId} img`,`#review-final-${cutId} img`,`#saved-result-${cutId} img`];
+ for(const sel of selectors){const img=document.querySelector(sel);if(img?.src)return img.src}
+ return null;
+}
 function storyboardKey(cutId){return `storyboard:${stateKey(cutId)}`}
 let storyboardMeta=wtalReadJSON('wtal_storyboard_meta',{});
 function saveStoryboardMeta(){return safeStorageSet('wtal_storyboard_meta',JSON.stringify(storyboardMeta))}
@@ -3337,8 +3397,8 @@ async function runExportPreflight(renderCanvas=true){
 function renderAssemble(){refreshLetteringCache();
  const layout=assemblyLayout(),cuts=cutsForEpisode(),ex=exportSettings();
  const items=layout.map((a,i)=>{const c=cuts[a.cutId];if(!c)return '';const crop=Math.max(0,a.cropTop||0)+Math.max(0,a.cropBottom||0),visible=Math.max(10,100-crop);return `<div class="assembleItem" draggable="true" ondragstart="dragAssemblyStart(event,'${a.uid}')" ondragend="dragAssemblyEnd(event)" ondragover="dragAssemblyOver(event,'${a.uid}')" ondragleave="dragAssemblyLeave(event)" ondrop="dropAssembly(event,'${a.uid}')"><div class="assembleHead"><span class="dragHandle">☰ DRAG · CUT ${String(c.id).padStart(3,'0')} ${a.uid.includes(String(c.id)+'-')?'':''}</span><span>${c.title} ${letterItems(c).length?`<span class="letterBadge">LETTER ${letterItems(c).length}</span>`:''}</span></div><div class="assembleFrame" id="frame-${a.uid}" style="background:${a.bg==='black'?'#000':'#fff'};padding-top:${a.cropTop||0}%;padding-bottom:${a.cropBottom||0}%;"><div class="assembleInner" style="width:${a.scale||100}%;margin-top:-${a.cropTop||0}%;margin-bottom:-${a.cropBottom||0}%;"><span class="previewBadge">${a.scale||100}% · CROP ${a.cropTop||0}/${a.cropBottom||0}</span><img class="assemblyCut" id="assembly-${a.uid}">${letterItems(c).map(x=>letterHtml(x)).join('')}</div></div><div class="assembleControls"><label>확대/축소 %<input type="number" min="25" max="160" value="${a.scale||100}" onchange="setAssembly('${a.uid}','scale',this.value)"></label><label>상단 크롭 %<input type="number" min="0" max="45" value="${a.cropTop||0}" onchange="setAssembly('${a.uid}','cropTop',this.value)"></label><label>하단 크롭 %<input type="number" min="0" max="45" value="${a.cropBottom||0}" onchange="setAssembly('${a.uid}','cropBottom',this.value)"></label><label>다음 여백 px<input type="number" min="0" max="2000" value="${a.gap??80}" onchange="setAssembly('${a.uid}','gap',this.value)"></label></div><div class="assembleHead"><div class="assembleMini"><button class="btn small" onclick="renderLetterEditor(${c.id})">LETTERING</button><button class="btn small" onclick="duplicateAssembly('${a.uid}')">컷 복제</button><button class="btn small" onclick="deleteAssembly('${a.uid}')">어셈블에서 삭제</button></div><div class="assembleMini"><button class="btn small" onclick="setGapColor('${a.uid}','white')">흰 여백</button><button class="btn small" onclick="setGapColor('${a.uid}','black')">검은 여백</button><button class="btn small" onclick="addSceneGap('${a.uid}')">SCENE 긴 여백</button></div></div></div>${i<layout.length-1?`<div class="gapVisual ${a.sceneBreak?'sceneDivider':''}" style="height:${Math.min(500,a.gap??80)}px;background:${a.bg==='black'?'#000':'#fff'};color:${a.bg==='black'?'#fff':'#888'}">${a.sceneBreak?'SCENE TRANSITION · ':''}${a.gap??80}px</div>`:''}`}).join('');
- const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.3.2</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
- view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.3.2 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
+ const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.3.3</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
+ view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.3.5 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
 }
 async function hydrateAssemblyLayout(layout){await ensureTypographyFontsLoaded();refreshLetteringCache();const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
 
@@ -3391,11 +3451,34 @@ function bindLetterEditorControls(cutId){
  stage.addEventListener('dblclick',e=>{const itemEl=e.target.closest('.letterItem.v41');if(itemEl){e.preventDefault();beginInlineLetterEdit(cutId,itemEl.dataset.letter)}});
  root.onkeydown=e=>letterEditorKeydown(e,cutId);letterDebug(`V41.3 bound CUT ${cutId}`);
 }
-function renderLetterEditor(cutId){
+async function renderLetterEditor(cutId){
  const c=cutsForEpisode()[cutId];if(!c)return alert('CUT 정보를 찾을 수 없습니다.');
- localStorage.setItem('wtal_last_lettering_episode',activeEpisodeId);
- localStorage.setItem('wtal_last_lettering_cut',String(cutId));
- const qs=new URLSearchParams({episode:activeEpisodeId,cut:String(cutId),v:'43.3.2',cb:String(Date.now())});
+ try{localStorage.setItem('wtal_last_lettering_episode',activeEpisodeId);localStorage.setItem('wtal_last_lettering_cut',String(cutId))}catch(e){}
+ const resultKey=stateKey(cutId);
+ let result=null,readError=null,launchSource=null,launchOrigin='';
+ try{result=await getResult(resultKey)}catch(e){readError=e}
+ if(result){
+  launchSource=result.image||null;
+  if((!launchSource||String(launchSource).startsWith('blob:'))&&result.imageBlob instanceof Blob){
+   try{launchSource=await blobToDataUrl(result.imageBlob)}catch(e){console.warn('Lettering launch blob decode skipped',e)}
+  }
+  if(launchSource)launchOrigin='indexeddb';
+ }
+ if(!launchSource&&lastGenerated&&Number(lastGenerated.cutId)===Number(cutId)){
+  launchSource=lastGenerated.image||null;
+  if((!launchSource||String(launchSource).startsWith('blob:'))&&lastGenerated.imageBlob instanceof Blob){
+   try{launchSource=await blobToDataUrl(lastGenerated.imageBlob)}catch(e){console.warn('Lettering lastGenerated decode skipped',e)}
+  }
+  if(launchSource)launchOrigin='lastGenerated';
+ }
+ if(!launchSource){const domImage=domImageForCut(cutId);if(domImage){launchSource=domImage;launchOrigin='dom'}}
+ if(launchSource)cacheLetteringSource(resultKey,launchSource,{episodeId:activeEpisodeId,cutId,sourceKind:launchOrigin});
+ if(!result?.image&&!launchSource){
+  const rows=await getAllResults().catch(()=>[]),finals=rows.filter(x=>!String(x.key).startsWith('storyboard:'));
+  modalShell(`<div class="eyebrow">LETTERING SOURCE CHECK · V43.3.5</div><h2>CUT ${String(cutId).padStart(3,'0')} 레터링 원본 이미지를 찾지 못했습니다.</h2><p class="lead">배포 때문에 다시 생성해야 하는 것은 아닙니다. IndexedDB → Project Snapshot → 현재 세션 메모리 순서로 확인했지만 원본을 찾지 못했습니다.</p><div class="backupWarn"><b>요청 키:</b> ${esc(resultKey)}<br><b>현재 Final 결과:</b> ${finals.length}개<br><b>세션 fallback:</b> 없음<br>${readError?`<b>읽기 오류:</b> ${esc(readError?.name||'Error')} · ${esc(readError?.message||'')}<br>`:''}<small>${esc(finals.slice(0,20).map(x=>String(x.key)).join(', ')||'저장된 Final key 없음')}</small></div><div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove();openReliabilityCenter()">Recovery</button><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
+  return;
+ }
+ const qs=new URLSearchParams({episode:activeEpisodeId,cut:String(cutId),v:'43.3.5',cb:String(Date.now())});
  window.location.assign(`/lettering-editor.html?${qs.toString()}`);
 }
 function updateSelectedLetterDom(cutId,id){
@@ -4269,9 +4352,27 @@ const PARTIAL_EDIT_MODES={
 };
 let lastPartialEdit=null;
 
+async function generationBrowserStoragePreflight(){
+ trimNonCriticalStoragePressure();
+ let localOk=false,idbOk=false,localError='',idbError='';
+ const probeKey='wtal_storage_probe';
+ try{localStorage.setItem(probeKey,'1');localStorage.removeItem(probeKey);localOk=true}catch(e){localError=`${e?.name||'Error'}: ${e?.message||''}`}
+ try{
+  const db=await openDb(),probe=`__storage_probe__${Date.now()}`;
+  await new Promise((resolve,reject)=>{const tx=db.transaction('results','readwrite'),s=tx.objectStore('results');s.put({probe:true,at:Date.now()},probe);s.delete(probe);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('IDB probe aborted'))});
+  idbOk=true;
+ }catch(e){idbError=`${e?.name||'Error'}: ${e?.message||''}`}
+ return {ok:localOk&&idbOk,localOk,idbOk,localError,idbError};
+}
+function showGenerationStoragePreflightError(c,r){
+ completeUiRequest('generate_cut',c.id);
+ modalShell(`<div class="eyebrow">GENERATION BLOCKED · STORAGE PREFLIGHT</div><h2>CUT ${String(c.id).padStart(3,'0')} 생성 요청을 보내지 않았습니다.</h2><p class="lead">브라우저 저장소가 불안정해 유료 이미지 생성 전에 차단했습니다.</p><div class="backupWarn"><b>LocalStorage:</b> ${r.localOk?'OK':esc(r.localError||'FAIL')}<br><b>IndexedDB:</b> ${r.idbOk?'OK':esc(r.idbError||'FAIL')}</div><div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove();openReliabilityCenter()">Recovery</button><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`,{replaceActiveRequest:true});
+}
 async function generateCut(id,opts={}){
   const silent=!!opts.silent,requireStoryboard=!!opts.requireStoryboard,allowMissingMaster=!!opts.allowMissingMaster,signal=opts.signal||null;
   const c=cutsForEpisode()[id];if(!c)return {ok:false,error:'CUT 없음'};
+  const storagePreflight=await generationBrowserStoragePreflight();
+  if(!storagePreflight.ok){if(!silent)showGenerationStoragePreflightError(c,storagePreflight);return {ok:false,storagePreflight:true,error:'브라우저 저장소 사전검사 실패'}};
   const genCfg=effectiveGenerationConfig(id);
   const req=requiredRefs(c);
   const missing=req.filter(r=>!autoAsset(r));
@@ -4442,16 +4543,19 @@ function blobToDataUrl(blob){
 async function saveGenerated(c,imageSource,model,presetId=effectivePresetId(c.id)){
  const preset=GENERATION_PRESETS[presetId]||GENERATION_PRESETS.standard;
  const base={cutId:c.id,episodeId:activeEpisodeId,model,preset,status:'generated',updatedAt:new Date().toISOString()};
+ const resultKey=stateKey(c.id);
  if(imageSource instanceof Blob){
   const previewUrl=URL.createObjectURL(imageSource);
   const record={...base,image:null,imageBlob:imageSource,storageEncoding:'blob-v1'};
   lastGenerated={...record,image:previewUrl,previewUrl};
-  await putResult(stateKey(c.id),record);
+  await putResult(resultKey,record);
+  await cacheLetteringSourceFromRecord(resultKey,lastGenerated,{sourceKind:'generate'});
   return lastGenerated;
  }
  const record={...base,image:imageSource};
  lastGenerated=record;
- await putResult(stateKey(c.id),record);
+ await putResult(resultKey,record);
+ cacheLetteringSource(resultKey,imageSource,{episodeId:activeEpisodeId,cutId:c.id,sourceKind:'generate',model,status:'generated'});
  return record;
 }
 async function retryLastGeneratedSave(id){
@@ -4469,6 +4573,7 @@ async function retryLastGeneratedSave(id){
 }
 function showStorageRecovery(c,image,model,error){
  lastGenerated={...(lastGenerated||{}),cutId:c.id,episodeId:activeEpisodeId,image,model,status:'generated',updatedAt:new Date().toISOString()};
+ cacheLetteringSource(stateKey(c.id),image,{episodeId:activeEpisodeId,cutId:c.id,sourceKind:'storage-recovery',model,status:'generated'});
  completeUiRequest('generate_cut',c.id);
  modalShell(`<div class="eyebrow">GENERATION COMPLETE · STORAGE RECOVERY</div>
  <h2>CUT ${String(c.id).padStart(3,'0')} 이미지는 생성됐지만 브라우저 저장에 실패했습니다.</h2>
