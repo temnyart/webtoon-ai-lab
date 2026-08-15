@@ -1657,3 +1657,280 @@ This is an architectural fix, not another event-handler patch.
 - Back uses browser history to return to the main app.
 
 This removes the class of failures where main-app rerenders or legacy listeners interfere with Lettering.
+
+
+## V42.1 — Lettering Style & Direct Manipulation
+
+### Faster editing
+- Floating toolbar appears above selected lettering.
+- Scale ±, rotate ±5°, black/white quick style, duplicate, delete.
+- Inspector adds Scale/Rotate sliders for drag-like adjustment.
+- Arrow keys move the selected object; Shift+Arrow moves faster.
+- `[` / `]` scales down/up.
+
+### Color & style
+New per-lettering properties:
+- `fill`
+- `textColor`
+- `strokeColor`
+- `strokeWidth`
+- `radius`
+- `opacity`
+
+Quick style presets:
+- White bubble
+- Black caption: black rectangle + white type
+- Cream narration
+- Borderless monologue
+
+Color swatches + custom color picker are available for background, text, and stroke.
+
+### Compatibility
+Existing V42 lettering records are normalized with defaults, so previous work remains loadable.
+No AI/API cost is involved.
+
+
+## V42.2 — Bubble Shapes, Tail & Saved Styles
+
+### New bubble shapes
+- ellipse
+- rounded rectangle
+- box
+- thought cloud
+- jagged shout
+- borderless
+- horizontal / vertical writing
+
+### Bubble tail
+- none
+- bottom-left / bottom-right
+- top-left / top-right
+
+### Saved styles
+Save the current visual style with a custom name, reapply it to another lettering object, or delete it.
+Stored in `wtal_lettering_saved_styles`.
+
+### Shadow
+- none
+- soft
+- hard
+
+### Fast canvas alignment
+- left / center / right
+- top / middle / bottom
+
+Existing V42/V42.1 lettering data is normalized so old records keep working.
+
+
+## V42.3 — Webtoon Typography System
+
+### Added
+- Webtoon-oriented font library categorized for:
+  - dialogue
+  - monologue
+  - narration
+  - caption
+  - muhyeop/sageuk
+  - SFX
+- Typography presets:
+  - 기본 웹툰 대사
+  - 속삭임
+  - 무협 내레이션
+  - 검정 캡션
+  - 감정 독백
+  - SFX Impact
+- Search / category filter / recent fonts / favorite fonts
+- Live font preview inside the inspector
+- User font upload (`.ttf/.otf/.woff/.woff2`) stored in LocalStorage for the prototype
+- Font style toggle (normal / italic)
+- License warning note
+
+### Notes
+- Existing lettering data remains compatible.
+- Uploaded user fonts are persisted in prototype storage, so too many large fonts can use substantial browser storage.
+
+
+## V42.4 — Direct Bubble Manipulation
+- 말풍선 이동 시 10/25/50/75/90% 스냅 + 가이드
+- 회전 15° 스냅, Shift 회전 시 15° 고정
+- 좌우 핸들로 말풍선 폭 직접 조절
+- 기존 코너 핸들 비율 스케일 유지
+- Direct Tail ON 시 주황 핸들로 꼬리 방향/길이 직접 드래그
+- 드래그 중 위치/스케일/회전/폭/꼬리 길이 실시간 표시
+
+
+## V42.5 — Multi Select & Layer Editing
+- Ctrl/Cmd + click: toggle multi selection.
+- Shift + click: additive selection.
+- Shift + drag on empty canvas: marquee box selection.
+- Ctrl/Cmd + A: select all.
+- Esc: clear selection.
+- Multi-selected lettering moves together by dragging any selected item.
+- Multi toolbar:
+  - left / center / right
+  - top / middle / bottom
+  - horizontal / vertical distribution
+  - bring to front / send to back
+  - group / ungroup
+- Group state is stored per lettering element with `groupId`.
+
+
+## V42.6 — Lettering Workflow Speed
+- 350ms debounced autosave with Saved / Saving / Unsaved status.
+- Ctrl/Cmd+C and Ctrl/Cmd+V for lettering objects.
+- Clipboard is stored in `wtal_lettering_clipboard`, so copying works across CUTs.
+- Previous CUT:
+  - import all lettering
+  - apply previous CUT's first lettering style to current selection
+- Recent style history (up to 8)
+- Favorite style library (up to 12)
+- Fast duplicate
+- Quick Workflow panel added to Inspector.
+- Existing explicit Save button remains available.
+
+
+## V42.7 — Auto Text Layout
+- Auto layout toggle per lettering item.
+- Auto Fit shrinks text down to `minFontSize` when estimated line count exceeds `maxLines`.
+- Auto Expand increases bubble width when necessary.
+- Overflow warning for very long dialogue.
+- Automatic/manual line-break normalization.
+- Editable max lines, minimum font size, horizontal/vertical padding.
+- Vertical-writing layout gets a narrow automatic width adjustment.
+- Live estimated lines / chars-per-line / font size / bubble width status.
+
+
+## V42.8 — Lettering Style Complete
+- Style Studio with one-click webtoon presets:
+  - 기본 말풍선
+  - 블랙 캡션
+  - 내레이션
+  - 어두운 독백
+  - 감정 강조
+  - 생각 말풍선
+  - 외침
+  - 무테 독백
+  - SFX White
+  - SFX Black
+- Background opacity independent from element opacity.
+- Text outline width / color for readable SFX and captions.
+- Reset to default style.
+- Style preview.
+- New properties are saved into recent/favorite/custom styles.
+
+
+## V42.9 — Assemble Lettering Integration
+
+This pass upgrades Assemble/Export to understand the standalone Lettering V42.x data model.
+
+### Assemble preview fidelity
+- Refreshes `wtal_lettering` from LocalStorage whenever Assemble is rendered.
+- Preserves:
+  - font family / user font
+  - font style / weight / tracking / leading
+  - fill + independent background opacity
+  - text color
+  - border color / width / radius
+  - text outline color / width
+  - opacity
+  - scale / rotation
+  - vertical text
+  - direct tail direction / length
+  - box / rounded / ellipse / thought / jagged / borderless shapes
+  - shadow
+
+### Export fidelity
+- Long PNG and platform slices use the same V42.8 style data.
+- User uploaded fonts are loaded with `FontFace` before canvas export.
+- Canvas renderer now honors typography, colors, backgrounds, outline, scale, rotation, vertical writing and direct tail.
+- The final platform files therefore use the same Lettering data as the Assemble preview.
+
+No image-generation/API request is involved.
+
+
+## V43 — Final Export Validation
+
+### Export Preflight
+- Blocks output when Assemble is empty or a CUT image is missing.
+- Warns about lettering close to canvas edges.
+- Warns about low JPG quality, very tall long-PNG canvases, and user-uploaded fonts.
+- Reports actual final canvas size and expected slice count.
+
+### File naming
+- Sanitized filename prefix.
+- Configurable start number.
+- 2–5 digit automatic zero padding.
+- Example: `EP01_001.jpg`.
+
+### Platform / archive output
+- Project presets retained:
+  - NAVER project preset: 690 × 2000 slices
+  - KAKAO project preset: 720 × 1280 slices
+  - ARCHIVE: 1080px PNG
+- JPG / PNG selectable.
+- JPG quality selectable.
+- Long PNG retained.
+- Split files retained.
+- Split + ZIP retained.
+
+### Manifest
+ZIP includes `export-manifest.json` with:
+- episode
+- canvas dimensions
+- slice count
+- output format / quality
+- file naming setup
+- filenames / byte sizes / dimensions
+- Lettering fidelity version
+
+These presets are app/project presets, not a claim about current official platform requirements. Check the platform's current upload rules before submission.
+
+
+## V43.1 — Lettering Reliability Audit
+
+### In-editor Audit
+`Audit` button opens a non-destructive reliability panel.
+
+Checks:
+- required Lettering DOM controls
+- LocalStorage read/write round trip
+- V42/V43 normalize compatibility
+- duplicate IDs
+- numeric transform validity
+- canvas bounds
+- text overflow warnings
+- font state
+- layer Z range
+- current CUT IndexedDB final image
+- saved-state vs in-memory reload consistency
+
+### 30-object Stress Test
+Creates 30 temporary lettering objects in memory, verifies:
+- DOM render count
+- serialization / reload
+- unique IDs
+- text-layout metrics
+- selection state
+- renderer completion
+
+The original CUT lettering is restored immediately after the stress test and is not overwritten.
+
+This audit does not call OpenAI or any paid API.
+
+
+## V43.2 — CUT 013–016 Small Production Test
+
+Adds a non-API small-production test harness for CUT 013–016.
+
+Checks per CUT:
+- Final image exists in IndexedDB
+- CUT is approved
+- Lettering exists
+- CUT is present in Assemble
+
+The `다음 미완료 작업` button routes to the next incomplete stage:
+- Generate/Review if Final or approval is missing
+- Lettering editor if lettering is missing
+- Assemble if assembly is missing
+
+This does not generate images and does not call paid APIs.

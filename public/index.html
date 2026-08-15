@@ -289,6 +289,35 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 /* V41.3 — delegated interaction + visible diagnostics */
 .letterDebugBadge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 6px;background:#e9f7ee;color:#246d3c;font-size:7px;font-weight:900}.letterDebugBadge.bad{background:#fff0f0;color:#a12c2c}
 .letterDebugPanel{position:fixed;right:14px;bottom:14px;z-index:99999;width:min(420px,calc(100vw - 28px));max-height:190px;overflow:auto;background:#111;color:#fff;border-radius:10px;padding:9px 11px;font:11px/1.45 monospace;display:none;box-shadow:0 14px 40px rgba(0,0,0,.28)}.letterDebugPanel.show{display:block}.letterDebugPanel .err{color:#ff9e9e}
+
+/* V42.9 — Assemble lettering fidelity */
+.assemblyPanel .letterItem{box-sizing:border-box;white-space:pre-wrap;overflow:visible}
+.assemblyPanel .letterItem.verticalText{writing-mode:vertical-rl;text-orientation:mixed;width:auto!important}
+.assemblyPanel .letterItem .tailDirectPreview{position:absolute;left:50%;top:50%;height:14px;transform-origin:0 50%;pointer-events:none;z-index:-1}
+.assemblyPanel .letterItem .tailDirectPreview:before{content:"";position:absolute;left:0;top:1px;width:100%;height:12px;background:var(--tail-fill,#fff);clip-path:polygon(0 15%,100% 50%,0 85%)}
+.assembleFidelity{font-size:9px;padding:3px 7px;border-radius:999px;background:#eaf7ef;color:#287548;font-weight:800}
+
+/* V43 — final export validation */
+.exportPreflight{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fafafa;font-size:9px;line-height:1.5}
+.exportPreflight.pass{background:#eef8f1;border-color:#cfe8d6;color:#25683a}
+.exportPreflight.warn{background:#fff8e7;border-color:#ead9aa;color:#765a16}
+.exportPreflight.fail{background:#fff0f0;border-color:#edc2c2;color:#9a2929}
+.exportChecks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.exportCheck{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px;font-size:8px}
+.exportCheck b{display:block;font-size:9px;margin-bottom:2px}.exportCheck small{color:#777}
+.exportManifestNote{font-size:8px;color:#777;margin-top:6px}
+@media(max-width:800px){.exportChecks{grid-template-columns:repeat(2,1fr)}}
+
+/* V43.2 — Small Production Test */
+.smallTestPanel{margin:12px 0;border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
+.smallTestHead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.smallTestHead h3{margin:0 auto 0 0;font-size:14px}
+.smallTestGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.smallTestCard{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fafafa}
+.smallTestCard.pass{background:#eef8f1;border-color:#cfe8d6}.smallTestCard.warn{background:#fff8e7;border-color:#ead9aa}.smallTestCard.fail{background:#fff0f0;border-color:#edc2c2}
+.smallTestCard b{display:block;font-size:10px}.smallTestCard small{display:block;font-size:8px;color:#777;margin-top:3px;line-height:1.4}
+.smallTestSummary{margin-top:9px;font-size:9px;line-height:1.5;padding:8px;border-radius:9px;background:#f6f6f8}
+.smallTestActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+@media(max-width:900px){.smallTestGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -1057,9 +1086,43 @@ const letteringUndoStack=[];
 const letteringRedoStack=[];
 function normalizeLetterItem(x){
  const type=x.type||'dialogue';
- return {...x,width:Number(x.width)||((type==='sfx')?28:(type==='narration'||type==='caption')?42:32),height:Number(x.height)||0,scale:Number(x.scale)||1,opacity:x.opacity==null?1:Number(x.opacity),align:x.align||'center',z:Number(x.z)||5};
+ return {...x,
+  id:String(x.id||''),
+  type,
+  text:String(x.text||''),
+  x:Number(x.x)||50,y:Number(x.y)||25,
+  width:Number(x.width)||((type==='sfx')?28:(type==='narration'||type==='caption')?42:32),
+  height:Number(x.height)||0,
+  scale:Number(x.scale)||1,
+  rotate:Number(x.rotate)||0,
+  size:Number(x.size)||((type==='sfx')?48:24),
+  weight:Number(x.weight)||((type==='sfx')?900:700),
+  letterSpacing:Number(x.letterSpacing)||0,
+  lineHeight:Number(x.lineHeight)||1.25,
+  opacity:x.opacity==null?1:Number(x.opacity),
+  bgOpacity:x.bgOpacity==null?1:Number(x.bgOpacity),
+  align:x.align||'center',
+  z:Number(x.z)||5,
+  font:x.font||"'Noto Sans KR','Malgun Gothic',sans-serif",
+  fontStyle:x.fontStyle||'normal',
+  fill:x.fill||((type==='sfx')?'transparent':'#ffffff'),
+  textColor:x.textColor||'#111111',
+  strokeColor:x.strokeColor||'#111111',
+  strokeWidth:x.strokeWidth==null?((type==='sfx')?0:2):Number(x.strokeWidth),
+  radius:x.radius==null?((type==='caption'||type==='narration')?6:50):Number(x.radius),
+  shadow:x.shadow||'none',
+  shape:x.shape||((type==='caption'||type==='narration')?'box':'ellipse'),
+  tail:x.tail||'none',
+  vertical:!!x.vertical,
+  tailDX:x.tailDX==null?0:Number(x.tailDX),
+  tailDY:x.tailDY==null?42:Number(x.tailDY),
+  directTail:!!x.directTail,
+  paddingX:Number(x.paddingX)||16,
+  paddingY:Number(x.paddingY)||12,
+  textStrokeWidth:x.textStrokeWidth==null?0:Number(x.textStrokeWidth),
+  textStrokeColor:x.textStrokeColor||'#ffffff'
+ };
 }
-
 function snapshotLettering(cutId,label='레터링 변경'){
  const c=cutsForEpisode()[cutId];if(!c)return;letteringUndoStack.push({cutId,label,before:JSON.stringify(letterItems(c)),after:null});if(letteringUndoStack.length>40)letteringUndoStack.shift();letteringRedoStack.length=0;
 }
@@ -1079,8 +1142,14 @@ function parseLettering(c){
    return {id:`${c.id}-${i}`,type,text,preset,...pos,tail:'bottom-left',font:'Noto Sans KR',weight:700,letterSpacing:0,lineHeight:1.25,...pos};
  })
 }
-function letterItems(c){const k=stateKey(c.id);if(!lettering[k]){lettering[k]=parseLettering(c);saveLettering()}lettering[k]=lettering[k].map(normalizeLetterItem);return lettering[k]}
-
+function refreshLetteringCache(){lettering=wtalReadJSON('wtal_lettering',{})||{}}
+function letterItems(c){
+ refreshLetteringCache();
+ const k=stateKey(c.id);
+ if(!lettering[k]){lettering[k]=parseLettering(c);saveLettering()}
+ lettering[k]=lettering[k].map(normalizeLetterItem);
+ return lettering[k];
+}
 function setLetter(cutId,id,key,val,rerender=true){
  const arr=letterItems(cutsForEpisode()[cutId]),x=arr.find(a=>a.id===id);if(!x)return;
  const numeric=['x','y','size','rotate','weight','letterSpacing','lineHeight','width','height','scale','opacity','z'];if(numeric.includes(key))val=Number(val);
@@ -1105,21 +1174,43 @@ function copyLetter(cutId,id){const x=letterItems(cutsForEpisode()[cutId]).find(
 function pasteLetter(cutId){if(!letteringClipboard)return reliabilityToast('복사된 레터링 요소가 없습니다.','warn');const arr=letterItems(cutsForEpisode()[cutId]);snapshotLettering(cutId,'레터링 붙여넣기');const copy={...letteringClipboard,id:`${cutId}-${Date.now()}`,x:Math.min(94,Number(letteringClipboard.x)+5),y:Math.min(94,Number(letteringClipboard.y)+5)};arr.push(copy);saveLettering();commitLetteringSnapshot(cutId);selectedLetterId=copy.id;renderLetterEditor(cutId)}
 
 
+function letterBgCss(x){
+ if(x.fill==='transparent')return 'transparent';
+ const h=String(x.fill||'#ffffff').replace('#','');
+ if(h.length!==6||x.bgOpacity>=.999)return x.fill;
+ const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+ return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,x.bgOpacity))})`;
+}
+function letterTextShadowCss(x){
+ if(x.textStrokeWidth>0){
+  const w=x.textStrokeWidth,c=x.textStrokeColor;
+  return `${w}px 0 0 ${c},-${w}px 0 0 ${c},0 ${w}px 0 ${c},0 -${w}px 0 ${c}`;
+ }
+ if(x.shadow==='soft')return '0 2px 8px rgba(0,0,0,.18)';
+ if(x.shadow==='hard')return '2px 2px 0 rgba(0,0,0,.35)';
+ return 'none';
+}
+function letterBoxShadowCss(x){
+ if(x.shadow==='soft')return '0 6px 18px rgba(0,0,0,.18)';
+ if(x.shadow==='hard')return '4px 4px 0 rgba(0,0,0,.28)';
+ return 'none';
+}
+function letterRadiusCss(x){
+ if(x.shape==='ellipse'||x.shape==='cloud')return '50%';
+ if(x.shape==='rounded')return `${Math.max(10,x.radius||20)}px`;
+ if(x.shape==='box')return `${Math.max(0,x.radius||4)}px`;
+ return '0';
+}
 function letterHtml(raw,editable=false){
- const x=normalizeLetterItem(raw),cls=`letterItem ${x.type} ${x.preset||''}${editable?' v41':''}${editable&&selectedLetterId===x.id?' selected':''}`;
+ const x=normalizeLetterItem(raw);
+ const cls=`letterItem ${x.type} ${x.preset||''}${x.vertical?' verticalText':''}${editable?' v41':''}${editable&&selectedLetterId===x.id?' selected':''}`;
  const safeId=String(x.id).replace(/'/g,"&#39;");
  const handles=editable?`<span class="letterHandle resize-nw" data-handle="scale" onpointerdown="letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','scale')"></span><span class="letterHandle resize-ne" data-handle="scale" onpointerdown="letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','scale')"></span><span class="letterHandle resize-sw" data-handle="scale" onpointerdown="letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','scale')"></span><span class="letterHandle resize-se" data-handle="scale" onpointerdown="letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','scale')"></span><span class="letterHandle rotate" data-handle="rotate" onpointerdown="letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','rotate')"></span>`:'';
  const down=editable?`onpointerdown="if(!event.target.closest('.letterHandle'))letterPointerDown(event,${Number(String(x.id).split('-')[0])||0},'${safeId}','move')"`:'';
- return `<div class="${cls}" data-letter="${x.id}" ${down} style="left:${x.x}%;top:${x.y}%;width:${x.width}%;${x.height>0?`height:${x.height}%;`:''}font-size:${x.size}px;font-family:${x.font||'Noto Sans KR'},sans-serif;font-weight:${x.weight||700};letter-spacing:${x.letterSpacing||0}px;line-height:${x.lineHeight||1.25};opacity:${x.opacity??1};text-align:${x.align||'center'};z-index:${x.z||5};transform:translate(-50%,-50%) rotate(${x.rotate||0}deg) scale(${x.scale||1})"><span class="letterText">${esc(x.text)}</span>${handles}</div>`;
+ const jagged=x.shape==='jagged'?'clip-path:polygon(5% 18%,16% 17%,18% 5%,29% 14%,38% 3%,46% 14%,58% 5%,64% 17%,79% 9%,82% 23%,96% 25%,88% 38%,98% 49%,87% 58%,95% 72%,81% 75%,78% 91%,65% 83%,56% 97%,48% 86%,34% 96%,29% 83%,14% 91%,15% 76%,3% 69%,12% 56%,2% 46%,13% 36%);':'';
+ const direct=x.directTail?(()=>{const len=Math.max(18,Math.hypot(x.tailDX,x.tailDY)),ang=Math.atan2(x.tailDY,x.tailDX)*180/Math.PI;return `<span class="tailDirectPreview" style="width:${len}px;transform:rotate(${ang}deg);--tail-fill:${x.fill==='transparent'?x.textColor:letterBgCss(x)}"></span>`})():'';
+ return `<div class="${cls}" data-letter="${x.id}" ${down} style="left:${x.x}%;top:${x.y}%;width:${x.width}%;${x.height>0?`height:${x.height}%;`:''}font-size:${x.size}px;font-family:${x.font};font-style:${x.fontStyle};font-weight:${x.weight};letter-spacing:${x.letterSpacing}px;line-height:${x.lineHeight};opacity:${x.opacity};text-align:${x.align};color:${x.textColor};background:${letterBgCss(x)};border:${x.strokeWidth}px solid ${x.strokeColor};border-radius:${letterRadiusCss(x)};box-shadow:${letterBoxShadowCss(x)};text-shadow:${letterTextShadowCss(x)};padding:${x.paddingY}px ${x.paddingX}px;z-index:${x.z};${jagged}transform:translate(-50%,-50%) rotate(${x.rotate}deg) scale(${x.scale})"><span class="letterText">${esc(x.text).replace(/\n/g,'<br>')}</span>${direct}${handles}</div>`;
 }
-
-
-
-
-
-const HISTORY_TRACKED_KEYS=new Set(['wtal_project','wtal_story_bible_docs','wtal_story_bible_meta','wtal_cut_spec_maps','wtal_scene_looks','wtal_assembly_layouts','wtal_generation_settings','wtal_cut_generation_overrides','wtal_export_settings','wtal_cost_settings','wtal_master_primary']);
-let historySuppressed=false;
-let historyPreferences=wtalReadJSON('wtal_history_preferences',{maxEntries:60});
 function historyTypeForKey(key){return {'wtal_project':'settings','wtal_story_bible_docs':'story','wtal_story_bible_meta':'story','wtal_cut_spec_maps':'cut','wtal_scene_looks':'scene','wtal_assembly_layouts':'assemble','wtal_generation_settings':'settings','wtal_cut_generation_overrides':'cut','wtal_export_settings':'settings','wtal_cost_settings':'settings','wtal_master_primary':'master'}[key]||'system'}
 function historyLabelForKey(key){return {'wtal_project':'Project settings 변경','wtal_story_bible_docs':'Story Bible 변경','wtal_story_bible_meta':'Story Bible 상태 변경','wtal_cut_spec_maps':'CUT 제작명세 변경','wtal_scene_looks':'Scene Look 변경','wtal_assembly_layouts':'Assemble 레이아웃 변경','wtal_generation_settings':'Generation Preset 변경','wtal_cut_generation_overrides':'CUT Generation Override 변경','wtal_export_settings':'Export 설정 변경','wtal_cost_settings':'Cost 설정 변경','wtal_master_primary':'MASTER PRIMARY 변경'}[key]||`${key} 변경`}
 async function historyPut(entry){
@@ -2977,16 +3068,114 @@ function openScenePipelineLog(scene){
 
 function renderProduction(){const cs=cutsForEpisode(),vals=Object.values(cs),approved=vals.filter(c=>cutState(c.id).status==='approved').length,generated=vals.filter(c=>cutState(c.id).status==='generated').length,draft=vals.length-approved-generated;const checked=vals.filter(c=>continuityReport(c.id)).length,warns=vals.filter(c=>['warning','critical'].includes(continuityReport(c.id)?.severity)).length;view.innerHTML=`<div class="eyebrow">PRODUCTION</div><h1>EP.${String(ep().number).padStart(2,'0')} · 프로덕션 보드</h1><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='EPISODE';render()">제작 명세로</button><button class="btn dark" onclick="currentPage='PIPELINE';render()">SCENE PIPELINE</button><button class="btn" onclick="openCharacterStateTimeline()">CHARACTER STATE</button><button class="btn" onclick="autoTrackEpisodeCharacterStates()">STATE 전체 분석 <span class="batchButtonNote">취소 가능</span></button><button class="btn dark" onclick="checkEpisodeContinuity()">CONTINUITY 전체 검수 <span class="batchButtonNote">취소 가능</span></button></div><div class="statgrid"><div class="stat"><small>TOTAL</small><b>${vals.length}</b>CUT</div><div class="stat"><small>DRAFT</small><b>${draft}</b>초안</div><div class="stat"><small>GENERATED</small><b>${generated}</b>검수 대기</div><div class="stat"><small>APPROVED</small><b>${approved}</b>채택</div></div><div class="contGrid"><div class="contStat"><small>QC CHECKED</small><b>${checked}</b>CUT</div><div class="contStat"><small>CONTINUITY ISSUE</small><b>${warns}</b>문제 CUT</div><div class="contStat"><small>STATUS</small><b>${warns?'⚠':'✓'}</b>${warns?'수정 필요':'정상'}</div></div><div class="productiongrid">${vals.map(c=>{const st=cutState(c.id);return `<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> <span class="statuspill status-${st.status}">${st.status}</span>${continuityBadge(c.id)}<div style="font-size:11px;margin-top:5px">${c.title}</div><div id="prodimg-${c.id}"></div><div style="margin-top:7px"><button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">열기</button>${st.status!=='draft'?` <button class="btn small" onclick="openSavedResult(${c.id})">결과</button> <button class="btn small" onclick="checkContinuity(${c.id})">QC</button>`:''}${continuityReport(c.id)?` <button class="btn small" onclick="openContinuityReport(${c.id})">리포트</button>`:''}${['warning','critical'].includes(continuityReport(c.id)?.severity)?` <button class="btn small" onclick="autoRepairContinuity(${c.id})">⚡ AUTO FIX</button>`:''}</div></div>`}).join('')||'<div class="emptybig">CUT이 없습니다.</div>'}</div>`;hydrateProduction(vals)}
 async function hydrateProduction(vals){for(const c of vals){const st=cutState(c.id);if(st.status==='draft')continue;const r=await getResult(stateKey(c.id));const box=document.querySelector(`#prodimg-${c.id}`);if(box&&r?.image)box.innerHTML=`<img src="${r.image}">`}}
-function exportSettings(){let x={};try{x=JSON.parse(localStorage.getItem('wtal_export_settings')||'{}')}catch(e){}return {preset:x.preset||'naver',width:Number(x.width||690),sliceHeight:Number(x.sliceHeight||2000),format:x.format||'jpg',quality:Number(x.quality||92),prefix:x.prefix||`${activeEpisodeId}_`,...x}}
-function saveExportSettings(){const ids=['exportPreset','exportWidth','exportHeight','exportFormat','exportQuality','exportPrefix'],e={preset:document.querySelector('#exportPreset')?.value||'custom',width:Number(document.querySelector('#exportWidth')?.value||690),sliceHeight:Number(document.querySelector('#exportHeight')?.value||2000),format:document.querySelector('#exportFormat')?.value||'jpg',quality:Number(document.querySelector('#exportQuality')?.value||92),prefix:document.querySelector('#exportPrefix')?.value||`${activeEpisodeId}_`};localStorage.setItem('wtal_export_settings',JSON.stringify(e));return e}
-function applyExportPreset(name){const presets={naver:{width:690,sliceHeight:2000,format:'jpg',quality:92},kakao:{width:720,sliceHeight:1280,format:'jpg',quality:92},archive:{width:1080,sliceHeight:3000,format:'png',quality:100},custom:{}};const x=presets[name]||{};document.querySelector('#exportPreset').value=name;if(x.width)document.querySelector('#exportWidth').value=x.width;if(x.sliceHeight)document.querySelector('#exportHeight').value=x.sliceHeight;if(x.format)document.querySelector('#exportFormat').value=x.format;if(x.quality)document.querySelector('#exportQuality').value=x.quality;saveExportSettings()}
-function renderAssemble(){
+function exportSettings(){
+ let x={};try{x=JSON.parse(localStorage.getItem('wtal_export_settings')||'{}')}catch(e){}
+ return {preset:x.preset||'naver',width:Number(x.width||690),sliceHeight:Number(x.sliceHeight||2000),format:x.format||'jpg',quality:Number(x.quality||92),prefix:x.prefix||`${activeEpisodeId}_`,numberDigits:Number(x.numberDigits||3),startNumber:Number(x.startNumber||1),...x}
+}
+function sanitizeExportPrefix(v){
+ let s=String(v||`${activeEpisodeId}_`).replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,'_').replace(/_+/g,'_');
+ if(!s)s=`${activeEpisodeId}_`;return s.slice(0,80);
+}
+function saveExportSettings(){
+ const e={
+  preset:document.querySelector('#exportPreset')?.value||'custom',
+  width:Math.max(320,Math.min(2160,Number(document.querySelector('#exportWidth')?.value||690))),
+  sliceHeight:Math.max(500,Math.min(10000,Number(document.querySelector('#exportHeight')?.value||2000))),
+  format:document.querySelector('#exportFormat')?.value||'jpg',
+  quality:Math.max(40,Math.min(100,Number(document.querySelector('#exportQuality')?.value||92))),
+  prefix:sanitizeExportPrefix(document.querySelector('#exportPrefix')?.value||`${activeEpisodeId}_`),
+  numberDigits:Math.max(2,Math.min(5,Number(document.querySelector('#exportDigits')?.value||3))),
+  startNumber:Math.max(0,Math.min(99999,Number(document.querySelector('#exportStartNumber')?.value||1)))
+ };
+ const prefixEl=document.querySelector('#exportPrefix');if(prefixEl)prefixEl.value=e.prefix;
+ localStorage.setItem('wtal_export_settings',JSON.stringify(e));updateExportQuickSummary(e);return e;
+}
+function applyExportPreset(name){
+ const presets={
+  naver:{width:690,sliceHeight:2000,format:'jpg',quality:92},
+  kakao:{width:720,sliceHeight:1280,format:'jpg',quality:92},
+  archive:{width:1080,sliceHeight:3000,format:'png',quality:100},
+  custom:{}
+ },x=presets[name]||{};
+ const p=document.querySelector('#exportPreset');if(p)p.value=name;
+ if(x.width)document.querySelector('#exportWidth').value=x.width;
+ if(x.sliceHeight)document.querySelector('#exportHeight').value=x.sliceHeight;
+ if(x.format)document.querySelector('#exportFormat').value=x.format;
+ if(x.quality)document.querySelector('#exportQuality').value=x.quality;
+ saveExportSettings();runExportPreflight(false);
+}
+
+function exportFileName(ex,index,ext){
+ const n=String(ex.startNumber+index).padStart(ex.numberDigits,'0');
+ return `${sanitizeExportPrefix(ex.prefix)}${n}.${ext}`;
+}
+function exportManifest(r){
+ return {
+  format:'WTAL_WEBTOON_EXPORT_MANIFEST',
+  version:43,
+  createdAt:new Date().toISOString(),
+  episodeId:activeEpisodeId,
+  preset:r.ex.preset,
+  canvas:{width:r.width,height:r.height},
+  slice:{height:r.ex.sliceHeight,count:r.files.length},
+  image:{format:r.ex.format,quality:r.ex.quality},
+  filename:{prefix:r.ex.prefix,start:r.ex.startNumber,digits:r.ex.numberDigits},
+  files:r.files.map((f,i)=>({index:i+1,name:f.name,bytes:f.blob.size,width:r.width,height:f.height||null})),
+  letteringFidelity:'V42.9+',
+  note:'Platform presets are project presets. Verify current platform upload requirements before final submission.'
+ };
+}
+function updateExportQuickSummary(ex=exportSettings()){
+ const el=document.querySelector('#exportQuickSummary');if(!el)return;
+ el.textContent=`${ex.width}px · ${ex.sliceHeight}px 분할 · ${ex.format.toUpperCase()} ${ex.format==='jpg'?ex.quality+'%':'무손실'} · ${ex.prefix}${String(ex.startNumber).padStart(ex.numberDigits,'0')}.${ex.format==='png'?'png':'jpg'}`;
+}
+async function exportPreflightData(renderCanvas=true){
+ const ex=saveExportSettings(),layout=assemblyLayout(),cuts=cutsForEpisode(),issues=[],warnings=[];
+ if(!layout.length)issues.push('ASSEMBLE에 CUT이 없습니다.');
+ if(!['jpg','png'].includes(ex.format))issues.push('지원하지 않는 출력 포맷입니다.');
+ if(ex.width<320||ex.width>2160)issues.push(`가로 폭 ${ex.width}px이 허용 범위(320–2160)를 벗어났습니다.`);
+ if(ex.sliceHeight<500||ex.sliceHeight>10000)issues.push(`분할 높이 ${ex.sliceHeight}px이 허용 범위(500–10000)를 벗어났습니다.`);
+ if(ex.format==='jpg'&&ex.quality<70)warnings.push('JPG 화질이 70% 미만입니다. 글자 가장자리가 뭉개질 수 있습니다.');
+ let missing=0,edgeLetters=0,totalLetters=0,userFontLetters=0;
+ refreshLetteringCache();
+ for(const a of layout){
+  const c=cuts[a.cutId];if(!c)continue;
+  const r=await getResult(stateKey(c.id));if(!r?.image)missing++;
+  for(const raw of letterItems(c)){
+   const x=normalizeLetterItem(raw);totalLetters++;
+   if(x.x<4||x.x>96||x.y<2||x.y>98)edgeLetters++;
+   if(String(x.fontKey||'').startsWith('user-'))userFontLetters++;
+  }
+ }
+ if(missing)issues.push(`최종 이미지가 없는 Assemble CUT ${missing}개`);
+ if(edgeLetters)warnings.push(`캔버스 가장자리 가까이에 레터링 ${edgeLetters}개가 있습니다.`);
+ if(userFontLetters)warnings.push(`사용자 업로드 폰트가 적용된 레터링 ${userFontLetters}개 · ZIP/Export 전에 브라우저 폰트 로딩을 확인합니다.`);
+ let width=ex.width,height=0,slices=0;
+ if(renderCanvas&&!issues.length){
+  const cv=await buildFinalCanvas(ex.width);width=cv.width;height=cv.height;slices=Math.ceil(height/ex.sliceHeight);
+  if(height>30000)warnings.push(`긴 PNG 높이 ${height}px · 긴 PNG 대신 분할+ZIP 사용을 권장합니다.`);
+  if(slices>99&&ex.numberDigits<3)warnings.push(`분할 파일 ${slices}개 · 번호 자릿수를 3자리 이상 권장합니다.`);
+ }
+ return {ex,issues,warnings,width,height,slices,totalLetters,edgeLetters,userFontLetters,cutCount:layout.length};
+}
+function paintExportPreflight(r){
+ const el=document.querySelector('#exportPreflight');if(!el)return;
+ const cls=r.issues.length?'fail':r.warnings.length?'warn':'pass';
+ const title=r.issues.length?'출력 차단 항목 있음':r.warnings.length?'출력 가능 · 확인 권장':'출력 준비 완료';
+ const rows=[...r.issues.map(x=>'⛔ '+x),...r.warnings.map(x=>'⚠ '+x)];
+ el.className='exportPreflight '+cls;
+ el.innerHTML=`<b>${title}</b>${r.height?` · ${r.width} × ${r.height}px · 예상 ${r.slices}개`:''}<div class="exportChecks"><div class="exportCheck"><b>${r.cutCount}</b><small>ASSEMBLE CUT</small></div><div class="exportCheck"><b>${r.totalLetters}</b><small>Lettering</small></div><div class="exportCheck"><b>${r.ex.format.toUpperCase()}</b><small>${r.ex.format==='jpg'?r.ex.quality+'%':'Lossless'}</small></div><div class="exportCheck"><b>${r.ex.width}px</b><small>Output width</small></div></div>${rows.length?`<div style="margin-top:7px">${rows.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`:'<div style="margin-top:7px">이미지·레터링·파일명·분할 설정에 차단 문제가 없습니다.</div>'}`;
+}
+async function runExportPreflight(renderCanvas=true){
+ try{setExportStatus(renderCanvas?'Export Preflight 렌더링 중…':'설정 검사 중…');const r=await exportPreflightData(renderCanvas);paintExportPreflight(r);setExportStatus(r.issues.length?'Preflight 실패 · 차단 항목을 수정하세요':r.warnings.length?'Preflight 완료 · 경고 확인':'Preflight PASS');return r}catch(e){setExportStatus('Preflight 오류 · '+e.message);return null}
+}
+function renderAssemble(){refreshLetteringCache();
  const layout=assemblyLayout(),cuts=cutsForEpisode(),ex=exportSettings();
  const items=layout.map((a,i)=>{const c=cuts[a.cutId];if(!c)return '';const crop=Math.max(0,a.cropTop||0)+Math.max(0,a.cropBottom||0),visible=Math.max(10,100-crop);return `<div class="assembleItem" draggable="true" ondragstart="dragAssemblyStart(event,'${a.uid}')" ondragend="dragAssemblyEnd(event)" ondragover="dragAssemblyOver(event,'${a.uid}')" ondragleave="dragAssemblyLeave(event)" ondrop="dropAssembly(event,'${a.uid}')"><div class="assembleHead"><span class="dragHandle">☰ DRAG · CUT ${String(c.id).padStart(3,'0')} ${a.uid.includes(String(c.id)+'-')?'':''}</span><span>${c.title} ${letterItems(c).length?`<span class="letterBadge">LETTER ${letterItems(c).length}</span>`:''}</span></div><div class="assembleFrame" id="frame-${a.uid}" style="background:${a.bg==='black'?'#000':'#fff'};padding-top:${a.cropTop||0}%;padding-bottom:${a.cropBottom||0}%;"><div class="assembleInner" style="width:${a.scale||100}%;margin-top:-${a.cropTop||0}%;margin-bottom:-${a.cropBottom||0}%;"><span class="previewBadge">${a.scale||100}% · CROP ${a.cropTop||0}/${a.cropBottom||0}</span><img class="assemblyCut" id="assembly-${a.uid}">${letterItems(c).map(x=>letterHtml(x)).join('')}</div></div><div class="assembleControls"><label>확대/축소 %<input type="number" min="25" max="160" value="${a.scale||100}" onchange="setAssembly('${a.uid}','scale',this.value)"></label><label>상단 크롭 %<input type="number" min="0" max="45" value="${a.cropTop||0}" onchange="setAssembly('${a.uid}','cropTop',this.value)"></label><label>하단 크롭 %<input type="number" min="0" max="45" value="${a.cropBottom||0}" onchange="setAssembly('${a.uid}','cropBottom',this.value)"></label><label>다음 여백 px<input type="number" min="0" max="2000" value="${a.gap??80}" onchange="setAssembly('${a.uid}','gap',this.value)"></label></div><div class="assembleHead"><div class="assembleMini"><button class="btn small" onclick="renderLetterEditor(${c.id})">LETTERING</button><button class="btn small" onclick="duplicateAssembly('${a.uid}')">컷 복제</button><button class="btn small" onclick="deleteAssembly('${a.uid}')">어셈블에서 삭제</button></div><div class="assembleMini"><button class="btn small" onclick="setGapColor('${a.uid}','white')">흰 여백</button><button class="btn small" onclick="setGapColor('${a.uid}','black')">검은 여백</button><button class="btn small" onclick="addSceneGap('${a.uid}')">SCENE 긴 여백</button></div></div></div>${i<layout.length-1?`<div class="gapVisual ${a.sceneBreak?'sceneDivider':''}" style="height:${Math.min(500,a.gap??80)}px;background:${a.bg==='black'?'#000':'#fff'};color:${a.bg==='black'?'#fff':'#888'}">${a.sceneBreak?'SCENE TRANSITION · ':''}${a.gap??80}px</div>`:''}`}).join('');
- const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V13</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div class="exportStatus" id="exportStatus"></div></section>`;
- view.innerHTML=`${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout)
+ const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.2</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
+ view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.2 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
 }
-async function hydrateAssemblyLayout(layout){const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
+async function hydrateAssemblyLayout(layout){await ensureTypographyFontsLoaded();refreshLetteringCache();const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
 
 
 function letterEditorItemHtml(cutId,raw){
@@ -3115,25 +3304,128 @@ if(!window.__wtalLetterPointerGlobal){
 function enableLetterDrag(cutId){return true}
 function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function drawWrapped(ctx,text,cx,cy,maxW,lineH){const words=String(text).split(/\s+/),lines=[];let line='';for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);const top=cy-(lines.length-1)*lineH/2;lines.forEach((l,i)=>ctx.fillText(l,cx,top+i*lineH))}
-function drawLetter(ctx,x,W,H){const px=W*x.x/100,py=H*x.y/100,fs=x.size*(W/720);ctx.save();ctx.translate(px,py);ctx.rotate((x.rotate||0)*Math.PI/180);ctx.font=`${x.weight||700} ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';const maxW=W*.38;if(x.type==='sfx'){ctx.font=`${x.weight||900} ${fs}px sans-serif`;ctx.lineWidth=Math.max(2,fs*(x.preset==='sfx-heavy'?.13:.08));ctx.strokeStyle='#fff';ctx.strokeText(x.text,0,0);ctx.fillStyle='#111';ctx.fillText(x.text,0,0)}else{const lines=Math.max(1,Math.ceil(ctx.measureText(x.text).width/maxW)),bw=Math.min(maxW+fs,Math.max(fs*4,ctx.measureText(x.text).width+fs*1.4)),bh=lines*fs*(x.lineHeight||1.25)+fs;ctx.fillStyle=x.preset==='monologue-borderless'?'rgba(255,255,255,.0)':'#fff';ctx.strokeStyle='#111';ctx.lineWidth=x.preset==='monologue-borderless'?0:Math.max(1.5,fs*.06);if(x.type==='dialogue'||x.type==='thought'){ctx.beginPath();ctx.ellipse(0,0,bw/2,bh/2,0,0,Math.PI*2);ctx.fill();if(ctx.lineWidth)ctx.stroke()}else{roundRect(ctx,-bw/2,-bh/2,bw,bh,fs*.2);ctx.fill();if(ctx.lineWidth)ctx.stroke()}ctx.fillStyle='#111';drawWrapped(ctx,x.text,0,0,bw-fs,fs*(x.lineHeight||1.25))}ctx.restore()}
-async function buildFinalCanvas(W){const layout=assemblyLayout(),cuts=cutsForEpisode();if(!layout.length)throw new Error('ASSEMBLE에 CUT이 없습니다.');const loaded=[];for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));if(!r?.image)continue;const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=r.image});const ct=Math.max(0,Math.min(.45,(a.cropTop||0)/100)),cb=Math.max(0,Math.min(.45,(a.cropBottom||0)/100)),sy=Math.round(im.height*ct),sh=Math.max(1,Math.round(im.height*(1-ct-cb))),scale=Math.max(.25,Math.min(1.6,(a.scale||100)/100)),dw=Math.round(W*scale),dh=Math.round(sh*(dw/im.width));loaded.push({a,c,im,sy,sh,dw,dh})}const H=loaded.reduce((sum,x,i)=>sum+x.dh+(i<loaded.length-1?Math.max(0,x.a.gap??80):0),0);if(!H)throw new Error('출력할 이미지가 없습니다.');const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);let y=0;loaded.forEach((x,i)=>{const dx=Math.round((W-x.dw)/2);ctx.fillStyle=x.a.bg==='black'?'#000':'#fff';ctx.fillRect(0,y,W,x.dh);ctx.drawImage(x.im,0,x.sy,x.im.width,x.sh,dx,y,x.dw,x.dh);ctx.save();ctx.translate(dx,y-Math.round(x.sy*(x.dw/x.im.width)));ctx.scale(x.dw/W,x.dw/W);letterItems(x.c).forEach(l=>drawLetter(ctx,l,W,x.im.height*(W/x.im.width)));ctx.restore();y+=x.dh;if(i<loaded.length-1){const g=Math.max(0,x.a.gap??80);ctx.fillStyle=x.a.bg==='black'?'#000':'#fff';ctx.fillRect(0,y,W,g);y+=g}});return cv}
+
+async function ensureTypographyFontsLoaded(){
+ const fonts=wtalReadJSON('wtal_typography_user_fonts',[])||[];
+ if(!Array.isArray(fonts)||!fonts.length||!window.FontFace)return;
+ await Promise.all(fonts.map(async f=>{
+  try{
+   const family=f.cssFamily||String(f.key||'WTALUser').replace(/[^a-z0-9_]/ig,'_');
+   if(document.fonts.check(`12px "${family}"`))return;
+   const ff=new FontFace(family,`url(${f.src})`);
+   await ff.load();document.fonts.add(ff);
+  }catch(e){console.warn('WTAL user font load failed',f?.name,e)}
+ }));
+ await document.fonts.ready;
+}
+function drawRoundedRectPath(ctx,x,y,w,h,r){
+ const rr=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+}
+function wrapCanvasText(ctx,text,maxWidth){
+ const explicit=String(text||'').split('\n'),out=[];
+ for(const para of explicit){
+  if(!para){out.push('');continue}
+  let line='';
+  for(const ch of para){
+   const test=line+ch;
+   if(line&&ctx.measureText(test).width>maxWidth){out.push(line);line=ch}else line=test;
+  }
+  if(line)out.push(line);
+ }
+ return out.length?out:[''];
+}
+function canvasFontFamily(x){return x.font||"'Noto Sans KR','Malgun Gothic',sans-serif"}
+function drawLetter(ctx,raw,W,H){
+ const x=normalizeLetterItem(raw),px=W*x.x/100,py=H*x.y/100,unit=W/720,fs=x.size*unit,scale=x.scale||1;
+ ctx.save();ctx.translate(px,py);ctx.rotate((x.rotate||0)*Math.PI/180);ctx.scale(scale,scale);
+ ctx.globalAlpha=x.opacity;
+ ctx.font=`${x.fontStyle==='italic'?'italic ':''}${x.weight} ${fs}px ${canvasFontFamily(x)}`;
+ ctx.textAlign=x.align==='left'?'left':x.align==='right'?'right':'center';ctx.textBaseline='middle';
+ const width=Math.max(fs*2,W*(x.width/100)),inner=Math.max(fs,width-(x.paddingX*2*unit));
+ const lines=wrapCanvasText(ctx,x.text,inner),lh=fs*x.lineHeight;
+ const textH=Math.max(lh,lines.length*lh),boxH=textH+(x.paddingY*2*unit),boxW=width;
+ const bx=-boxW/2,by=-boxH/2;
+ const fill=letterBgCss(x);
+ if(x.type!=='sfx'&&x.shape!=='borderless'){
+  ctx.fillStyle=fill;ctx.strokeStyle=x.strokeColor;ctx.lineWidth=x.strokeWidth*unit;
+  if(x.shadow==='soft'){ctx.shadowColor='rgba(0,0,0,.18)';ctx.shadowBlur=14*unit;ctx.shadowOffsetY=5*unit}
+  else if(x.shadow==='hard'){ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=0;ctx.shadowOffsetX=4*unit;ctx.shadowOffsetY=4*unit}
+  if(x.shape==='ellipse'||x.shape==='cloud'){ctx.beginPath();ctx.ellipse(0,0,boxW/2,boxH/2,0,0,Math.PI*2)}
+  else if(x.shape==='jagged'){const pts=18;ctx.beginPath();for(let i=0;i<pts;i++){const a=i/pts*Math.PI*2,r=(i%2?0.86:1),xx=Math.cos(a)*boxW*.5*r,yy=Math.sin(a)*boxH*.5*r;i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)}ctx.closePath()}
+  else drawRoundedRectPath(ctx,bx,by,boxW,boxH,(x.shape==='rounded'?Math.max(10,x.radius):x.radius)*unit);
+  if(fill!=='transparent')ctx.fill();if(x.strokeWidth>0)ctx.stroke();
+  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+  if(x.directTail){
+    const tx=x.tailDX*unit,ty=x.tailDY*unit;ctx.beginPath();ctx.moveTo(-7*unit,0);ctx.lineTo(tx,ty);ctx.lineTo(7*unit,0);ctx.closePath();ctx.fillStyle=fill==='transparent'?x.textColor:fill;if(fill!=='transparent')ctx.fill();if(x.strokeWidth>0){ctx.strokeStyle=x.strokeColor;ctx.lineWidth=x.strokeWidth*unit;ctx.stroke()}
+  }
+ }
+ ctx.fillStyle=x.textColor;
+ const strokeW=x.textStrokeWidth*unit;
+ let y0=-(lines.length-1)*lh/2;
+ if(x.vertical){
+  const chars=String(x.text||'').replace(/\n/g,'').split(''),vh=fs*1.05;let vy=-(chars.length-1)*vh/2;
+  ctx.textAlign='center';
+  for(const ch of chars){if(strokeW>0){ctx.lineWidth=strokeW*2;ctx.strokeStyle=x.textStrokeColor;ctx.strokeText(ch,0,vy)}ctx.fillText(ch,0,vy);vy+=vh}
+ }else{
+  for(let i=0;i<lines.length;i++){
+   const line=lines[i],y=y0+i*lh;
+   if(strokeW>0){ctx.lineWidth=strokeW*2;ctx.strokeStyle=x.textStrokeColor;ctx.strokeText(line,0,y)}
+   ctx.fillText(line,0,y);
+  }
+ }
+ ctx.restore();
+}
+async function buildFinalCanvas(W){await ensureTypographyFontsLoaded();refreshLetteringCache();const layout=assemblyLayout(),cuts=cutsForEpisode();if(!layout.length)throw new Error('ASSEMBLE에 CUT이 없습니다.');const loaded=[];for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));if(!r?.image)continue;const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=r.image});const ct=Math.max(0,Math.min(.45,(a.cropTop||0)/100)),cb=Math.max(0,Math.min(.45,(a.cropBottom||0)/100)),sy=Math.round(im.height*ct),sh=Math.max(1,Math.round(im.height*(1-ct-cb))),scale=Math.max(.25,Math.min(1.6,(a.scale||100)/100)),dw=Math.round(W*scale),dh=Math.round(sh*(dw/im.width));loaded.push({a,c,im,sy,sh,dw,dh})}const H=loaded.reduce((sum,x,i)=>sum+x.dh+(i<loaded.length-1?Math.max(0,x.a.gap??80):0),0);if(!H)throw new Error('출력할 이미지가 없습니다.');const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);let y=0;loaded.forEach((x,i)=>{const dx=Math.round((W-x.dw)/2);ctx.fillStyle=x.a.bg==='black'?'#000':'#fff';ctx.fillRect(0,y,W,x.dh);ctx.drawImage(x.im,0,x.sy,x.im.width,x.sh,dx,y,x.dw,x.dh);ctx.save();ctx.translate(dx,y-Math.round(x.sy*(x.dw/x.im.width)));ctx.scale(x.dw/W,x.dw/W);letterItems(x.c).forEach(l=>drawLetter(ctx,l,W,x.im.height*(W/x.im.width)));ctx.restore();y+=x.dh;if(i<loaded.length-1){const g=Math.max(0,x.a.gap??80);ctx.fillStyle=x.a.bg==='black'?'#000':'#fff';ctx.fillRect(0,y,W,g);y+=g}});return cv}
 function setExportStatus(t){const e=document.querySelector('#exportStatus');if(e)e.textContent=t}
-function canvasBlob(cv,format,quality){return new Promise(res=>cv.toBlob(res,format==='png'?'image/png':'image/jpeg',format==='png'?undefined:Math.max(.4,Math.min(1,quality/100))))}
+function canvasBlob(cv,format,quality){
+ return new Promise((resolve,reject)=>cv.toBlob(blob=>blob?resolve(blob):reject(new Error('이미지 인코딩에 실패했습니다. Canvas 크기/브라우저 메모리를 확인하세요.')),format==='png'?'image/png':'image/jpeg',format==='png'?undefined:Math.max(.4,Math.min(1,quality/100))));
+}
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}
-async function exportLongPNG(){try{const ex=saveExportSettings();setExportStatus('긴 PNG 렌더링 중…');const cv=await buildFinalCanvas(ex.width);if(cv.height>30000)throw new Error(`현재 원고 높이 ${cv.height}px입니다. 브라우저 Canvas 한계를 피하려면 분할+ZIP 출력을 사용하세요.`);const b=await canvasBlob(cv,'png',100);downloadBlob(b,`${ex.prefix}LONG.png`);markOutputDone(true);setExportStatus(`완료 · ${ex.width} × ${cv.height}px · PNG · EP 완료 기록`)}catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}}
-async function makeSlices(){const ex=saveExportSettings(),full=await buildFinalCanvas(ex.width),sliceH=Math.max(500,Number(ex.sliceHeight||2000)),count=Math.ceil(full.height/sliceH),files=[];for(let i=0;i<count;i++){const y=i*sliceH,h=Math.min(sliceH,full.height-y),cv=document.createElement('canvas');cv.width=full.width;cv.height=h;const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,h);ctx.drawImage(full,0,y,full.width,h,0,0,full.width,h);const blob=await canvasBlob(cv,ex.format,ex.quality),ext=ex.format==='png'?'png':'jpg',num=String(i+1).padStart(3,'0');files.push({name:`${ex.prefix}${num}.${ext}`,blob})}return {files,ex,width:full.width,height:full.height}}
+async function exportLongPNG(){
+ try{
+  const pre=await runExportPreflight(true);if(!pre||pre.issues.length)throw new Error('Export Preflight 차단 항목을 먼저 해결하세요.');
+  const ex=pre.ex;setExportStatus('긴 PNG 렌더링 중…');
+  const cv=await buildFinalCanvas(ex.width);
+  if(cv.height>30000)throw new Error(`현재 원고 높이 ${cv.height}px입니다. 브라우저 Canvas 안정성을 위해 분할+ZIP 출력을 사용하세요.`);
+  const b=await canvasBlob(cv,'png',100),name=`${sanitizeExportPrefix(ex.prefix)}LONG.png`;
+  downloadBlob(b,name);markOutputDone(true);setExportStatus(`완료 · ${name} · ${ex.width} × ${cv.height}px · ${(b.size/1024/1024).toFixed(1)}MB`);
+ }catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}
+}
+async function makeSlices(){
+ const pre=await exportPreflightData(false);if(pre.issues.length)throw new Error(pre.issues.join(' / '));
+ const ex=pre.ex,full=await buildFinalCanvas(ex.width),sliceH=Math.max(500,Number(ex.sliceHeight||2000)),count=Math.ceil(full.height/sliceH),files=[];
+ const ext=ex.format==='png'?'png':'jpg';
+ for(let i=0;i<count;i++){
+  const y=i*sliceH,h=Math.min(sliceH,full.height-y),cv=document.createElement('canvas');cv.width=full.width;cv.height=h;
+  const ctx=cv.getContext('2d',{alpha:false});if(!ctx)throw new Error('Canvas context 생성 실패');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,h);ctx.drawImage(full,0,y,full.width,h,0,0,full.width,h);
+  const blob=await canvasBlob(cv,ex.format,ex.quality),name=exportFileName(ex,i,ext);
+  files.push({name,blob,height:h});
+  setExportStatus(`분할 인코딩 ${i+1}/${count} · ${name}`);
+ }
+ return {files,ex,width:full.width,height:full.height};
+}
 function crc32(bytes){let c=-1;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xEDB88320:0)}return (c^-1)>>>0}
 function u16(n){return [n&255,(n>>>8)&255]}function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]}
 async function zipStore(files){const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=new Uint8Array(await f.blob.arrayBuffer()),crc=crc32(data),local=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);locals.push(local);const cen=new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]);centrals.push(cen);offset+=local.length}const csize=centrals.reduce((a,x)=>a+x.length,0),end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(csize),...u32(offset),...u16(0)]),total=offset+csize+end.length,out=new Uint8Array(total);let p=0;for(const x of [...locals,...centrals,end]){out.set(x,p);p+=x.length}return new Blob([out],{type:'application/zip'})}
-async function exportPlatformFiles(asZip){try{setExportStatus('최종 원고 렌더링 및 자동 분할 중…');const r=await makeSlices();if(asZip){setExportStatus(`${r.files.length}개 파일 ZIP 생성 중…`);const z=await zipStore(r.files);downloadBlob(z,`${r.ex.prefix}WEBTOON_EXPORT.zip`)}else{r.files.forEach((f,i)=>setTimeout(()=>downloadBlob(f.blob,f.name),i*120))}const mb=r.files.reduce((a,f)=>a+f.blob.size,0)/1024/1024;markOutputDone(true);setExportStatus(`완료 · ${r.files.length}개 · ${r.ex.format.toUpperCase()} · ${mb.toFixed(1)}MB · ${r.width}px 폭 · EP 완료 기록`)}catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}}
-
-
-
-let createStage=localStorage.getItem('wtal_create_stage')||'generate';
-let inspectorTab=localStorage.getItem('wtal_inspector_tab')||'spec';
-let activityItems=[];try{activityItems=JSON.parse(sessionStorage.getItem('wtal_activity')||'[]')}catch(e){}
-let commandSelection=0;
-const CREATE_STAGES=[['story','Story'],['conte','Conte'],['generate','Generate'],['review','Review'],['lettering','Lettering'],['assemble','Assemble']];
+async function exportPlatformFiles(asZip){
+ try{
+  const pre=await runExportPreflight(true);if(!pre||pre.issues.length)throw new Error('Export Preflight 차단 항목을 먼저 해결하세요.');
+  setExportStatus('최종 원고 렌더링 및 자동 분할 중…');const r=await makeSlices();
+  const manifest=exportManifest(r),manifestBlob=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'});
+  if(asZip){
+   setExportStatus(`${r.files.length}개 파일 + Manifest ZIP 생성 중…`);
+   const zipFiles=[...r.files,{name:'export-manifest.json',blob:manifestBlob}],z=await zipStore(zipFiles);
+   const zipName=`${sanitizeExportPrefix(r.ex.prefix)}WEBTOON_EXPORT.zip`;downloadBlob(z,zipName);
+  }else{
+   r.files.forEach((f,i)=>setTimeout(()=>downloadBlob(f.blob,f.name),i*120));
+   setTimeout(()=>downloadBlob(manifestBlob,`${sanitizeExportPrefix(r.ex.prefix)}export-manifest.json`),r.files.length*120+150);
+  }
+  const mb=r.files.reduce((a,f)=>a+f.blob.size,0)/1024/1024,maxMb=Math.max(...r.files.map(f=>f.blob.size))/1024/1024;
+  markOutputDone(true);
+  setExportStatus(`완료 · ${r.files.length}개 · ${r.ex.format.toUpperCase()} · 총 ${mb.toFixed(1)}MB · 최대 파일 ${maxMb.toFixed(1)}MB · ${r.width}px · Manifest 포함`);
+ }catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}
+}
 function saveActivity(){sessionStorage.setItem('wtal_activity',JSON.stringify(activityItems.slice(-80)));renderActivity()}
 function activityStart(operation,meta={}){
  const id=`act_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,label={generate_cut:'Generate CUT',partial_edit:'Partial Edit',storyboard:'Generate Conte',continuity_qc:'Continuity QC',character_state:'Character State',space_map:'Space Map',transform_master:'Master Convert',episode_story:'Story Draft',episode_specs:'Build Specs'}[operation]||operation;
@@ -3280,9 +3572,60 @@ function renderCreate(){
  else if(createStage==='assemble')renderAssemble();
  injectCreateHeader();
 }
+
+const SMALL_PRODUCTION_TEST_CUTS=[13,14,15,16];
+
+async function smallProductionCutStatus(cutId){
+ const c=cutsForEpisode()[cutId];
+ if(!c)return {cutId,status:'fail',reason:'CUT spec 없음'};
+ const state=cutState(cutId)||{};
+ let result=null;
+ try{result=await getResult(stateKey(cutId))}catch(e){}
+ refreshLetteringCache();
+ const letters=Array.isArray(lettering[stateKey(cutId)])?lettering[stateKey(cutId)].map(normalizeLetterItem):[];
+ const assembled=assemblyLayout().some(x=>Number(x.cutId)===Number(cutId));
+ const checks={
+  image:!!result?.image,
+  approved:state.status==='approved',
+  lettering:letters.length>0,
+  assembled
+ };
+ const passCount=Object.values(checks).filter(Boolean).length;
+ const status=passCount===4?'pass':checks.image&&checks.approved?'warn':'fail';
+ return {cutId,c,state,result,letters,assembled,checks,status,passCount};
+}
+
+async function runSmallProductionTest(){
+ const host=document.querySelector('#smallProductionTestResults');if(host)host.innerHTML='<div class="smallTestSummary">CUT 013–016 검사 중…</div>';
+ const rows=[];
+ for(const id of SMALL_PRODUCTION_TEST_CUTS)rows.push(await smallProductionCutStatus(id));
+ const hardFails=rows.filter(r=>!r.checks?.image||!r.checks?.approved);
+ const letteringReady=rows.filter(r=>r.checks?.lettering).length;
+ const assembleReady=rows.filter(r=>r.checks?.assembled).length;
+ const allPass=rows.every(r=>r.status==='pass');
+ if(host){
+  host.innerHTML=`<div class="smallTestGrid">${rows.map(r=>`<div class="smallTestCard ${r.status}"><b>CUT ${String(r.cutId).padStart(3,'0')}</b><small>${r.checks?.image?'✓ Final 이미지':'✕ Final 이미지'}<br>${r.checks?.approved?'✓ 채택':'✕ 채택'}<br>${r.checks?.lettering?`✓ 레터링 ${r.letters.length}개`:'△ 레터링 없음'}<br>${r.checks?.assembled?'✓ Assemble':'△ Assemble 미반영'}</small></div>`).join('')}</div><div class="smallTestSummary"><b>${allPass?'소량 제작 테스트 준비 완료':'소량 제작 테스트 진행 중'}</b><br>Final/채택 차단 ${hardFails.length}개 · 레터링 완료 ${letteringReady}/4 · Assemble 반영 ${assembleReady}/4<br><span style="color:#777">이 검사는 API를 호출하지 않고 브라우저 저장 데이터만 확인합니다.</span></div>`;
+ }
+ return {rows,hardFails,letteringReady,assembleReady,allPass};
+}
+
+async function openNextSmallTestStep(){
+ const r=await runSmallProductionTest();
+ const missingFinal=r.rows.find(x=>!x.checks?.image||!x.checks?.approved);
+ if(missingFinal){setCreateStage('generate');reliabilityToast(`CUT ${String(missingFinal.cutId).padStart(3,'0')} Final/채택부터 확인하세요.`,'warn');return}
+ const missingLetter=r.rows.find(x=>!x.checks?.lettering);
+ if(missingLetter){renderLetterEditor(missingLetter.cutId);return}
+ const missingAssemble=r.rows.find(x=>!x.checks?.assembled);
+ if(missingAssemble){setCreateStage('assemble');reliabilityToast(`CUT ${String(missingAssemble.cutId).padStart(3,'0')} Assemble 반영을 확인하세요.`,'warn');return}
+ setCreateStage('assemble');reliabilityToast('CUT 013–016 소량 제작 테스트 준비 완료');
+}
+
+function smallProductionTestHtml(){
+ return `<section class="smallTestPanel"><div class="smallTestHead"><div><div class="eyebrow">V43.2 SMALL PRODUCTION TEST</div><h3>CUT 013–016 제작 마무리</h3></div><button class="btn" onclick="runSmallProductionTest()">상태 검사</button><button class="btn dark" onclick="openNextSmallTestStep()">다음 미완료 작업</button></div><div id="smallProductionTestResults"><div class="smallTestSummary">CUT 013–016의 Final 이미지 · 채택 · 레터링 · Assemble 연결을 한 번에 확인합니다.</div></div></section>`;
+}
 function renderLetteringHub(){
  const vals=Object.values(cutsForEpisode()).filter(c=>cutState(c.id).status==='approved').sort((a,b)=>a.id-b.id);
- view.innerHTML=`<h1>Lettering <span class="letterVersionBadge">V41.3</span></h1><p class="lead">채택된 CUT의 말풍선·내레이션·SFX를 정리합니다. 완료된 CUT은 다음 Assemble 단계로 이어집니다.</p><div class="productiongrid">${vals.map(c=>`<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> ${episodeLetterDone(activeEpisodeId,c.id)?'<span class="controlStatus ok">완료</span>':'<span class="controlStatus info">대기</span>'}<div style="font-size:11px;margin:6px 0">${esc(c.title)}</div><button class="btn dark" onclick="renderLetterEditor(${c.id})">Edit Lettering</button></div>`).join('')||'<div class="emptybig">채택된 CUT이 없습니다.</div>'}</div>`;
+ view.innerHTML=`${smallProductionTestHtml()}<h1>Lettering <span class="letterVersionBadge">V41.3</span></h1><p class="lead">채택된 CUT의 말풍선·내레이션·SFX를 정리합니다. 완료된 CUT은 다음 Assemble 단계로 이어집니다.</p><div class="productiongrid">${vals.map(c=>`<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> ${episodeLetterDone(activeEpisodeId,c.id)?'<span class="controlStatus ok">완료</span>':'<span class="controlStatus info">대기</span>'}<div style="font-size:11px;margin:6px 0">${esc(c.title)}</div><button class="btn dark" onclick="renderLetterEditor(${c.id})">Edit Lettering</button></div>`).join('')||'<div class="emptybig">채택된 CUT이 없습니다.</div>'}</div>`;
 }
 function simplifyLegacyPageChrome(){
  if(currentPage!=='CREATE')return;
