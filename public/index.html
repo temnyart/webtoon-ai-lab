@@ -318,6 +318,10 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 .smallTestSummary{margin-top:9px;font-size:9px;line-height:1.5;padding:8px;border-radius:9px;background:#f6f6f8}
 .smallTestActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 @media(max-width:900px){.smallTestGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V43.2.2 — Global navigation recovery */
+.navErrorCard{margin:28px;border:1px solid #efc4c4;background:#fff4f4;border-radius:14px;padding:18px;line-height:1.55}
+.navErrorCard b{display:block;margin-bottom:6px}.navErrorCard code{font-size:9px}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -326,7 +330,7 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 </header>
 <div class="shell">
   <aside class="appSidebar">
-    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
+    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · NAV FIX V43.2.2</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
     <nav class="primaryNav">
       <button class="nav active" data-page="HOME"><span class="navIcon">⌂</span><span>Home</span></button>
       <button class="nav" data-page="CREATE"><span class="navIcon">✦</span><span>Create</span></button>
@@ -3172,8 +3176,8 @@ async function runExportPreflight(renderCanvas=true){
 function renderAssemble(){refreshLetteringCache();
  const layout=assemblyLayout(),cuts=cutsForEpisode(),ex=exportSettings();
  const items=layout.map((a,i)=>{const c=cuts[a.cutId];if(!c)return '';const crop=Math.max(0,a.cropTop||0)+Math.max(0,a.cropBottom||0),visible=Math.max(10,100-crop);return `<div class="assembleItem" draggable="true" ondragstart="dragAssemblyStart(event,'${a.uid}')" ondragend="dragAssemblyEnd(event)" ondragover="dragAssemblyOver(event,'${a.uid}')" ondragleave="dragAssemblyLeave(event)" ondrop="dropAssembly(event,'${a.uid}')"><div class="assembleHead"><span class="dragHandle">☰ DRAG · CUT ${String(c.id).padStart(3,'0')} ${a.uid.includes(String(c.id)+'-')?'':''}</span><span>${c.title} ${letterItems(c).length?`<span class="letterBadge">LETTER ${letterItems(c).length}</span>`:''}</span></div><div class="assembleFrame" id="frame-${a.uid}" style="background:${a.bg==='black'?'#000':'#fff'};padding-top:${a.cropTop||0}%;padding-bottom:${a.cropBottom||0}%;"><div class="assembleInner" style="width:${a.scale||100}%;margin-top:-${a.cropTop||0}%;margin-bottom:-${a.cropBottom||0}%;"><span class="previewBadge">${a.scale||100}% · CROP ${a.cropTop||0}/${a.cropBottom||0}</span><img class="assemblyCut" id="assembly-${a.uid}">${letterItems(c).map(x=>letterHtml(x)).join('')}</div></div><div class="assembleControls"><label>확대/축소 %<input type="number" min="25" max="160" value="${a.scale||100}" onchange="setAssembly('${a.uid}','scale',this.value)"></label><label>상단 크롭 %<input type="number" min="0" max="45" value="${a.cropTop||0}" onchange="setAssembly('${a.uid}','cropTop',this.value)"></label><label>하단 크롭 %<input type="number" min="0" max="45" value="${a.cropBottom||0}" onchange="setAssembly('${a.uid}','cropBottom',this.value)"></label><label>다음 여백 px<input type="number" min="0" max="2000" value="${a.gap??80}" onchange="setAssembly('${a.uid}','gap',this.value)"></label></div><div class="assembleHead"><div class="assembleMini"><button class="btn small" onclick="renderLetterEditor(${c.id})">LETTERING</button><button class="btn small" onclick="duplicateAssembly('${a.uid}')">컷 복제</button><button class="btn small" onclick="deleteAssembly('${a.uid}')">어셈블에서 삭제</button></div><div class="assembleMini"><button class="btn small" onclick="setGapColor('${a.uid}','white')">흰 여백</button><button class="btn small" onclick="setGapColor('${a.uid}','black')">검은 여백</button><button class="btn small" onclick="addSceneGap('${a.uid}')">SCENE 긴 여백</button></div></div></div>${i<layout.length-1?`<div class="gapVisual ${a.sceneBreak?'sceneDivider':''}" style="height:${Math.min(500,a.gap??80)}px;background:${a.bg==='black'?'#000':'#fff'};color:${a.bg==='black'?'#fff':'#888'}">${a.sceneBreak?'SCENE TRANSITION · ':''}${a.gap??80}px</div>`:''}`}).join('');
- const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.2</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
- view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.2 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
+ const exporter=`<section class="exportPanel"><div class="eyebrow">FINAL EXPORT · V43.2.1</div><h2 style="margin:5px 0 10px">플랫폼 출력</h2><div class="exportPreset"><button class="btn small" onclick="applyExportPreset('naver')">NAVER 690</button><button class="btn small" onclick="applyExportPreset('kakao')">KAKAO 720</button><button class="btn small" onclick="applyExportPreset('archive')">ARCHIVE PNG</button></div><div class="exportGrid"><label>프리셋<select id="exportPreset" onchange="applyExportPreset(this.value)"><option value="naver" ${ex.preset==='naver'?'selected':''}>NAVER</option><option value="kakao" ${ex.preset==='kakao'?'selected':''}>KAKAO</option><option value="archive" ${ex.preset==='archive'?'selected':''}>ARCHIVE</option><option value="custom" ${ex.preset==='custom'?'selected':''}>CUSTOM</option></select></label><label>가로 px<input id="exportWidth" type="number" value="${ex.width}" onchange="saveExportSettings()"></label><label>분할 높이 px<input id="exportHeight" type="number" value="${ex.sliceHeight}" onchange="saveExportSettings()"></label><label>포맷<select id="exportFormat" onchange="saveExportSettings()"><option value="jpg" ${ex.format==='jpg'?'selected':''}>JPG</option><option value="png" ${ex.format==='png'?'selected':''}>PNG</option></select></label><label>화질 %<input id="exportQuality" type="number" min="40" max="100" value="${ex.quality}" onchange="saveExportSettings()"></label><label>파일명 Prefix<input id="exportPrefix" value="${esc(ex.prefix)}" onchange="saveExportSettings()"></label><label>번호 시작<input id="exportStartNumber" type="number" min="0" value="${ex.startNumber}" onchange="saveExportSettings()"></label><label>번호 자릿수<select id="exportDigits" onchange="saveExportSettings()">${[2,3,4,5].map(v=>`<option value="${v}" ${ex.numberDigits===v?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="exportQuickSummary" class="exportManifestNote"></div><div class="assembleTools" style="margin-top:10px"><button class="btn" ${layout.length?'':'disabled'} onclick="runExportPreflight(true)">출력 검사</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportLongPNG()">긴 PNG</button><button class="btn" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(false)">분할 파일</button><button class="btn dark" ${layout.length?'':'disabled'} onclick="exportPlatformFiles(true)">분할 + ZIP</button></div><div id="exportPreflight" class="exportPreflight">출력 전 <b>출력 검사</b>를 실행하면 이미지 누락·레터링 가장자리·파일명·분할 설정을 확인합니다.</div><div class="exportManifestNote">ZIP 출력에는 <b>export-manifest.json</b>이 함께 포함됩니다.</div><div class="exportStatus" id="exportStatus"></div></section>`;
+ view.innerHTML=`${smallProductionTestHtml()}${pageHeaderHtml('ASSEMBLE',`EP.${String(ep().number).padStart(2,'0')} · 세로 편집`,'채택된 CUT의 순서·크롭·여백·레터링을 정리하고 최종 플랫폼 파일로 출력합니다.')}<div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='PRODUCTION';render()">프로덕션으로</button><button class="btn" onclick="currentPage='EPISODES';render()">EPISODE MANAGER</button></div><div class="tabsrow"><button class="btn ${stageFlag(activeEpisodeId,'assemble')?'dark':''}" onclick="markAssembleDone(${!stageFlag(activeEpisodeId,'assemble')})">${stageFlag(activeEpisodeId,'assemble')?'✓ ASSEMBLE 완료':'ASSEMBLE 완료 처리'}</button><button class="btn" onclick="resetAssemblyLayout()">레이아웃 초기화</button></div></div>${exporter}<div class="assembleV13"><div class="assembleCanvas">${items||emptyStateHtml('채택된 CUT이 없습니다','Review 단계에서 이미지를 채택하면 자동으로 Assemble에 추가됩니다.','<button class="btn" onclick="setCreateStage(\'review\')">Review로 이동</button>','▦')}</div><aside class="assembleSide"><div class="eyebrow">ASSEMBLE TOOLS</div><div style="margin:5px 0 8px"><span class="assembleFidelity">V43.2.1 EXPORT VERIFIED</span></div><h3>편집 기능</h3><div class="hint">☰ 헤더를 드래그해 CUT 순서 변경<br>확대/축소 25–160%<br>상/하단 크롭 각각 0–45%<br>컷 복제 / 어셈블에서 삭제<br>흰색·검은색 여백<br>SCENE 전환 500px 긴 여백<br><br><b>전체 세로 스크롤 미리보기</b>가 현재 중앙 캔버스이며, 이 순서/크롭/여백이 최종 PNG와 플랫폼 Export에 그대로 적용됩니다.</div></aside></div>`;hydrateAssemblyLayout(layout);updateExportQuickSummary(ex);setTimeout(()=>runExportPreflight(false),0)
 }
 async function hydrateAssemblyLayout(layout){await ensureTypographyFontsLoaded();refreshLetteringCache();const cuts=cutsForEpisode();for(const a of layout){const c=cuts[a.cutId];if(!c)continue;const r=await getResult(stateKey(c.id));const img=document.querySelector(`#assembly-${CSS.escape(a.uid)}`);if(img&&r?.image)img.src=r.image}}
 
@@ -3559,17 +3563,33 @@ function applyContextTooltips(){
 }
 function createHeaderHtml(){
  const e=ep(),p=episodeProgress(activeEpisodeId);
- return `<div class="createHeader"><div class="createEp"><b>EP.${String(e.number).padStart(2,'0')} · ${esc(e.title)}</b><small>${p.overall}% complete · ${p.approved}/${p.total} approved</small></div><div class="createStages">${CREATE_STAGES.map(([k,l])=>{const desc=HELP_FLOW.find(x=>x.id===k)?.desc||'';return `<button class="createStage ${createStage===k?'on':''} tooltipHelp" data-help="${esc(desc)}" onclick="setCreateStage('${k}')">${l}</button>`}).join('')}</div><div class="createHeaderActions"><button class="btn tooltipHelp" data-help="현재 단계 도움말" onclick="openHelpCenter('context')">?</button><button class="btn" onclick="openCommandPalette()">⌘K</button><button class="btn" onclick="openProjectHistory()">History</button><button class="btn" onclick="toggleActivityPanel()">Activity</button></div></div>`;
+ return `<div class="createHeader"><span style="position:absolute;right:10px;top:6px;font-size:7px;color:#999">CREATE FIX V43.2.1</span><div class="createEp"><b>EP.${String(e.number).padStart(2,'0')} · ${esc(e.title)}</b><small>${p.overall}% complete · ${p.approved}/${p.total} approved</small></div><div class="createStages">${CREATE_STAGES.map(([k,l])=>{const desc=HELP_FLOW.find(x=>x.id===k)?.desc||'';return `<button class="createStage ${createStage===k?'on':''} tooltipHelp" data-help="${esc(desc)}" onclick="setCreateStage('${k}')">${l}</button>`}).join('')}</div><div class="createHeaderActions"><button class="btn tooltipHelp" data-help="현재 단계 도움말" onclick="openHelpCenter('context')">?</button><button class="btn" onclick="openCommandPalette()">⌘K</button><button class="btn" onclick="openProjectHistory()">History</button><button class="btn" onclick="toggleActivityPanel()">Activity</button></div></div>`;
 }
-function setCreateStage(stage){createStage=stage;localStorage.setItem('wtal_create_stage',stage);currentPage='CREATE';render()}
+const VALID_CREATE_STAGES=new Set(['story','conte','generate','review','lettering','assemble']);
+function normalizeCreateStage(stage){
+ const s=String(stage||'').toLowerCase();
+ if(VALID_CREATE_STAGES.has(s))return s;
+ const legacyMap={specs:'story',spec:'story',master:'generate',masters:'generate',production:'generate',image:'generate',images:'generate',qc:'review',edit:'review',letter:'lettering',export:'assemble'};
+ return legacyMap[s]||'generate';
+}
+function setCreateStage(stage){
+ createStage=normalizeCreateStage(stage);
+ localStorage.setItem('wtal_create_stage',createStage);
+ currentPage='CREATE';
+ localStorage.setItem('wtal_ui_page','CREATE');
+ render();
+}
 function injectCreateHeader(){if(currentPage!=='CREATE')return;const existing=document.querySelector('.createHeader');if(existing)return;view.insertAdjacentHTML('afterbegin',createHeaderHtml());enhanceInspectorTabs();simplifyLegacyPageChrome()}
 function renderCreate(){
+ const normalized=normalizeCreateStage(createStage);
+ if(normalized!==createStage){createStage=normalized;localStorage.setItem('wtal_create_stage',createStage)}
  if(createStage==='story')renderEpisodeStory();
  else if(createStage==='conte')renderConte();
  else if(createStage==='generate')renderEpisode();
  else if(createStage==='review')renderProduction();
  else if(createStage==='lettering')renderLetteringHub();
  else if(createStage==='assemble')renderAssemble();
+ else {createStage='generate';localStorage.setItem('wtal_create_stage','generate');renderEpisode()}
  injectCreateHeader();
 }
 
@@ -3726,7 +3746,23 @@ async function openPreProductionAudit(){
  <div class="taskAuditCard"><div class="eyebrow">STATIC AUDIT · FIXED IN V40</div><div class="auditFixList"><div class="auditFix"><b>Help Center 오류</b> · 존재하지 않는 continuityStatus() 호출을 실제 continuityReport severity 판정으로 수정.</div><div class="auditFix"><b>EP01 프롬프트 저장</b> · builtin CUT의 Prompt 저장이 실제로 영속화되지 않던 문제를 Editable CUT Map으로 수정.</div><div class="auditFix"><b>취소 UX</b> · 사용자 Abort를 일반 API 실패처럼 표시하지 않고 취소 상태로 분리.</div><div class="auditFix"><b>저장 안정성</b> · Episode Story / Stage / Lettering 완료 / Scene Pipeline / Auto Repair History 저장을 safeStorageSet으로 통합.</div><div class="auditFix"><b>API route</b> · 호출되는 9개 API endpoint와 실제 route가 일치하며 OpenAI route cancellation signal 연결을 확인.</div><div class="auditFix"><b>JS 구조</b> · frontend + 10 API routes syntax 검사 및 528개 function 중복 선언 없음 확인.</div></div></div>
  <div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove();currentPage='BACKUP';render()">Full Backup</button><button class="btn" onclick="document.querySelector('#genResult')?.remove();openReliabilityCenter()">Recovery</button><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
 }
-function goPage(page){currentPage=page;localStorage.setItem('wtal_ui_page',page);render()}
+function normalizePage(page){
+ const p=String(page||'HOME').toUpperCase();
+ const valid=new Set(['HOME','CREATE','LIBRARY','EPISODES','PROJECTS','PROJECT','PROJECT LEGACY','COST','BACKUP','STORY BIBLE','EPISODE STORY','CONTE','CONTROL','PIPELINE','ASSETS','EPISODE','PRODUCTION','ASSEMBLE']);
+ return valid.has(p)?p:'HOME';
+}
+function showNavigationError(page,error){
+ console.error('[WTAL NAVIGATION]',page,error);
+ if(view) view.innerHTML=`<div class="navErrorCard"><b>${esc(page)} 화면을 여는 중 오류가 발생했습니다.</b><div>페이지 이동 자체는 복구되었습니다. 아래 버튼으로 다시 시도할 수 있습니다.</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark" onclick="goPage('HOME')">Home</button><button class="btn" onclick="setCreateStage('generate')">Create · Generate</button></div><code>${esc(error?.message||String(error))}</code></div>`;
+}
+function goPage(page){
+ currentPage=normalizePage(page);
+ localStorage.setItem('wtal_ui_page',currentPage);
+ try{render()}catch(error){
+  showNavigationError(currentPage,error);
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===currentPage));
+ }
+}
 function renderHome(){
  const e=ep(),st=controlEpisodeStats(),blockers=controlBlockers(),pct=st.imageTotal?Math.round(st.complete/st.imageTotal*100):0,cost=costEvents(activeEpisodeId).reduce((a,x)=>a+Number(x.estimatedUsd||0),0);
  const attention=[];
@@ -3912,34 +3948,58 @@ document.addEventListener('keydown',e=>{
  handleGoShortcut(e);
 });
 
+function renderPageContent(){
+ if(currentPage==='HOME')return renderHome();
+ if(currentPage==='CREATE')return renderCreate();
+ if(currentPage==='LIBRARY')return renderAssets();
+ if(currentPage==='EPISODES')return renderEpisodeManager();
+ if(currentPage==='PROJECTS')return renderProjectsHub();
+ if(currentPage==='PROJECT')return renderProjectHub();
+ if(currentPage==='PROJECT LEGACY')return renderProject();
+ if(currentPage==='COST')return renderCostDashboard();
+ if(currentPage==='BACKUP')return renderBackupPage();
+ if(currentPage==='STORY BIBLE')return renderStoryBible();
+ if(currentPage==='EPISODE STORY')return renderEpisodeStory();
+ if(currentPage==='CONTE')return renderConte();
+ if(currentPage==='CONTROL')return renderHome();
+ if(currentPage==='PIPELINE')return renderPipeline();
+ if(currentPage==='ASSETS')return renderAssets();
+ if(currentPage==='EPISODE')return renderEpisode();
+ if(currentPage==='PRODUCTION')return renderProduction();
+ if(currentPage==='ASSEMBLE')return renderAssemble();
+ currentPage='HOME';localStorage.setItem('wtal_ui_page','HOME');return renderHome();
+}
 function render(){
- updateRecoveryBadge();
+ currentPage=normalizePage(currentPage);
+ try{updateRecoveryBadge()}catch(e){console.warn('Recovery badge render skipped',e)}
  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===currentPage));
  localStorage.setItem('wtal_ui_page',currentPage);
- const pn=document.querySelector('.projectMini strong');if(pn)pn.textContent=projectData.title||'Untitled Project';
- const se=document.querySelector('#sidebarEpisode');if(se){const e=ep();se.textContent=`EP.${String(e.number).padStart(2,'0')} · ${e.title}`}
- if(currentPage==='HOME')renderHome();
- else if(currentPage==='CREATE')renderCreate();
- else if(currentPage==='LIBRARY')renderAssets();
- else if(currentPage==='EPISODES')renderEpisodeManager();
- else if(currentPage==='PROJECTS')renderProjectsHub();
- else if(currentPage==='PROJECT')renderProjectHub();
- else if(currentPage==='PROJECT LEGACY')renderProject();
- else if(currentPage==='COST')renderCostDashboard();
- else if(currentPage==='BACKUP')renderBackupPage();
- else if(currentPage==='STORY BIBLE')renderStoryBible();
- else if(currentPage==='EPISODE STORY')renderEpisodeStory();
- else if(currentPage==='CONTE')renderConte();
- else if(currentPage==='CONTROL')renderHome();
- else if(currentPage==='PIPELINE')renderPipeline();
- else if(currentPage==='ASSETS')renderAssets();
- else if(currentPage==='EPISODE')renderEpisode();
- else if(currentPage==='PRODUCTION')renderProduction();
- else if(currentPage==='ASSEMBLE')renderAssemble();
- renderActivity();applyContextTooltips();
+ try{
+  const pn=document.querySelector('.projectMini strong');if(pn)pn.textContent=projectData.title||'Untitled Project';
+  const se=document.querySelector('#sidebarEpisode');if(se){const e=ep();se.textContent=`EP.${String(e.number).padStart(2,'0')} · ${e.title}`}
+ }catch(e){console.warn('Sidebar metadata render skipped',e)}
+ try{renderPageContent()}catch(error){showNavigationError(currentPage,error);throw error}
+ try{renderActivity()}catch(e){console.warn('Activity render skipped',e)}
+ try{applyContextTooltips()}catch(e){console.warn('Tooltip render skipped',e)}
 }
-
-document.querySelectorAll('.nav').forEach(btn=>btn.onclick=()=>goPage(btn.dataset.page));
+document.querySelectorAll('.nav').forEach(btn=>btn.onclick=()=>{
+ const page=btn.dataset.page;
+ if(page==='CREATE'){
+  createStage=normalizeCreateStage(createStage);
+  localStorage.setItem('wtal_create_stage',createStage);
+ }
+ goPage(page);
+});
+document.addEventListener('click',e=>{
+ const btn=e.target.closest?.('.nav[data-page]');
+ if(!btn||btn.onclick)return;
+ const page=btn.dataset.page;
+ if(page==='CREATE'){
+  createStage=normalizeCreateStage(createStage);
+  localStorage.setItem('wtal_create_stage',createStage);
+ }
+ goPage(page);
+});
 function toggleManual(cutId,assetId){const k=stateKey(cutId);const arr=new Set(manualLinks[k]||manualLinks[cutId]||[]);arr.has(assetId)?arr.delete(assetId):arr.add(assetId);manualLinks[k]=[...arr];localStorage.setItem('wtal_cut_links',JSON.stringify(manualLinks));renderEpisode()}
 function savePrompt(id){
  const value=document.querySelector('#promptBox')?.value??'',map=materializeEditableCutMap(),c=map[id];if(!c)return alert('CUT을 찾을 수 없습니다.');

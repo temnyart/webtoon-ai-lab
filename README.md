@@ -1934,3 +1934,36 @@ The `다음 미완료 작업` button routes to the next incomplete stage:
 - Assemble if assembly is missing
 
 This does not generate images and does not call paid APIs.
+
+
+## V43.2.1 — Create Navigation Fix
+
+Root cause:
+- The sidebar `Create` button correctly changed `currentPage` to `CREATE`.
+- But `renderCreate()` had no fallback when persisted `wtal_create_stage` contained an old/legacy value.
+- Result: Create became highlighted while the previous Home content remained on screen.
+
+Fix:
+- Added `normalizeCreateStage()`.
+- Added legacy stage mappings.
+- Invalid/stale stage values automatically fall back to `generate`.
+- `setCreateStage()` now validates the stage and persists `CREATE`.
+- Sidebar Create click normalizes the stage before navigation.
+- `renderCreate()` now has a defensive fallback instead of silently rendering nothing.
+
+
+## V43.2.2 — Global Navigation Recovery
+
+Observed symptom:
+- Clicking a sidebar item changed the active highlight, but the old page could remain visible.
+- This means the click handler ran, then a runtime error occurred during page rendering.
+
+Fixes:
+- page name normalization
+- isolated page renderer
+- guarded Recovery / sidebar metadata / Activity / tooltip rendering
+- visible recovery card instead of silently leaving stale page content
+- document-level navigation fallback
+- V43.2.1 Create-stage normalization retained
+
+No paid API calls.
