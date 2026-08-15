@@ -64,3 +64,12 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Advanced panel open state persists during Inspector rerenders.
 - Removed low-value/duplicated advanced UI: direct-tail selector, shadow, font browser/favorites, saved styles, Auto Layout master toggle, Auto Expand, Min Font, Padding X/Y.
 - Kept outline/opacity, tracking/leading, text outline, Auto Fit/max lines, fit-now, line-break cleanup.
+
+
+## V43.3.9 — Lettering Return Route
+- Standalone Lettering `돌아가기` no longer uses browser `history.back()`.
+- It explicitly returns to `Create → Lettering`.
+- Active episode and current CUT context are preserved.
+- Lettering error-state back button uses the same route.
+- Main app now consumes a one-shot `return=create-lettering` route and restores `currentPage=CREATE`, `createStage=lettering`.
+- Normal app reload also restores saved top-level page state from `wtal_ui_page`.

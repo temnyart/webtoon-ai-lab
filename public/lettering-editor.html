@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Webtoon AI Lab · Lettering V43.3.8</title>
+<title>Webtoon AI Lab · Lettering V43.3.9</title>
 <style>
 :root{--bg:#f4f4f6;--panel:#fff;--line:#e1e1e5;--text:#1d1d1f;--muted:#86868b;--accent:#111;--blue:#3578f6}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);overflow:hidden}
@@ -124,7 +124,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 .audit-row{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:start;border-bottom:1px solid #eee;padding:8px 0;font-size:8px}.audit-row .pass{color:#257543;font-weight:800}.audit-row .warn{color:#996b00;font-weight:800}.audit-row .fail{color:#a22;font-weight:800}.audit-log{font-family:ui-monospace,Consolas,monospace;font-size:7px;white-space:pre-wrap;background:#111;color:#ddd;border-radius:8px;padding:9px;margin-top:10px;max-height:220px;overflow:auto}
 @media(max-width:800px){.audit-summary{grid-template-columns:repeat(2,1fr)}.audit-panel{inset:60px 10px 10px}}
 
-/* V43.3.8 — simplified inspector + standard webtoon balloons */
+/* V43.3.9 — simplified inspector + standard webtoon balloons */
 .inspector{padding:12px 11px}.inspector .pane-title{position:sticky;top:-12px;background:#fff;z-index:5;padding:12px 0 8px;margin:0 0 4px}
 .inspector-intro{font-size:7px;line-height:1.55;color:#888;background:#f6f6f8;border-radius:8px;padding:8px;margin:6px 0 10px}
 .basic-style-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.basic-style-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 7px;text-align:left;cursor:pointer}.basic-style-btn:hover{background:#f5f5f7}.basic-style-btn.on{border-color:#111;box-shadow:inset 0 0 0 1px #111}.basic-style-btn b{display:block;font-size:8px}.basic-style-btn small{display:block;font-size:7px;color:#888;margin-top:2px}
@@ -151,7 +151,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.8</span>
+    <span class="badge">LETTERING V43.3.9</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div><span id="sourceStatus" class="status" style="display:none"></span>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -166,7 +166,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
     <aside class="inspector"><div class="pane-title"><b>Inspector</b><small>선택 요소</small></div><div id="inspector"></div></aside>
   </div>
 </div>
-<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.8 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
+<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.9 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
 <div id="toast" class="toast"></div>
 <script>
 
@@ -870,7 +870,17 @@ $('#closeAudit').addEventListener('click',()=>$('#auditPanel').classList.remove(
 $('#runAudit').addEventListener('click',runLetteringAudit);
 $('#stressAudit').addEventListener('click',runStressAudit);
 $('#save').addEventListener('click',()=>persist());
-$('#back').addEventListener('click',()=>history.length>1?history.back():location.href='/index.html');
+function returnToCreateLettering(){
+ try{
+  localStorage.setItem('wtal_ui_page','CREATE');
+  localStorage.setItem('wtal_create_stage','lettering');
+  if(episode)localStorage.setItem('wtal_active_episode',episode);
+  if(cut>0)localStorage.setItem('wtal_last_lettering_cut',String(cut));
+ }catch(e){console.warn('Lettering return state save skipped',e)}
+ const qs=new URLSearchParams({return:'create-lettering',episode:episode||'EP01',cut:String(cut||0),v:'43.3.9'});
+ location.replace(`/index.html?${qs.toString()}`);
+}
+$('#back').addEventListener('click',returnToCreateLettering);
 $('#zoomOut').addEventListener('click',()=>{zoom=Math.max(.35,zoom-.1); applyZoom()});
 $('#zoomIn').addEventListener('click',()=>{zoom=Math.min(2,zoom+.1); applyZoom()});
 function applyZoom(){$('#canvasScale').style.transform=`scale(${zoom})`; $('#zoomText').textContent=Math.round(zoom*100)+'%'}
@@ -1053,7 +1063,7 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.8 준비 완료');
+ toast('LETTERING V43.3.9 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error · V43.3.5';
@@ -1061,7 +1071,7 @@ imageLoad().then(()=>{
  render();
  const stage=$('#stage');
  if(stage){
-   stage.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div id="letteringLoadError" style="margin-top:8px;font-size:11px"></div><button onclick="history.back()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← 이전 화면으로</button></div></div>';
+   stage.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div id="letteringLoadError" style="margin-top:8px;font-size:11px"></div><button onclick="returnToCreateLettering()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← Create · Lettering으로</button></div></div>';
    const errEl=$('#letteringLoadError');
    if(errEl){
     const extra=Array.isArray(err?.resultKeys)&&err.resultKeys.length?`\n현재 저장 키: ${err.resultKeys.join(', ')}`:'';
