@@ -1,0 +1,28 @@
+{
+  "version": "V43.3.2",
+  "syntax_pass": true,
+  "syntax_files": 12,
+  "feature_checks": {
+    "main_legacy_resolver": true,
+    "non_destructive_copy": true,
+    "binary_first_response": true,
+    "binary_first_save": true,
+    "storage_compaction": true,
+    "blob_recovery": true,
+    "lettering_cachebuster": true,
+    "lettering_live_resolver": true,
+    "lettering_snapshot_resolver": true,
+    "lettering_canonical_repair": true,
+    "lettering_blob": true,
+    "lettering_version": true,
+    "create_header_observer": true,
+    "export_preflight": true
+  },
+  "feature_pass": true,
+  "syntax_failures": [],
+  "safety": {
+    "regeneration_required_for_old_results": false,
+    "legacy_repair_deletes_original": false,
+    "new_generation_primary_storage": "Blob"
+  }
+}

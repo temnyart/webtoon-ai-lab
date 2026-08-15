@@ -2066,3 +2066,36 @@ Hardening:
 - Lettering load error text is now rendered with `textContent`.
 
 This patch does not regenerate an image during recovery.
+
+
+## V43.3.2 — Existing Result Recovery + Binary-First Generation
+
+### Important behavior
+A code deployment must **not** require regenerating existing Final images. This patch explicitly preserves that rule.
+
+### Existing Final image recovery
+When a canonical key such as `EP01:16` is not found:
+1. exact live IndexedDB key
+2. legacy key variants / zero-padded CUT keys
+3. result metadata (`episodeId`, `cutId`)
+4. compatible live result key
+5. matching-project snapshot in the IndexedDB `projects` store
+
+If a safe match is found, it is copied non-destructively to the canonical key. The original is not deleted.
+
+Both the main app and standalone Lettering use compatible recovery logic.
+
+### Lettering cache
+Opening Lettering now uses `v=43.3.2` plus a timestamp cache-buster so an old standalone HTML file cannot remain cached after deployment.
+
+### New generation storage
+The `/api/generate-cut` binary WebP response is now stored as a Blob **before** converting it to Base64/DataURL for UI.
+This removes unnecessary Base64 overhead from the critical save path.
+
+### Failure recovery
+- Paid generated image remains in RAM as Blob if browser persistence fails.
+- save-only retry continues to work.
+- recovery download supports Blob-only results.
+- Lettering error UI reports the requested key and current result inventory count instead of requiring blind regeneration.
+
+No existing image is intentionally cleared or replaced.

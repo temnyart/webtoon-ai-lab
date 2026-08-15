@@ -129,7 +129,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.1</span>
+    <span class="badge">LETTERING V43.3.2</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -946,9 +946,9 @@ function auditCurrentItems(){
 }
 async function auditIndexedDbResult(){
  try{
-  const db=await new Promise((res,rej)=>{const r=indexedDB.open('wtal_db',4);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
-  const rec=await new Promise((res,rej)=>{const tx=db.transaction('results','readonly'),r=tx.objectStore('results').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
-  return auditResult('Final Image',rec?.image?'pass':'warn',rec?.image?'IndexedDB 결과 이미지 존재':'현재 CUT 결과 이미지 없음');
+  const {rec,source}=await resolveLetteringResult(key);
+  const ok=!!(rec?.image||(rec?.imageBlob instanceof Blob));
+  return auditResult('Final Image',ok?'pass':'warn',ok?`결과 이미지 존재${source!==key?` · 복구 ${source} → ${key}`:''}`:'현재 CUT 결과 이미지 없음');
  }catch(e){return auditResult('IndexedDB','fail',e.message)}
 }
 function auditSavedReload(){
@@ -997,13 +997,70 @@ async function runStressAudit(){
 function letteringBlobToDataUrl(blob){
  return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Blob decode failed'));r.readAsDataURL(blob)});
 }
+function letteringResultKeyParts(k){
+ const m=String(k||'').match(/^([^:]+):(\d+)$/);return m?{episodeId:m[1],cutId:Number(m[2])}:null;
+}
+function letteringResultScore(requestKey,candidateKey,value){
+ const req=letteringResultKeyParts(requestKey);if(!req)return -1;
+ const k=String(candidateKey||''),parts=letteringResultKeyParts(k);
+ if(k===requestKey)return 1000;
+ if(String(value?.episodeId||'').toLowerCase()===req.episodeId.toLowerCase()&&Number(value?.cutId)===req.cutId)return 950;
+ if(parts&&parts.episodeId.toLowerCase()===req.episodeId.toLowerCase()&&parts.cutId===req.cutId)return 900;
+ if(k===`${req.episodeId}:${String(req.cutId).padStart(3,'0')}`)return 880;
+ if(parts&&parts.cutId===req.cutId)return 250;
+ if(k===String(req.cutId))return 200;
+ return -1;
+}
+async function letteringOpenDb(){
+ return await new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+}
+async function letteringRawResult(db,k){
+ return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly'),r=tx.objectStore('results').get(k);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});
+}
+async function letteringScanLive(db,requestKey){
+ return await new Promise((resolve,reject)=>{
+  const tx=db.transaction('results','readonly'),req=tx.objectStore('results').openCursor(),rows=[];
+  req.onsuccess=()=>{const cur=req.result;if(cur){if(!String(cur.key).startsWith('storyboard:')){const score=letteringResultScore(requestKey,cur.key,cur.value);if(score>=0)rows.push({key:cur.key,value:cur.value,score})}cur.continue()}else{rows.sort((a,b)=>b.score-a.score);if(rows.length>1&&rows[0].score===rows[1].score&&rows[0].score<900)return resolve(null);resolve(rows[0]||null)}};
+  req.onerror=()=>reject(req.error);
+ });
+}
+async function letteringScanSnapshots(db,requestKey){
+ if(!db.objectStoreNames.contains('projects'))return null;
+ let currentTitle='';try{currentTitle=JSON.parse(localStorage.getItem('wtal_project')||'{}')?.title||''}catch(_){}
+ if(!currentTitle)return null;
+ return await new Promise((resolve,reject)=>{
+  const tx=db.transaction('projects','readonly'),req=tx.objectStore('projects').openCursor(),rows=[];
+  req.onsuccess=()=>{const cur=req.result;if(cur){const snap=cur.value?.snapshot||{},local=snap.localStorage||{};let title='';try{title=JSON.parse(local.wtal_project||'{}')?.title||''}catch(_){}if(title===currentTitle){for(const item of snap.results||[]){if(String(item?.key||'').startsWith('storyboard:'))continue;const score=letteringResultScore(requestKey,item?.key,item?.value);if(score>=0)rows.push({key:item.key,value:item.value,score,projectId:cur.key})}}cur.continue()}else{rows.sort((a,b)=>b.score-a.score);if(rows.length>1&&rows[0].score===rows[1].score&&rows[0].score<900)return resolve(null);resolve(rows[0]||null)}};
+  req.onerror=()=>reject(req.error);
+ });
+}
+async function letteringCopyCanonical(db,requestKey,rec){
+ try{await new Promise((resolve,reject)=>{const tx=db.transaction('results','readwrite');tx.objectStore('results').put(rec,requestKey);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('repair write aborted'))})}catch(e){console.warn('Lettering canonical repair skipped',e)}
+}
+async function resolveLetteringResult(requestKey){
+ const db=await letteringOpenDb();
+ let rec=await letteringRawResult(db,requestKey),source=requestKey;
+ if(!rec){
+  let candidate=await letteringScanLive(db,requestKey);
+  if(!candidate)candidate=await letteringScanSnapshots(db,requestKey);
+  if(candidate?.value){rec=candidate.value;source=candidate.key;await letteringCopyCanonical(db,requestKey,rec)}
+ }
+ return {db,rec,source};
+}
+async function letteringResultInventory(db){
+ return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly'),req=tx.objectStore('results').openCursor(),keys=[];req.onsuccess=()=>{const cur=req.result;if(cur){if(!String(cur.key).startsWith('storyboard:'))keys.push(String(cur.key));cur.continue()}else resolve(keys)};req.onerror=()=>reject(req.error)});
+}
 async function imageLoad(){
  if(!key)throw new Error('Lettering target CUT is missing');
- const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
- const rec=await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly'), r=tx.objectStore('results').get(key); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
+ const {db,rec,source}=await resolveLetteringResult(key);
  let image=rec?.image||null;
  if(!image&&rec?.imageBlob instanceof Blob)image=await letteringBlobToDataUrl(rec.imageBlob);
- if(!image) throw new Error('Final image not found: '+key);
+ if(!image){
+  const keys=await letteringResultInventory(db);
+  const err=new Error(`Final image not found: ${key} · 저장된 Final 결과 ${keys.length}개`);
+  err.resultKeys=keys.slice(0,20);throw err;
+ }
+ if(source!==key)console.info('[LETTERING result recovered]',{requested:key,source});
  $('#image').src=image;
 }
 
@@ -1019,7 +1076,7 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.1 준비 완료');
+ toast('LETTERING V43.3.2 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error';
@@ -1028,7 +1085,12 @@ imageLoad().then(()=>{
  const stage=$('#stage');
  if(stage){
    stage.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div id="letteringLoadError" style="margin-top:8px;font-size:11px"></div><button onclick="history.back()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← 이전 화면으로</button></div></div>';
-   const errEl=$('#letteringLoadError');if(errEl)errEl.textContent=err?.message||String(err);
+   const errEl=$('#letteringLoadError');
+   if(errEl){
+    const extra=Array.isArray(err?.resultKeys)&&err.resultKeys.length?`\n현재 저장 키: ${err.resultKeys.join(', ')}`:'';
+    errEl.textContent=(err?.message||String(err))+extra;
+    errEl.style.whiteSpace='pre-wrap';
+   }
  }
  toast(err.message);
 });
