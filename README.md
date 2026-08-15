@@ -1069,3 +1069,85 @@ V38 is deliberately guidance-only:
 - no production image test
 - no new paid API calls
 - no change to generation priority or Continuity behavior.
+
+
+## V39 — Long Task UX / Cancellation Audit
+This release is a focused pre-production audit prompted by slow, uncancellable Review batch operations.
+
+### Main issue found
+Review had two sequential API batch actions:
+- `STATE 전체 분석`
+- `CONTINUITY 전체 검수`
+
+Both ran CUT-by-CUT with a progress bar but had no stop control. Closing the modal only hid the UI; it did not stop the loop.
+
+The same pattern also existed in:
+- 전체 콘티 생성
+- SCENE Pipeline
+- Scene Continuity Auto Repair (between CUTs)
+- several single API loading dialogs.
+
+### Long Task Manager
+Long sequential tasks now use a shared manager with:
+- explicit progress
+- completed / total
+- elapsed time
+- live CUT log
+- Cancel button
+- cancelling state
+- completed items preserved
+- no new items started after cancellation.
+
+Covered:
+- STATE 전체 분석
+- CONTINUITY 전체 검수
+- 전체 콘티 생성
+- SCENE Pipeline STATE/CONTE
+- SCENE Pipeline FINAL/QC
+- Scene Auto Repair batch.
+
+### Activity request cancellation
+Every `trackedFetch` request now registers its AbortController by Activity ID.
+Activity rows expose `요청 취소` while the request is running.
+
+This provides a common cancel path for long single calls as well as batch calls.
+
+### Single-operation cancel controls
+Explicit Cancel buttons added to loading UI for:
+- Character State analysis
+- Continuity QC
+- Storyboard generation
+- Final CUT generation.
+
+### Server cancellation propagation
+All OpenAI POST routes now pass `req.signal` into their upstream OpenAI `fetch`.
+Therefore a browser Abort request is propagated from:
+browser → Vercel route → OpenAI fetch.
+
+Cancellation is still a best-effort network cancellation: if upstream work has already completed, billing may already have occurred.
+
+### Cancellation semantics
+- Cancelled requests are Activity status `Cancelled`, not `Failed`.
+- User cancellation is not written to Recovery Center as an application error.
+- API usage logs retain a cancellation note because upstream cost cannot be guaranteed to be zero.
+- Completed CUT results/states are not rolled back.
+- A cancelled batch stops before starting the next CUT.
+
+### Modal safety
+Long-task modal `×` and backdrop clicks no longer merely hide a running task.
+They route through the same cancellation confirmation.
+
+### Pipeline safety change
+V39 stops automatically running Auto Repair inside the large FINAL→QC Scene Pipeline.
+If QC finds a continuity issue, it is logged for review / explicit Auto Repair.
+This reduces runaway API chains and makes cancellation boundaries predictable.
+
+### Audit findings left intentionally non-cancellable
+Local-only operations such as:
+- IndexedDB thumbnail hydration
+- normal metadata saves
+- ZIP parsing
+- small History pruning
+are not presented as cancellable jobs because they do not issue repeated paid API calls and are normally short.
+
+Full backup/export rendering remains a local CPU/I/O operation; it has status text but is not yet converted into a resumable worker. This is lower risk than the API batch issue and should only be promoted to a worker if real large-project testing shows UI blocking.

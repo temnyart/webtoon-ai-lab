@@ -161,7 +161,7 @@ export async function POST(req){
       tools:[{type:'image_generation',model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5',quality:presetQuality,size:'1024x1536',input_fidelity:presetInputFidelity,output_format:'webp',output_compression:presetCompression}],
       tool_choice:{type:'image_generation'}
     };
-    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch('https://api.openai.com/v1/responses',{signal:req.signal,method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok) return Response.json({error:data?.error?.message || 'OpenAI API request failed',details:data?.error || null},{status:r.status});
     const b64=imageResult(data);

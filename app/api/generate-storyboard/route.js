@@ -30,7 +30,7 @@ export async function POST(req){
   const orchestrator=process.env.OPENAI_ORCHESTRATOR_MODEL||'gpt-5';
   const imageModel=process.env.OPENAI_STORYBOARD_IMAGE_MODEL||process.env.OPENAI_IMAGE_MODEL||'gpt-image-1.5';
   const payload={model:orchestrator,input:[{role:'user',content}],tools:[{type:'image_generation',model:imageModel,quality:'low',output_format:'webp',output_compression:80}],tool_choice:{type:'image_generation'}};
-  const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const r=await fetch('https://api.openai.com/v1/responses',{signal:req.signal,method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const data=await r.json();if(!r.ok)return Response.json({error:data?.error?.message||'Storyboard generation failed'},{status:r.status});
   const b64=imageResult(data);if(!b64)return Response.json({error:'콘티 이미지 결과를 찾지 못했습니다.'},{status:502});
   return Response.json({ok:true,image:`data:image/webp;base64,${b64}`,model:imageModel,prompt});

@@ -49,7 +49,7 @@ export async function POST(req){
    content.push({type:'input_image',image_url:r.dataUrl,detail:'high'});
   }
   const model=process.env.OPENAI_QC_MODEL||process.env.OPENAI_ORCHESTRATOR_MODEL||'gpt-5';
-  const resp=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'user',content}],max_output_tokens:1800})});
+  const resp=await fetch('https://api.openai.com/v1/responses',{signal:req.signal,method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'user',content}],max_output_tokens:1800})});
   const data=await resp.json();if(!resp.ok)return Response.json({error:data?.error?.message||'OpenAI continuity QC failed'},{status:resp.status});
   const report=parseJSON(extractText(data));
   const order={ok:0,warning:1,critical:2};let sev='ok';

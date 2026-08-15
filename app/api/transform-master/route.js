@@ -61,6 +61,7 @@ export async function POST(req){
       tool_choice:{type:'image_generation'}
     };
     const r=await fetch('https://api.openai.com/v1/responses',{
+      signal:req.signal,
       method:'POST',
       headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
       body:JSON.stringify(payload)

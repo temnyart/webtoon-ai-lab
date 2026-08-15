@@ -235,6 +235,10 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 /* V38 — Onboarding / Help */
 .helpBtn{font-weight:800;min-width:28px}.helpCenterTabs{display:flex;gap:4px;background:#eeeef0;padding:4px;border-radius:10px;width:max-content;margin:0 0 12px}.helpCenterTabs button{border:0;background:transparent;border-radius:7px;padding:7px 10px;font-size:9px;font-weight:750;color:#666;cursor:pointer}.helpCenterTabs button.on{background:#fff;color:#111;box-shadow:0 1px 4px #0001}.helpFlow{display:grid;gap:7px}.helpFlowRow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px}.helpFlowNum{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#f0f0f2;font-size:9px;font-weight:800}.helpFlowNum.done{background:#eaf6ed;color:#27703b}.helpFlowRow b{font-size:10px}.helpFlowRow small{display:block;font-size:8px;color:#888;margin-top:2px;line-height:1.4}.helpStatus{display:inline-flex;border-radius:999px;padding:3px 6px;font-size:7px;font-weight:800;background:#f1f1f3;color:#777}.helpStatus.done{background:#edf7ef;color:#27703b}.helpStatus.ready{background:#eef4ff;color:#315a99}.helpStatus.blocked{background:#fff4df;color:#8c5907}.shortcutGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.shortcutRow{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:#fafafa;border-radius:9px;padding:9px;font-size:9px}.shortcutRow kbd{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#fff;border:1px solid #d8d8db;border-bottom-width:2px;border-radius:5px;padding:3px 6px;font-size:8px;color:#444}.helpTip{border-left:3px solid #111;background:#fafafa;border-radius:0 9px 9px 0;padding:9px 10px;font-size:8px;color:#666;line-height:1.55}.helpSection{margin-top:13px}.helpSection h3{font-size:11px;margin:0 0 7px}.helpFaq{display:grid;gap:6px}.helpFaq details{border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px}.helpFaq summary{cursor:pointer;font-size:9px;font-weight:750}.helpFaq p{font-size:8px;color:#777;line-height:1.55;margin:7px 0 0}.contextHelpBar{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);background:#fafafa;border-radius:10px;padding:8px 10px;margin:10px 0 12px}.contextHelpBar span{font-size:8px;color:#777}.contextHelpBar b{color:#333}.tourBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:1400}.tourSpotlight{position:fixed;border:2px solid #fff;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.38),0 0 0 5px rgba(255,255,255,.18);z-index:1401;pointer-events:none;transition:.18s}.tourCard{position:fixed;z-index:1402;width:min(340px,calc(100vw - 24px));background:#fff;border-radius:14px;padding:14px;box-shadow:0 18px 70px rgba(0,0,0,.28)}.tourCard .eyebrow{margin-bottom:5px}.tourCard h3{font-size:14px;margin:0 0 6px}.tourCard p{font-size:9px;color:#666;line-height:1.55;margin:0 0 12px}.tourProgress{font-size:8px;color:#999}.tourActions{display:flex;justify-content:space-between;gap:8px;align-items:center}.welcomeHero{text-align:center;padding:8px 5px 4px}.welcomeMark{width:48px;height:48px;border-radius:14px;background:#111;color:#fff;display:grid;place-items:center;font-size:20px;font-weight:850;margin:0 auto 12px}.welcomeHero h2{font-size:19px;margin:0 0 6px}.welcomeHero p{font-size:10px;color:#777;line-height:1.55;max-width:520px;margin:0 auto}.welcomeFlow{display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;margin:14px 0}.welcomeFlow span{font-size:8px;border:1px solid var(--line);background:#fafafa;border-radius:999px;padding:5px 7px}.welcomeFlow i{font-style:normal;color:#aaa;font-size:8px}.onboardingChecklist{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}.onboardingCheck{border:1px solid var(--line);border-radius:9px;padding:8px;background:#fafafa}.onboardingCheck b{display:block;font-size:9px}.onboardingCheck small{display:block;font-size:7px;color:#888;margin-top:2px}.tooltipHelp{position:relative}.tooltipHelp[data-help]:hover:after{content:attr(data-help);position:absolute;z-index:800;left:50%;top:calc(100% + 7px);transform:translateX(-50%);width:max-content;max-width:240px;background:#1d1d1f;color:#fff;padding:6px 8px;border-radius:6px;font-size:8px;line-height:1.4;pointer-events:none;box-shadow:0 5px 18px #0003}
 @media(max-width:700px){.shortcutGrid{grid-template-columns:1fr}.onboardingChecklist{grid-template-columns:1fr 1fr}.helpFlowRow{grid-template-columns:28px 1fr}.helpFlowRow>.btn{grid-column:2}.tourCard{left:12px!important;right:12px!important;width:auto!important}}
+
+/* V39 — Long Task UX / Cancellation Audit */
+.longTaskBox{padding:6px 2px}.longTaskHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.longTaskHead h2{font-size:15px;margin:3px 0 5px}.longTaskMeta{font-size:8px;color:#888;line-height:1.5}.longTaskProgress{height:9px;background:#ececef;border-radius:999px;overflow:hidden;margin:12px 0 7px}.longTaskProgress span{display:block;height:100%;width:0;background:#111;transition:width .18s}.longTaskStatus{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:#666}.longTaskLive{max-height:190px;overflow:auto;border:1px solid var(--line);background:#fafafa;border-radius:9px;margin-top:9px}.longTaskLiveRow{display:grid;grid-template-columns:60px 70px 1fr;gap:7px;padding:6px 8px;border-bottom:1px solid #eee;font-size:8px}.longTaskLiveRow:last-child{border-bottom:0}.longTaskLiveRow.cancel{color:#9a6410}.longTaskLiveRow.error{color:#a22}.longTaskActions{display:flex;justify-content:flex-end;gap:7px;margin-top:11px}.cancelBtn{border-color:#e3baba!important;color:#9b2e2e!important;background:#fff8f8!important}.activityCancel{border:1px solid #e4bebe;background:#fff7f7;color:#9b3333;border-radius:6px;padding:4px 6px;font-size:8px;cursor:pointer;margin-top:6px}.activityItem.cancelled{opacity:.7}.activityItem.cancelled .activityProgress span{width:100%!important;background:#aaa!important}.taskAuditCard{border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px;margin:10px 0}.taskAuditGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.taskAuditStat{background:#fafafa;border:1px solid #eee;border-radius:9px;padding:8px}.taskAuditStat small{display:block;font-size:7px;color:#999}.taskAuditStat b{display:block;font-size:13px;margin-top:2px}.taskPolicy{font-size:8px;color:#666;line-height:1.55;margin-top:8px}.taskPolicy b{color:#222}.batchButtonNote{font-size:8px;color:#888;margin-left:5px}
+@media(max-width:650px){.taskAuditGrid{grid-template-columns:1fr 1fr}.longTaskLiveRow{grid-template-columns:50px 1fr}.longTaskLiveRow span:last-child{grid-column:2}}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -687,16 +691,68 @@ function operationFromUrl(url){
  return map[url]||String(url).replace('/api/','').replaceAll('-','_');
 }
 function recordApiUsage(evt){apiUsageEvents.push({id:`evt_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,at:new Date().toISOString(),...evt});saveApiUsage()}
+
+let activeLongTask=null;
+const runningRequestControllers=new Map();
+function taskCancelledError(){const e=new Error('작업이 취소되었습니다.');e.name='AbortError';e.cancelled=true;return e}
+function startLongTask(label,total,{operation='',scope='episode'}={}){
+ if(activeLongTask?.status==='running')throw new Error(`이미 "${activeLongTask.label}" 작업이 실행 중입니다.`);
+ activeLongTask={id:`task_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,label,total:Number(total||0),done:0,status:'running',operation,scope,controller:new AbortController(),startedAt:Date.now(),logs:[],cancelRequested:false};
+ showLongTaskModal();return activeLongTask;
+}
+function longTaskSignal(){return activeLongTask?.status==='running'?activeLongTask.controller.signal:null}
+function taskElapsed(){if(!activeLongTask)return '';const sec=Math.max(0,Math.round((Date.now()-activeLongTask.startedAt)/1000));return sec<60?`${sec}초`:`${Math.floor(sec/60)}분 ${sec%60}초`}
+function showLongTaskModal(){
+ const t=activeLongTask;if(!t)return;
+ modalShell(`<div class="longTaskBox"><div class="eyebrow">LONG TASK · V39</div><div class="longTaskHead"><div><h2>${esc(t.label)}</h2><div class="longTaskMeta">순차 작업은 완료된 항목까지 저장됩니다. 취소하면 현재 요청을 중단 요청하고 다음 항목은 실행하지 않습니다.</div></div><span class="reliabilityBadge warn">RUNNING</span></div><div class="longTaskProgress"><span id="longTaskBar"></span></div><div class="longTaskStatus"><span id="longTaskText">0 / ${t.total}</span><span id="longTaskElapsed">0초</span></div><div id="longTaskLive" class="longTaskLive"></div><div class="longTaskActions"><button class="btn cancelBtn" onclick="requestLongTaskCancel()">작업 취소</button><button class="btn" onclick="toggleActivityPanel(true)">Activity 보기</button></div></div>`,{longTask:true});
+}
+function updateLongTask(done,total=null,item='',message='',level=''){
+ const t=activeLongTask;if(!t)return;t.done=done;t.total=total||t.total;
+ if(message){t.logs.push({at:new Date().toISOString(),item,message,level});if(t.logs.length>80)t.logs.shift()}
+ const pct=Math.round((t.done/Math.max(1,t.total))*100),bar=document.querySelector('#longTaskBar'),text=document.querySelector('#longTaskText'),elapsed=document.querySelector('#longTaskElapsed'),live=document.querySelector('#longTaskLive');
+ if(bar)bar.style.width=`${pct}%`;if(text)text.textContent=`${t.done} / ${t.total} · ${pct}%${item?` · ${item}`:''}`;if(elapsed)elapsed.textContent=taskElapsed();
+ if(live&&message)live.insertAdjacentHTML('beforeend',`<div class="longTaskLiveRow ${esc(level)}"><span>${new Date().toLocaleTimeString()}</span><b>${esc(item||'TASK')}</b><span>${esc(message)}</span></div>`) ,live.scrollTop=live.scrollHeight;
+}
+function requestLongTaskCancel(){
+ const t=activeLongTask;if(!t||t.status!=='running')return;
+ if(!confirm(`"${t.label}" 작업을 중단할까요?\n\n완료된 항목은 유지되고, 아직 시작하지 않은 항목은 실행하지 않습니다.`))return;
+ t.cancelRequested=true;t.status='cancelling';t.controller.abort(new DOMException('사용자 취소','AbortError'));
+ document.querySelector('.longTaskHead .reliabilityBadge')?.replaceChildren(document.createTextNode('CANCELLING'));
+ const b=[...document.querySelectorAll('.longTaskActions button')].find(x=>x.textContent.includes('작업 취소'));if(b){b.disabled=true;b.textContent='취소 요청 중…'}
+ updateLongTask(t.done,t.total,'CANCEL','현재 요청 중단을 요청했습니다.','cancel');
+}
+function finishLongTask(status='done',message=''){
+ const t=activeLongTask;if(!t)return;t.status=status;t.finishedAt=Date.now();
+ if(message)updateLongTask(t.done,t.total,status==='cancelled'?'CANCEL':'DONE',message,status==='cancelled'?'cancel':status==='error'?'error':'');
+ const modal=document.querySelector('#genResult');
+ if(modal){
+  const badge=modal.querySelector('.longTaskHead .reliabilityBadge');if(badge){badge.textContent=status==='cancelled'?'CANCELLED':status==='error'?'ERROR':'DONE';badge.className=`reliabilityBadge ${status==='done'?'':'warn'}`}
+  const actions=modal.querySelector('.longTaskActions');if(actions)actions.innerHTML=`<button class="btn dark" onclick="document.querySelector('#genResult')?.remove();activeLongTask=null;render()">닫기</button>`;
+ }
+}
+function activeTaskSignalOr(signal=null){return signal||longTaskSignal()}
+function cancelRequest(activityId){
+ const c=runningRequestControllers.get(activityId);if(!c)return;c.abort(new DOMException('사용자 취소','AbortError'));
+}
+function cancelMatchingRequest(operation,cutId=null){
+ const a=[...activityItems].reverse().find(x=>x.status==='running'&&x.operation===operation&&(cutId==null||x.cutId===cutId));if(a)cancelRequest(a.id);else reliabilityToast('현재 취소 가능한 API 요청을 찾지 못했습니다.','warn');
+}
+function closeActiveModal(){
+ if(activeLongTask?.status==='running'||activeLongTask?.status==='cancelling')return requestLongTaskCancel();
+ document.querySelector('#genResult')?.remove();
+}
 async function trackedFetch(url,options={},meta={}){
  const op=meta.operation||operationFromUrl(url),started=performance.now(),cfg=costCfg(),activityId=activityStart(op,meta);
  if(!navigator.onLine){
   const err=new Error('인터넷 연결이 없습니다. 온라인 상태에서 다시 시도하세요.');
   activityFinish(activityId,false);recordFailure({operation:op,endpoint:url,episodeId:meta.episodeId||activeEpisodeId,cutId:meta.cutId??null,status:0,message:err.message,note:meta.note||'',retryable:true});throw err;
  }
- const timeoutMs=Number(meta.timeoutMs||240000),controller=new AbortController(),external=options.signal,timer=setTimeout(()=>controller.abort(new DOMException('Request timeout','AbortError')),timeoutMs);
+ const timeoutMs=Number(meta.timeoutMs||240000),controller=new AbortController(),external=options.signal;let timedOut=false;
+ runningRequestControllers.set(activityId,controller);renderActivity();
+ const timer=setTimeout(()=>{timedOut=true;controller.abort(new DOMException('Request timeout','AbortError'))},timeoutMs);
  if(external){if(external.aborted)controller.abort(external.reason);else external.addEventListener('abort',()=>controller.abort(external.reason),{once:true})}
  try{
-  const res=await fetch(url,{...options,signal:controller.signal});clearTimeout(timer);
+  const res=await fetch(url,{...options,signal:controller.signal});clearTimeout(timer);runningRequestControllers.delete(activityId);
   activityFinish(activityId,res.ok);
   recordApiUsage({kind:'api',operation:op,endpoint:url,episodeId:meta.episodeId||activeEpisodeId,cutId:meta.cutId??null,success:res.ok,status:res.status,durationMs:Math.round(performance.now()-started),estimatedUsd:Number(cfg[op]||0),note:meta.note||''});
   if(res.ok)resolveFailures(op,meta.episodeId||activeEpisodeId,meta.cutId??null);
@@ -706,8 +762,15 @@ async function trackedFetch(url,options={},meta={}){
   }
   return res;
  }catch(err){
-  clearTimeout(timer);activityFinish(activityId,false);
-  const msg=err?.name==='AbortError'?'요청 시간이 초과되었습니다.':String(err?.message||err);
+  clearTimeout(timer);runningRequestControllers.delete(activityId);
+  const cancelled=!timedOut&&(external?.aborted||controller.signal.aborted);
+  if(cancelled){
+   activitySetStatus(activityId,'cancelled');
+   recordApiUsage({kind:'api',operation:op,endpoint:url,episodeId:meta.episodeId||activeEpisodeId,cutId:meta.cutId??null,success:false,status:0,durationMs:Math.round(performance.now()-started),estimatedUsd:Number(cfg[op]||0),note:'사용자 취소 요청 · 서버/업스트림 중단 요청됨'});
+   throw taskCancelledError();
+  }
+  activityFinish(activityId,false);
+  const msg=timedOut?'요청 시간이 초과되었습니다.':String(err?.message||err);
   recordApiUsage({kind:'api',operation:op,endpoint:url,episodeId:meta.episodeId||activeEpisodeId,cutId:meta.cutId??null,success:false,status:0,durationMs:Math.round(performance.now()-started),estimatedUsd:Number(cfg[op]||0),note:msg});
   recordFailure({operation:op,endpoint:url,episodeId:meta.episodeId||activeEpisodeId,cutId:meta.cutId??null,status:0,message:msg,note:meta.note||'',retryable:true});
   throw new Error(msg);
@@ -1213,15 +1276,15 @@ async function storyboardReferences(c){
  for(const r of req){const a=autoAsset(r);if(a)out.push({name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,800,.62)})}
  return out.slice(0,4);
 }
-async function generateStoryboard(id,silent=false){
+async function generateStoryboard(id,silent=false,signal=null){
  const c=cutsForEpisode()[id];if(!c)return;
- if(!silent)modalShell(`<div class="eyebrow">ROUGH STORYBOARD</div><h2>CUT ${String(id).padStart(3,'0')} 생성 중…</h2><p class="lead">구도·인물 위치·카메라·행동만 확인하는 러프 콘티를 생성합니다.</p>`);
+ if(!silent)modalShell(`<div class="eyebrow">ROUGH STORYBOARD</div><h2>CUT ${String(id).padStart(3,'0')} 생성 중…</h2><p class="lead">구도·인물 위치·카메라·행동만 확인하는 러프 콘티를 생성합니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('storyboard',${id})">생성 취소</button></div>`);
  try{
   const refs=await storyboardReferences(c);
   const res=await trackedFetch('/api/generate-storyboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    episodeId:activeEpisodeId,cutId:id,scene:c.scene,title:c.title,shot:c.shot,camera:c.camera,action:c.action,characters:c.characters||[],backgrounds:c.backgrounds||[],props:c.props||[],
    storyActing:v2Spec(c),sceneLook:getSceneLook(c.scene),spatialContext:spatialContextForCut(c),characterState:currentCharacterStates(c),storyboardNote:storyboardState(id).note||c._storyboardNote||'',references:refs
-  })},{operation:'storyboard',episodeId:activeEpisodeId,cutId:id});
+  }),signal:activeTaskSignalOr(signal)},{operation:'storyboard',episodeId:activeEpisodeId,cutId:id});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   await putStoryboard(id,{image:data.image,model:data.model,prompt:data.prompt||'',updatedAt:new Date().toISOString()});
   setStoryboardState(id,{status:'generated'});
@@ -1247,10 +1310,21 @@ async function approveAllGeneratedStoryboards(){const vals=Object.values(cutsFor
 async function generateAllStoryboards(){
  const vals=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id).filter(c=>storyboardState(c.id).status!=='approved');
  if(!vals.length)return alert('생성할 미승인 콘티가 없습니다.');
- if(!confirm(`${vals.length}개 CUT의 러프 콘티를 순차 생성할까요? API 비용이 발생합니다.`))return;
- modalShell(`<div class="eyebrow">AUTO STORYBOARD</div><h2>${vals.length} CUT 순차 생성</h2><p class="lead" id="conteProgress">0 / ${vals.length}</p><div style="height:8px;background:#eee;border-radius:999px;overflow:hidden"><div id="conteBar" style="height:100%;width:0;background:#111"></div></div>`);
- for(let i=0;i<vals.length;i++){await generateStoryboard(vals[i].id,true);const t=document.querySelector('#conteProgress'),b=document.querySelector('#conteBar');if(t)t.textContent=`${i+1} / ${vals.length}`;if(b)b.style.width=`${Math.round((i+1)/vals.length*100)}%`}
- document.querySelector('#genResult')?.remove();renderConte();
+ if(!confirm(`${vals.length}개 CUT의 러프 콘티를 순차 생성할까요?\nAPI 비용이 발생하며 진행 중 언제든 취소할 수 있습니다.`))return;
+ let task;try{task=startLongTask('전체 콘티 생성',vals.length,{operation:'storyboard'})}catch(e){return alert(e.message)}
+ let completed=0,failed=0;
+ try{
+  for(const c of vals){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   const ok=await generateStoryboard(c.id,true,task.controller.signal);
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   completed++;if(!ok)failed++;updateLongTask(completed,vals.length,`CUT ${String(c.id).padStart(3,'0')}`,ok?'콘티 생성 완료':'생성 실패',ok?'':'error');
+  }
+  finishLongTask('done',`생성 ${completed-failed} · 실패 ${failed}`);setTimeout(()=>{if(activeLongTask?.status==='done'){document.querySelector('#genResult')?.remove();activeLongTask=null;renderConte()}},500);
+ }catch(e){
+  if(e.cancelled||task.controller.signal.aborted)finishLongTask('cancelled',`${completed}/${vals.length} CUT까지 생성 후 중단했습니다.`);
+  else finishLongTask('error',e.message);
+ }
 }
 
 
@@ -2303,12 +2377,12 @@ function editCharacterState(cutId,name){
  modalShell(`<div class="eyebrow">CHARACTER STATE</div><h2>${name} · CUT ${String(cutId).padStart(3,'0')}</h2><p class="lead">이 CUT이 끝난 시점의 상태를 기록합니다. 다음 CUT 생성과 Continuity 검수에 자동 전달됩니다.</p><div class="sceneForm"><label>CONDITION<input id="csCondition" value="${esc(cur.condition||'정상')}"></label><label>INJURY<input id="csInjury" value="${esc(cur.injury||'없음')}"></label><label>BLOOD / DIRT<input id="csBlood" value="${esc(cur.blood||'없음')}"></label><label>CLOTHES<input id="csClothes" value="${esc(cur.clothes||'기본 의상 유지')}"></label><label>EQUIPMENT<input id="csEquipment" value="${esc(cur.equipment||'')}"></label><label>HAIR<input id="csHair" value="${esc(cur.hair||'기본 헤어 유지')}"></label><label>BODY / POSTURE<input id="csBody" value="${esc(cur.body||'')}"></label><label>EMOTION RESIDUE<input id="csEmotion" value="${esc(cur.emotionResidue||'')}"></label><label>LOCATION<input id="csLocation" value="${esc(cur.location||'')}"></label><label style="grid-column:1/-1">NOTES<textarea id="csNotes">${esc(cur.notes||'')}</textarea></label></div><div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove()">취소</button><button class="btn dark" id="saveCharState">상태 저장</button></div>`);
  document.querySelector('#saveCharState').onclick=()=>{characterStates[characterStateKey(cutId,name)]={condition:document.querySelector('#csCondition').value,injury:document.querySelector('#csInjury').value,blood:document.querySelector('#csBlood').value,clothes:document.querySelector('#csClothes').value,equipment:document.querySelector('#csEquipment').value,hair:document.querySelector('#csHair').value,body:document.querySelector('#csBody').value,emotionResidue:document.querySelector('#csEmotion').value,location:document.querySelector('#csLocation').value,notes:document.querySelector('#csNotes').value,source:'manual',updatedAt:new Date().toISOString()};saveCharacterStates();document.querySelector('#genResult')?.remove();render()};
 }
-async function autoTrackCharacterStates(cutId,silent=false){
+async function autoTrackCharacterStates(cutId,silent=false,signal=null){
  const c=cutsForEpisode()[cutId],chars=c.characters||[];if(!chars.length){if(!silent)alert('추적할 캐릭터가 없습니다.');return}
- if(!silent)modalShell(`<div class="eyebrow">CHARACTER STATE TRACKING</div><h2>CUT ${String(cutId).padStart(3,'0')} 분석 중…</h2><p class="lead">이전 상태 + 현재 STORY BEAT/ACTION/대사로 CUT 종료 시점의 상태 변화를 계산합니다.</p>`);
+ if(!silent)modalShell(`<div class="eyebrow">CHARACTER STATE TRACKING</div><h2>CUT ${String(cutId).padStart(3,'0')} 분석 중…</h2><p class="lead">이전 상태 + 현재 STORY BEAT/ACTION/대사로 CUT 종료 시점의 상태 변화를 계산합니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('character_state',${cutId})">분석 취소</button></div>`);
  try{
   const previous={};for(const name of chars)previous[name]=previousCharacterState(cutId,name)||null;
-  const res=await trackedFetch('/api/track-character-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({episodeId:activeEpisodeId,cutId,scene:c.scene,characters:chars,previous,cut:{title:c.title,action:c.action,dialogue:c.dialogue||'',continuity:c.continuity,props:c.props||[]},storyActing:v2Spec(c),sceneDirecting:sceneV2(c)})},{operation:'character_state',episodeId:activeEpisodeId,cutId});
+  const res=await trackedFetch('/api/track-character-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({episodeId:activeEpisodeId,cutId,scene:c.scene,characters:chars,previous,cut:{title:c.title,action:c.action,dialogue:c.dialogue||'',continuity:c.continuity,props:c.props||[]},storyActing:v2Spec(c),sceneDirecting:sceneV2(c)}),signal:activeTaskSignalOr(signal)},{operation:'character_state',episodeId:activeEpisodeId,cutId});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   for(const [name,st] of Object.entries(data.states||{}))characterStates[characterStateKey(cutId,name)]={...st,source:'auto',updatedAt:new Date().toISOString()};
   saveCharacterStates();if(!silent){document.querySelector('#genResult')?.remove();render()}return data.states;
@@ -2321,11 +2395,23 @@ function openCharacterStateTimeline(){
 }
 async function autoTrackEpisodeCharacterStates(){
  const vals=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id).filter(c=>(c.characters||[]).length);
- modalShell(`<div class="eyebrow">EPISODE CHARACTER STATE</div><h2>${vals.length} CUT 순차 분석</h2><p class="lead" id="stateProgress">0 / ${vals.length}</p><div style="height:8px;background:#eee;border-radius:999px;overflow:hidden"><div id="stateBar" style="height:100%;width:0;background:#111"></div></div>`);
- for(let i=0;i<vals.length;i++){await autoTrackCharacterStates(vals[i].id,true);const t=document.querySelector('#stateProgress'),b=document.querySelector('#stateBar');if(t)t.textContent=`${i+1} / ${vals.length}`;if(b)b.style.width=`${Math.round((i+1)/vals.length*100)}%`}
- document.querySelector('#genResult')?.remove();renderProduction();
+ if(!vals.length)return alert('상태 분석할 캐릭터 CUT이 없습니다.');
+ if(!confirm(`${vals.length}개 CUT의 Character State를 순차 분석할까요?\n\n시간이 걸릴 수 있으며 진행 중 언제든 취소할 수 있습니다.`))return;
+ let task;try{task=startLongTask('STATE 전체 분석',vals.length,{operation:'character_state'})}catch(e){return alert(e.message)}
+ let completed=0,failed=0;
+ try{
+  for(let i=0;i<vals.length;i++){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   const c=vals[i],r=await autoTrackCharacterStates(c.id,true,task.controller.signal);
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   completed++;if(!r)failed++;updateLongTask(completed,vals.length,`CUT ${String(c.id).padStart(3,'0')}`,r?'상태 분석 완료':'분석 실패',r?'':'error');
+  }
+  finishLongTask('done',`완료 ${completed-failed} · 실패 ${failed}`);setTimeout(()=>{if(activeLongTask?.status==='done'){document.querySelector('#genResult')?.remove();activeLongTask=null;renderProduction()}},500);
+ }catch(e){
+  if(e.cancelled||task.controller.signal.aborted){finishLongTask('cancelled',`${completed}/${vals.length} CUT까지 처리 후 중단했습니다.`)}
+  else finishLongTask('error',e.message);
+ }
 }
-
 function continuityInspectorHtml(id){
  const r=continuityReport(id);if(!r)return '<div class="lead">아직 자동 검수하지 않았습니다. 생성/채택된 CUT을 이전 같은 SCENE CUT 및 MASTER와 비교합니다.</div>';
  const bad=(r.issues||[]).filter(x=>x.status!=='ok');
@@ -2408,11 +2494,18 @@ async function autoRepairSceneIssues(scene){
  const group=sceneGroups().find(g=>g.scene===scene);if(!group)return;
  const targets=group.cuts.filter(c=>['warning','critical'].includes(continuityReport(c.id)?.severity)&&['generated','approved'].includes(cutState(c.id).status));
  if(!targets.length)return alert('자동 수정할 Continuity 문제 CUT이 없습니다.');
- if(!confirm(`${scene}\nContinuity 문제 ${targets.length}개 CUT을 자동 수정할까요?\nCUT당 최대 ${autoRepairMaxAttempts}회 부분 수정 + 재검수 API 비용이 발생합니다.`))return;
- showPipelineProgress(scene,'AUTO REPAIR · Continuity FAIL → 부분 수정 → 재검수',targets.length);
- let fixed=0,improved=0;
- for(let i=0;i<targets.length;i++){const c=targets[i],r=await autoRepairContinuity(c.id,{silent:true,maxAttempts:autoRepairMaxAttempts});if(r.ok)fixed++;else if(r.improved)improved++;pipeLog(scene,'AUTO REPAIR',`CUT ${c.id} · ${r.ok?'PASS':r.improved?'개선':'중단'} · ${r.initialScore??'-'} → ${r.finalScore??'-'}`,r.ok?'info':r.improved?'review':'issue');updatePipelineProgress(i+1,targets.length,c.id,r.ok?'PASS':r.improved?'IMPROVED':'STOP')}
- document.querySelector('#genResult')?.remove();alert(`자동 수정 완료\nPASS ${fixed} · 개선됐지만 잔여 문제 ${improved} · 중단 ${targets.length-fixed-improved}`);renderPipeline();
+ if(!confirm(`${scene}\nContinuity 문제 ${targets.length}개 CUT을 자동 수정할까요?\nCUT당 최대 ${autoRepairMaxAttempts}회 부분 수정 + 재검수 API 비용이 발생합니다.\n\n현재 요청은 Activity에서 취소할 수 있고, CUT 사이에서도 중단됩니다.`))return;
+ let task;try{task=startLongTask(`${scene} · Continuity Auto Repair`,targets.length,{operation:'auto_repair',scope:'scene'})}catch(e){return alert(e.message)}
+ let fixed=0,improved=0,done=0;
+ try{
+  for(const c of targets){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   const r=await autoRepairContinuity(c.id,{silent:true,maxAttempts:autoRepairMaxAttempts});
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   if(r.ok)fixed++;else if(r.improved)improved++;done++;pipeLog(scene,'AUTO REPAIR',`CUT ${c.id} · ${r.ok?'PASS':r.improved?'개선':'중단'} · ${r.initialScore??'-'} → ${r.finalScore??'-'}`,r.ok?'info':r.improved?'review':'issue');updateLongTask(done,targets.length,`CUT ${String(c.id).padStart(3,'0')}`,r.ok?'PASS':r.improved?'IMPROVED':'STOP');
+  }
+  finishLongTask('done',`PASS ${fixed} · 개선 ${improved} · 중단 ${targets.length-fixed-improved}`);setTimeout(()=>{document.querySelector('#genResult')?.remove();activeLongTask=null;renderPipeline()},500);
+ }catch(e){if(e.cancelled||task.controller.signal.aborted)finishLongTask('cancelled',`${done}/${targets.length} CUT 처리 후 중단했습니다.`);else finishLongTask('error',e.message)}
 }
 
 function continuityIssueRows(r){
@@ -2424,7 +2517,7 @@ async function openContinuityReport(id){
  const c=cutsForEpisode()[id];
  modalShell(`<div class="eyebrow">CONTINUITY QC · V15</div><h2>CUT ${String(id).padStart(3,'0')} · ${c.title}</h2><div class="contSummary"><b>${r.severity==='critical'?'⚠ CRITICAL':r.severity==='warning'?'⚠ CONTINUITY':'✓ PASS'}</b><br>${esc(r.summary||'')}</div><div class="contPanel" style="margin-top:10px">${continuityIssueRows(r)}</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" onclick="document.querySelector('#genResult').remove()">닫기</button><button class="btn" onclick="document.querySelector('#genResult').remove();checkContinuity(${id})">다시 검수</button>${r.severity!=='ok'?`<button class="btn" onclick="document.querySelector('#genResult').remove();autoRepairContinuity(${id})">⚡ 자동 수정 → 재검수</button><button class="btn dark" onclick="document.querySelector('#genResult').remove();openPartialEdit(${id},'master')">MASTER 차이 수정</button>`:''}</div>`);
 }
-async function checkContinuity(id,silent=false,includeGeneratedRefs=false){
+async function checkContinuity(id,silent=false,includeGeneratedRefs=false,signal=null){
  const cs=cutsForEpisode(),c=cs[id],current=await getResult(stateKey(id));
  if(!current?.image){if(!silent)alert('먼저 CUT 이미지를 생성/채택해주세요.');return null}
  const sameScene=Object.values(cs).filter(x=>x.scene===c.scene&&x.id!==id&&(cutState(x.id).status==='approved'||(includeGeneratedRefs&&cutState(x.id).status==='generated'))).sort((a,b)=>Math.abs(a.id-id)-Math.abs(b.id-id));
@@ -2436,13 +2529,13 @@ async function checkContinuity(id,silent=false,includeGeneratedRefs=false){
  }
  const masters=[...new Map(requiredRefs(c).map(x=>autoAsset(x)).filter(Boolean).map(a=>[a.id,a])).values()];
  for(const a of masters)refs.push({role:'master',name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,900,.68)});
- if(!silent)modalShell(`<div class="eyebrow">CONTINUITY QC</div><h2>CUT ${String(id).padStart(3,'0')} 검수 중…</h2><p class="lead">같은 SCENE의 인접 채택 CUT과 MASTER를 비교하고 있습니다.</p>`);
+ if(!silent)modalShell(`<div class="eyebrow">CONTINUITY QC</div><h2>CUT ${String(id).padStart(3,'0')} 검수 중…</h2><p class="lead">같은 SCENE의 인접 채택 CUT과 MASTER를 비교하고 있습니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('continuity_qc',${id})">검수 취소</button></div>`);
  try{
   const res=await trackedFetch('/api/check-continuity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    cutId:id,episodeId:activeEpisodeId,currentImage:await compressReferenceDataUrl(current.image,1200,.8),references:refs,
    scene:c.scene,sceneLook:getSceneLook(c.scene),cut:{title:c.title,characters:c.characters||[],backgrounds:c.backgrounds||[],props:c.props||[],shot:c.shot,camera:c.camera,action:c.action,continuity:c.continuity},
    storyActing:v2Spec(c),characterState:currentCharacterStates(c),spatialContext:spatialContextForCut(c),masterNames:masters.map(a=>({name:a.name,type:a.type}))
-  })},{operation:'continuity_qc',episodeId:activeEpisodeId,cutId:id});
+  }),signal:activeTaskSignalOr(signal)},{operation:'continuity_qc',episodeId:activeEpisodeId,cutId:id});
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   continuityReports[stateKey(id)]={...data.report,checkedAt:new Date().toISOString(),referenceCuts:refs.filter(x=>x.cutId).map(x=>x.cutId)};saveContinuityReports();
   if(!silent){document.querySelector('#genResult')?.remove();openContinuityReport(id)}
@@ -2452,14 +2545,23 @@ async function checkContinuity(id,silent=false,includeGeneratedRefs=false){
 async function checkEpisodeContinuity(){
  const vals=Object.values(cutsForEpisode()).filter(c=>cutState(c.id).status==='approved');
  if(!vals.length)return alert('채택된 CUT이 없습니다.');
- modalShell(`<div class="eyebrow">EPISODE CONTINUITY QC</div><h2>${vals.length} CUT 순차 검수</h2><p class="lead" id="qcProgress">0 / ${vals.length}</p><div style="height:8px;background:#eee;border-radius:999px;overflow:hidden"><div id="qcBar" style="height:100%;width:0;background:#111"></div></div>`);
- for(let i=0;i<vals.length;i++){
-  await checkContinuity(vals[i].id,true);
-  const t=document.querySelector('#qcProgress'),b=document.querySelector('#qcBar');if(t)t.textContent=`${i+1} / ${vals.length}`;if(b)b.style.width=`${Math.round((i+1)/vals.length*100)}%`;
+ if(!confirm(`${vals.length}개 승인 CUT의 Continuity를 순차 검수할까요?\n\nCUT 수에 따라 오래 걸릴 수 있으며 언제든 취소할 수 있습니다.`))return;
+ let task;try{task=startLongTask('CONTINUITY 전체 검수',vals.length,{operation:'continuity_qc'})}catch(e){return alert(e.message)}
+ let completed=0,failed=0,issues=0;
+ try{
+  for(let i=0;i<vals.length;i++){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   const c=vals[i],r=await checkContinuity(c.id,true,false,task.controller.signal);
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   completed++;if(!r)failed++;else if(['warning','critical'].includes(r.severity))issues++;
+   updateLongTask(completed,vals.length,`CUT ${String(c.id).padStart(3,'0')}`,!r?'검수 실패':['warning','critical'].includes(r.severity)?`${r.severity.toUpperCase()} · 문제 확인`:'PASS',!r?'error':['warning','critical'].includes(r?.severity)?'cancel':'');
+  }
+  finishLongTask('done',`PASS/검수 완료 ${completed-failed} · 문제 ${issues} · 실패 ${failed}`);setTimeout(()=>{if(activeLongTask?.status==='done'){document.querySelector('#genResult')?.remove();activeLongTask=null;renderProduction()}},500);
+ }catch(e){
+  if(e.cancelled||task.controller.signal.aborted){finishLongTask('cancelled',`${completed}/${vals.length} CUT까지 검수 후 중단했습니다.`)}
+  else finishLongTask('error',e.message);
  }
- document.querySelector('#genResult')?.remove();renderProduction();
 }
-
 
 function sceneGroups(){
  const map=new Map();
@@ -2570,75 +2672,90 @@ function pipelineCardHtml(scene,cuts){
  <div class="pipelineMini">${p.updatedAt?`최근 실행 ${new Date(p.updatedAt).toLocaleString()}`:'아직 실행하지 않음'}${st.issues?` · <b style="color:#a32323">Continuity 문제 ${st.issues} CUT</b>`:''}</div></article>`;
 }
 function showPipelineProgress(scene,title,total){
- modalShell(`<div class="eyebrow">SCENE PIPELINE · V23</div><h2>${esc(scene)}</h2><p class="lead">${title}</p><div class="pipelineProgress"><span id="pipeBar" style="width:0"></span></div><div id="pipeProgressText" class="pipelinePreflight">0 / ${total}</div><div id="pipeLiveLog" class="pipelineLog" style="margin-top:10px"></div>`);
+ const t=startLongTask(`${scene} · ${title}`,total,{operation:'scene_pipeline',scope:'scene'});return t;
 }
-function updatePipelineProgress(i,total,cutId,msg){
- const b=document.querySelector('#pipeBar'),t=document.querySelector('#pipeProgressText'),l=document.querySelector('#pipeLiveLog');
- if(b)b.style.width=`${Math.round(i/Math.max(1,total)*100)}%`;if(t)t.textContent=`${i} / ${total} · CUT ${String(cutId||0).padStart(3,'0')} · ${msg}`;
- if(l)l.insertAdjacentHTML('beforeend',`<div class="pipelineLogRow"><span>${new Date().toLocaleTimeString()}</span><b>CUT ${String(cutId||0).padStart(3,'0')}</b><span>${esc(msg)}</span></div>`);
-}
+function updatePipelineProgress(i,total,cutId,msg){updateLongTask(i,total,cutId?`CUT ${String(cutId).padStart(3,'0')}`:'SCENE',msg)}
 async function startScenePipeline(scene){
  const group=sceneGroups().find(g=>g.scene===scene);if(!group)return;
  const {cuts}=group,pf=pipelinePreflight(scene,cuts);if(!pf.ok)return alert('MASTER 또는 프롬프트 누락을 먼저 해결해주세요.');
  const imageCuts=cuts.filter(cutNeedsImage);
- updateScenePipe(scene,{status:'preparing',logs:[]});showPipelineProgress(scene,'1단계 · 캐릭터 상태 계산 + 미생성 콘티 생성',cuts.length+imageCuts.length);
+ let task;try{updateScenePipe(scene,{status:'preparing',logs:[]});task=showPipelineProgress(scene,'1단계 · 캐릭터 상태 계산 + 미생성 콘티 생성',cuts.length+imageCuts.length)}catch(e){return alert(e.message)}
  let step=0;
- for(const c of cuts){
-  if((c.characters||[]).length){const r=await autoTrackCharacterStates(c.id,true);pipeLog(scene,'STATE',r?`CUT ${c.id} 상태 계산 완료`:`CUT ${c.id} 상태 계산 실패`,r?'info':'error')}
-  step++;updatePipelineProgress(step,cuts.length+imageCuts.length,c.id,'STATE');
+ try{
+  for(const c of cuts){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   if((c.characters||[]).length){
+    const r=await autoTrackCharacterStates(c.id,true,task.controller.signal);
+    if(task.controller.signal.aborted)throw taskCancelledError();
+    pipeLog(scene,'STATE',r?`CUT ${c.id} 상태 계산 완료`:`CUT ${c.id} 상태 계산 실패`,r?'info':'error');
+   }
+   step++;updatePipelineProgress(step,cuts.length+imageCuts.length,c.id,'STATE');
+  }
+  for(const c of imageCuts){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   if(storyboardState(c.id).status==='draft'){
+    const ok=await generateStoryboard(c.id,true,task.controller.signal);
+    if(task.controller.signal.aborted)throw taskCancelledError();
+    pipeLog(scene,'CONTE',ok?`CUT ${c.id} 콘티 생성 완료`:`CUT ${c.id} 콘티 생성 실패`,ok?'info':'error');
+   }
+   step++;updatePipelineProgress(step,cuts.length+imageCuts.length,c.id,'CONTE');
+  }
+  const pending=imageCuts.filter(c=>storyboardState(c.id).status!=='approved');
+  if(pending.length){
+   updateScenePipe(scene,{status:'review_storyboard'});pipeLog(scene,'STOP',`${pending.length}개 콘티 사람 승인 대기`,'review');
+   finishLongTask('done',`STATE / CONTE 준비 완료 · 승인 대기 ${pending.length}개`);
+   setTimeout(()=>{document.querySelector('#genResult')?.remove();activeLongTask=null;alert(`${scene}\n\n상태 계산과 콘티 준비가 끝났습니다.\n${pending.length}개 콘티를 CONTE에서 검수/승인한 뒤 PIPELINE의 'FINAL → QC 실행'을 눌러주세요.`);currentPage='CONTE';render()},450);return;
+  }
+  finishLongTask('done','STATE / CONTE 준비 완료');
+  setTimeout(()=>{document.querySelector('#genResult')?.remove();activeLongTask=null;continueSceneFinal(scene)},350);
+ }catch(e){
+  if(e.cancelled||task.controller.signal.aborted){updateScenePipe(scene,{status:'idle'});finishLongTask('cancelled',`${step}/${cuts.length+imageCuts.length} 단계에서 중단했습니다. 완료 결과는 유지됩니다.`)}
+  else{updateScenePipe(scene,{status:'error'});finishLongTask('error',e.message)}
  }
- for(const c of imageCuts){
-  if(storyboardState(c.id).status==='draft'){const ok=await generateStoryboard(c.id,true);pipeLog(scene,'CONTE',ok?`CUT ${c.id} 콘티 생성 완료`:`CUT ${c.id} 콘티 생성 실패`,ok?'info':'error')}
-  step++;updatePipelineProgress(step,cuts.length+imageCuts.length,c.id,'CONTE');
- }
- const pending=imageCuts.filter(c=>storyboardState(c.id).status!=='approved');
- document.querySelector('#genResult')?.remove();
- if(pending.length){
-  updateScenePipe(scene,{status:'review_storyboard'});pipeLog(scene,'STOP',`${pending.length}개 콘티 사람 승인 대기`,'review');
-  alert(`${scene}\n\n상태 계산과 콘티 준비가 끝났습니다.\n${pending.length}개 콘티를 CONTE에서 검수/승인한 뒤 PIPELINE의 'FINAL → QC 실행'을 눌러주세요.`);
-  currentPage='CONTE';render();return;
- }
- await continueSceneFinal(scene);
 }
 async function continueSceneFinal(scene){
  const group=sceneGroups().find(g=>g.scene===scene);if(!group)return;
  const cuts=group.cuts.filter(cutNeedsImage),pending=cuts.filter(c=>storyboardState(c.id).status!=='approved');
  if(pending.length)return alert(`승인되지 않은 콘티가 ${pending.length}개 있습니다. 먼저 CONTE 검수를 완료해주세요.`);
  const pf=pipelinePreflight(scene,group.cuts);if(!pf.ok)return alert('MASTER 또는 프롬프트 누락을 먼저 해결해주세요.');
- if(!confirm(`${scene}\n승인된 콘티를 기준으로 ${cuts.length}개 CUT의 FINAL 이미지 생성과 Continuity QC를 순차 실행할까요?\nAPI 비용이 발생합니다.`))return;
- updateScenePipe(scene,{status:'generating'});showPipelineProgress(scene,'2단계 · FINAL 이미지 생성 → 각 CUT Continuity QC',cuts.length*2);
- let step=0,failed=0,issues=0;
- for(const c of cuts){
-  if(!['generated','approved'].includes(cutState(c.id).status)){
-   const r=await generateCut(c.id,{silent:true,requireStoryboard:true,allowMissingMaster:false});
-   pipeLog(scene,'FINAL',r.ok?`CUT ${c.id} FINAL 생성 완료`:`CUT ${c.id} FINAL 실패: ${r.error}`,r.ok?'info':'error');
-   if(!r.ok)failed++;
-  }else pipeLog(scene,'FINAL',`CUT ${c.id} 기존 이미지 사용`,'info');
-  step++;updatePipelineProgress(step,cuts.length*2,c.id,'FINAL');
-  if(['generated','approved'].includes(cutState(c.id).status)){
-   updateScenePipe(scene,{status:'qc'});
-   let qr=await checkContinuity(c.id,true,true);
-   if(qr&&['warning','critical'].includes(qr.severity)&&autoRepairEnabled){
-     pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} → AUTO REPAIR 시작`,'review');
-     const rr=await autoRepairContinuity(c.id,{silent:true,maxAttempts:autoRepairMaxAttempts});qr=rr.report||qr;
-     pipeLog(scene,'AUTO REPAIR',`CUT ${c.id} ${rr.ok?'PASS':rr.improved?'개선':'중단'} · ${rr.initialScore??'-'} → ${rr.finalScore??'-'}`,rr.ok?'info':rr.improved?'review':'issue');
+ if(!confirm(`${scene}\n승인된 콘티를 기준으로 ${cuts.length}개 CUT의 FINAL 이미지 생성과 Continuity QC를 순차 실행할까요?\nAPI 비용이 발생하며 언제든 취소할 수 있습니다.`))return;
+ let task;try{task=showPipelineProgress(scene,'2단계 · FINAL 이미지 생성 → 각 CUT Continuity QC',cuts.length*2)}catch(e){return alert(e.message)}
+ updateScenePipe(scene,{status:'generating'});let step=0,failed=0,issues=0;
+ try{
+  for(const c of cuts){
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   if(!['generated','approved'].includes(cutState(c.id).status)){
+    const r=await generateCut(c.id,{silent:true,requireStoryboard:true,allowMissingMaster:false,signal:task.controller.signal});
+    if(task.controller.signal.aborted)throw taskCancelledError();
+    pipeLog(scene,'FINAL',r.ok?`CUT ${c.id} FINAL 생성 완료`:`CUT ${c.id} FINAL 실패: ${r.error}`,r.ok?'info':'error');if(!r.ok)failed++;
+   }else pipeLog(scene,'FINAL',`CUT ${c.id} 기존 이미지 사용`,'info');
+   step++;updatePipelineProgress(step,cuts.length*2,c.id,'FINAL');
+   if(task.controller.signal.aborted)throw taskCancelledError();
+   if(['generated','approved'].includes(cutState(c.id).status)){
+    updateScenePipe(scene,{status:'qc'});
+    let qr=await checkContinuity(c.id,true,true,task.controller.signal);
+    if(task.controller.signal.aborted)throw taskCancelledError();
+    if(qr&&['warning','critical'].includes(qr.severity)&&autoRepairEnabled){
+      pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} → AUTO REPAIR는 전체 파이프라인 취소 안정성을 위해 수동 실행 대기`,'review');
+    }
+    if(qr&&['warning','critical'].includes(qr.severity)){issues++;pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} · ${qr.summary||''}`,'issue')}
+    else pipeLog(scene,'QC',qr?`CUT ${c.id} QC PASS`:`CUT ${c.id} QC 실패`,qr?'info':'error');
    }
-   if(qr&&['warning','critical'].includes(qr.severity)){issues++;pipeLog(scene,'QC',`CUT ${c.id} ⚠ ${qr.severity} · ${qr.summary||''}`,'issue')}
-   else pipeLog(scene,'QC',qr?`CUT ${c.id} QC PASS`:`CUT ${c.id} QC 실패` ,qr?'info':'error');
+   step++;updatePipelineProgress(step,cuts.length*2,c.id,'QC');
   }
-  step++;updatePipelineProgress(step,cuts.length*2,c.id,'QC');
+  const status=failed?'error':issues?'issue':'complete';updateScenePipe(scene,{status,failed,issues});finishLongTask('done',`FINAL 실패 ${failed} · Continuity 문제 ${issues}`);
+  setTimeout(()=>{document.querySelector('#genResult')?.remove();activeLongTask=null;alert(`${scene} 파이프라인 완료\nFINAL 실패 ${failed} · Continuity 문제 ${issues}\n\n최종 이미지는 자동 채택하지 않았습니다.`);currentPage='PIPELINE';render()},500);
+ }catch(e){
+  if(e.cancelled||task.controller.signal.aborted){updateScenePipe(scene,{status:'idle',failed,issues});finishLongTask('cancelled',`${step}/${cuts.length*2} 단계에서 중단했습니다. 완료 결과는 유지됩니다.`)}
+  else{updateScenePipe(scene,{status:'error',failed,issues});finishLongTask('error',e.message)}
  }
- document.querySelector('#genResult')?.remove();
- const status=failed?'error':issues?'issue':'complete';updateScenePipe(scene,{status,failed,issues});
- alert(`${scene} 파이프라인 완료\nFINAL 실패 ${failed} · Continuity 문제 ${issues}\n\n최종 이미지는 자동 채택하지 않았습니다. PRODUCTION에서 결과/QC를 확인한 뒤 채택하세요.`);
- currentPage='PIPELINE';render();
 }
 function openScenePipelineLog(scene){
  const p=scenePipe(scene),logs=p.logs||[];
  modalShell(`<div class="eyebrow">SCENE PIPELINE LOG</div><h2>${esc(scene)}</h2><div class="pipelineLog">${logs.length?logs.slice().reverse().map(x=>`<div class="pipelineLogRow"><span>${new Date(x.at).toLocaleTimeString()}</span><b>${esc(x.stage)}</b><span>${esc(x.message)}</span></div>`).join(''):'<div class="stateEmpty">로그가 없습니다.</div>'}</div><div class="right" style="margin-top:10px"><button class="btn" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
 }
 
-function renderProduction(){const cs=cutsForEpisode(),vals=Object.values(cs),approved=vals.filter(c=>cutState(c.id).status==='approved').length,generated=vals.filter(c=>cutState(c.id).status==='generated').length,draft=vals.length-approved-generated;const checked=vals.filter(c=>continuityReport(c.id)).length,warns=vals.filter(c=>['warning','critical'].includes(continuityReport(c.id)?.severity)).length;view.innerHTML=`<div class="eyebrow">PRODUCTION</div><h1>EP.${String(ep().number).padStart(2,'0')} · 프로덕션 보드</h1><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='EPISODE';render()">제작 명세로</button><button class="btn dark" onclick="currentPage='PIPELINE';render()">SCENE PIPELINE</button><button class="btn" onclick="openCharacterStateTimeline()">CHARACTER STATE</button><button class="btn" onclick="autoTrackEpisodeCharacterStates()">STATE 전체 분석</button><button class="btn dark" onclick="checkEpisodeContinuity()">CONTINUITY 전체 검수</button></div><div class="statgrid"><div class="stat"><small>TOTAL</small><b>${vals.length}</b>CUT</div><div class="stat"><small>DRAFT</small><b>${draft}</b>초안</div><div class="stat"><small>GENERATED</small><b>${generated}</b>검수 대기</div><div class="stat"><small>APPROVED</small><b>${approved}</b>채택</div></div><div class="contGrid"><div class="contStat"><small>QC CHECKED</small><b>${checked}</b>CUT</div><div class="contStat"><small>CONTINUITY ISSUE</small><b>${warns}</b>문제 CUT</div><div class="contStat"><small>STATUS</small><b>${warns?'⚠':'✓'}</b>${warns?'수정 필요':'정상'}</div></div><div class="productiongrid">${vals.map(c=>{const st=cutState(c.id);return `<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> <span class="statuspill status-${st.status}">${st.status}</span>${continuityBadge(c.id)}<div style="font-size:11px;margin-top:5px">${c.title}</div><div id="prodimg-${c.id}"></div><div style="margin-top:7px"><button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">열기</button>${st.status!=='draft'?` <button class="btn small" onclick="openSavedResult(${c.id})">결과</button> <button class="btn small" onclick="checkContinuity(${c.id})">QC</button>`:''}${continuityReport(c.id)?` <button class="btn small" onclick="openContinuityReport(${c.id})">리포트</button>`:''}${['warning','critical'].includes(continuityReport(c.id)?.severity)?` <button class="btn small" onclick="autoRepairContinuity(${c.id})">⚡ AUTO FIX</button>`:''}</div></div>`}).join('')||'<div class="emptybig">CUT이 없습니다.</div>'}</div>`;hydrateProduction(vals)}
+function renderProduction(){const cs=cutsForEpisode(),vals=Object.values(cs),approved=vals.filter(c=>cutState(c.id).status==='approved').length,generated=vals.filter(c=>cutState(c.id).status==='generated').length,draft=vals.length-approved-generated;const checked=vals.filter(c=>continuityReport(c.id)).length,warns=vals.filter(c=>['warning','critical'].includes(continuityReport(c.id)?.severity)).length;view.innerHTML=`<div class="eyebrow">PRODUCTION</div><h1>EP.${String(ep().number).padStart(2,'0')} · 프로덕션 보드</h1><div class="tabsrow">${episodeSelector()}<button class="btn" onclick="currentPage='EPISODE';render()">제작 명세로</button><button class="btn dark" onclick="currentPage='PIPELINE';render()">SCENE PIPELINE</button><button class="btn" onclick="openCharacterStateTimeline()">CHARACTER STATE</button><button class="btn" onclick="autoTrackEpisodeCharacterStates()">STATE 전체 분석 <span class="batchButtonNote">취소 가능</span></button><button class="btn dark" onclick="checkEpisodeContinuity()">CONTINUITY 전체 검수 <span class="batchButtonNote">취소 가능</span></button></div><div class="statgrid"><div class="stat"><small>TOTAL</small><b>${vals.length}</b>CUT</div><div class="stat"><small>DRAFT</small><b>${draft}</b>초안</div><div class="stat"><small>GENERATED</small><b>${generated}</b>검수 대기</div><div class="stat"><small>APPROVED</small><b>${approved}</b>채택</div></div><div class="contGrid"><div class="contStat"><small>QC CHECKED</small><b>${checked}</b>CUT</div><div class="contStat"><small>CONTINUITY ISSUE</small><b>${warns}</b>문제 CUT</div><div class="contStat"><small>STATUS</small><b>${warns?'⚠':'✓'}</b>${warns?'수정 필요':'정상'}</div></div><div class="productiongrid">${vals.map(c=>{const st=cutState(c.id);return `<div class="prodcard"><b>CUT ${String(c.id).padStart(3,'0')}</b> <span class="statuspill status-${st.status}">${st.status}</span>${continuityBadge(c.id)}<div style="font-size:11px;margin-top:5px">${c.title}</div><div id="prodimg-${c.id}"></div><div style="margin-top:7px"><button class="btn small" onclick="selectedCut=${c.id};currentPage='EPISODE';render()">열기</button>${st.status!=='draft'?` <button class="btn small" onclick="openSavedResult(${c.id})">결과</button> <button class="btn small" onclick="checkContinuity(${c.id})">QC</button>`:''}${continuityReport(c.id)?` <button class="btn small" onclick="openContinuityReport(${c.id})">리포트</button>`:''}${['warning','critical'].includes(continuityReport(c.id)?.severity)?` <button class="btn small" onclick="autoRepairContinuity(${c.id})">⚡ AUTO FIX</button>`:''}</div></div>`}).join('')||'<div class="emptybig">CUT이 없습니다.</div>'}</div>`;hydrateProduction(vals)}
 async function hydrateProduction(vals){for(const c of vals){const st=cutState(c.id);if(st.status==='draft')continue;const r=await getResult(stateKey(c.id));const box=document.querySelector(`#prodimg-${c.id}`);if(box&&r?.image)box.innerHTML=`<img src="${r.image}">`}}
 function exportSettings(){let x={};try{x=JSON.parse(localStorage.getItem('wtal_export_settings')||'{}')}catch(e){}return {preset:x.preset||'naver',width:Number(x.width||690),sliceHeight:Number(x.sliceHeight||2000),format:x.format||'jpg',quality:Number(x.quality||92),prefix:x.prefix||`${activeEpisodeId}_`,...x}}
 function saveExportSettings(){const ids=['exportPreset','exportWidth','exportHeight','exportFormat','exportQuality','exportPrefix'],e={preset:document.querySelector('#exportPreset')?.value||'custom',width:Number(document.querySelector('#exportWidth')?.value||690),sliceHeight:Number(document.querySelector('#exportHeight')?.value||2000),format:document.querySelector('#exportFormat')?.value||'jpg',quality:Number(document.querySelector('#exportQuality')?.value||92),prefix:document.querySelector('#exportPrefix')?.value||`${activeEpisodeId}_`};localStorage.setItem('wtal_export_settings',JSON.stringify(e));return e}
@@ -2680,11 +2797,12 @@ function activityStart(operation,meta={}){
  const id=`act_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,label={generate_cut:'Generate CUT',partial_edit:'Partial Edit',storyboard:'Generate Conte',continuity_qc:'Continuity QC',character_state:'Character State',space_map:'Space Map',transform_master:'Master Convert',episode_story:'Story Draft',episode_specs:'Build Specs'}[operation]||operation;
  activityItems.push({id,operation,label,status:'running',cutId:meta.cutId??null,episodeId:meta.episodeId||activeEpisodeId,startedAt:new Date().toISOString()});saveActivity();return id;
 }
-function activityFinish(id,ok=true){const a=activityItems.find(x=>x.id===id);if(a){a.status=ok?'done':'error';a.finishedAt=new Date().toISOString();saveActivity()}}
+function activitySetStatus(id,status){const a=activityItems.find(x=>x.id===id);if(a){a.status=status;a.finishedAt=status==='running'?null:new Date().toISOString();saveActivity()}}
+function activityFinish(id,ok=true){activitySetStatus(id,ok?'done':'error')}
 function renderActivity(){
  const el=document.querySelector('#activityList'),badge=document.querySelector('#activityCount');if(!el)return;
  const active=activityItems.filter(x=>x.status==='running').length;if(badge){badge.textContent=active;badge.style.display=active?'inline-grid':'none'}
- el.innerHTML=[...activityItems].reverse().slice(0,30).map(a=>{const f=a.status==='error'?unresolvedFailures(a.episodeId).find(x=>x.operation===a.operation&&(a.cutId==null||x.cutId===a.cutId)):null;return `<div class="activityItem ${a.status}"><div class="activityItemTop"><b>${esc(a.label)}${a.cutId!=null?` · CUT ${String(a.cutId).padStart(3,'0')}`:''}</b><span>${a.status==='running'?'Running':a.status==='done'?'Done':'Failed'}</span></div><small>${new Date(a.startedAt).toLocaleTimeString()}</small><div class="activityProgress"><span></span></div>${f?`<button class="activityRetry" onclick="openReliabilityCenter()">오류 확인 / Retry</button>`:''}</div>`}).join('')||'<div class="stateEmpty">활동 기록이 없습니다.</div>';
+ el.innerHTML=[...activityItems].reverse().slice(0,30).map(a=>{const f=a.status==='error'?unresolvedFailures(a.episodeId).find(x=>x.operation===a.operation&&(a.cutId==null||x.cutId===a.cutId)):null;return `<div class="activityItem ${a.status}"><div class="activityItemTop"><b>${esc(a.label)}${a.cutId!=null?` · CUT ${String(a.cutId).padStart(3,'0')}`:''}</b><span>${a.status==='running'?'Running':a.status==='done'?'Done':a.status==='cancelled'?'Cancelled':'Failed'}</span></div><small>${new Date(a.startedAt).toLocaleTimeString()}</small><div class="activityProgress"><span></span></div>${a.status==='running'&&runningRequestControllers.has(a.id)?`<button class="activityCancel" onclick="cancelRequest('${a.id}')">요청 취소</button>`:''}${f?`<button class="activityRetry" onclick="openReliabilityCenter()">오류 확인 / Retry</button>`:''}</div>`}).join('')||'<div class="stateEmpty">활동 기록이 없습니다.</div>';
 }
 function toggleActivityPanel(force){const el=document.querySelector('#activityPanel');el.classList.toggle('show',force===undefined?!el.classList.contains('show'):force);renderActivity()}
 
@@ -2745,6 +2863,7 @@ function helpFaqHtml(){
  <details><summary>Story Bible의 Draft / Canon 차이는?</summary><p>Canon은 확정 설정입니다. Draft는 기본 AI 생성 Context에서 제외됩니다. Canon이어도 AI CONTEXT OFF면 생성 프롬프트에 포함되지 않습니다.</p></details>
  <details><summary>MASTER의 PRIMARY는 무엇인가요?</summary><p>같은 캐릭터·의상·배경 버전 그룹에서 자동 연결이 우선 참조하는 기준 버전입니다. 실제 CUT에 사용 중인 PRIMARY는 삭제할 수 없습니다.</p></details>
  <details><summary>Draft / Standard / Final 프리셋은 언제 쓰나요?</summary><p>Draft는 구도 검토, Standard는 일반 제작, Final은 승인 후보용입니다. Character/Background Strong은 특정 연속성을 강하게 잡을 때 CUT Override로 사용합니다.</p></details>
+ <details><summary>전체 분석/검수가 너무 오래 걸리면?</summary><p>V39부터 전체 분석·검수·콘티 생성·SCENE Pipeline은 진행률과 취소 버튼을 제공합니다. 취소 시 완료된 CUT은 유지되고 다음 CUT은 시작하지 않습니다. Activity의 실행 중 API 요청도 개별 취소할 수 있습니다.</p></details>
  <details><summary>오류가 나면 무엇부터 보나요?</summary><p>Recovery Center에서 네트워크·API Key·Quota·Timeout·저장소 문제를 분류해 확인합니다. 유료 이미지 생성은 자동 재시도하지 않습니다.</p></details>
  <details><summary>History와 Backup 차이는?</summary><p>History는 편집 실수를 되돌리는 내부 기록입니다. Full PROJECT BACKUP.zip은 브라우저 데이터 삭제나 다른 PC 이동까지 대비하는 외부 백업입니다.</p></details>
  </div>`;
@@ -2858,6 +2977,7 @@ function commandEntries(){
   {type:'Setting',title:'Export Settings',sub:'Naver · Kakao · Archive',run:()=>{settingsTab='export';goPage('PROJECT')}},
   {type:'Setting',title:'Cost Settings',sub:'API cost estimates',run:()=>{settingsTab='cost';goPage('PROJECT')}},
   {type:'Tool',title:'Recovery Center',sub:'Failed CUTs · API · network · storage',run:()=>openReliabilityCenter()},
+  {type:'Tool',title:'Running Tasks',sub:'Activity · cancel long requests',run:()=>toggleActivityPanel(true)},
   {type:'Tool',title:'Project History',sub:'Undo · restore · checkpoint',run:()=>openProjectHistory()},
   {type:'Help',title:'Help Center',sub:'Production flow · shortcuts · FAQ',run:()=>openHelpCenter()},
   {type:'Help',title:'Guided Tour',sub:'UI quick tour',run:()=>startGuidedTour()}
@@ -3131,7 +3251,7 @@ const PARTIAL_EDIT_MODES={
 let lastPartialEdit=null;
 
 async function generateCut(id,opts={}){
-  const silent=!!opts.silent,requireStoryboard=!!opts.requireStoryboard,allowMissingMaster=!!opts.allowMissingMaster;
+  const silent=!!opts.silent,requireStoryboard=!!opts.requireStoryboard,allowMissingMaster=!!opts.allowMissingMaster,signal=opts.signal||null;
   const c=cutsForEpisode()[id];if(!c)return {ok:false,error:'CUT 없음'};
   const genCfg=effectiveGenerationConfig(id);
   const req=requiredRefs(c);
@@ -3177,7 +3297,7 @@ async function generateCut(id,opts={}){
       for(const a of refs)smaller.push({id:a.id,name:a.name,type:a.type,dataUrl:await compressReferenceDataUrl(a.img,Math.min(900,genCfg.refMaxSide),Math.min(.70,genCfg.refCompression))});
       requestBody.references=smaller;bodyText=JSON.stringify(requestBody);
     }
-    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`});
+    const res=await trackedFetch('/api/generate-cut',{method:'POST',headers:{'Content-Type':'application/json'},body:bodyText,signal:activeTaskSignalOr(signal)},{operation:'generate_cut',episodeId:activeEpisodeId,cutId:id,note:`preset:${genCfg.id}`});
     const raw=await res.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||`HTTP ${res.status}`}}
     if(!res.ok)throw new Error(data.error||`이미지 생성 요청 실패 (HTTP ${res.status})`);
     sessionStorage.setItem('wtal_last_generate',JSON.stringify({cutId:id,responseId:data.responseId,model:data.model,preset:data.preset||genCfg.id,createdAt:new Date().toISOString()}));
@@ -3192,15 +3312,15 @@ async function generateCut(id,opts={}){
   }
 }
 
-function modalShell(inner){
+function modalShell(inner,opts={}){
  let old=document.querySelector('#genResult');if(old)old.remove();
- const box=document.createElement('div');box.id='genResult';box.className='v27ModalBackdrop';
- box.innerHTML=`<div class="v27ModalCard" role="dialog" aria-modal="true"><div class="v27ModalBar"><button class="v27ModalClose" aria-label="닫기" onclick="document.querySelector('#genResult')?.remove()">×</button></div><div class="v27ModalContent">${inner}</div></div>`;
- box.addEventListener('click',e=>{if(e.target===box)box.remove()});
+ const box=document.createElement('div');box.id='genResult';box.className='v27ModalBackdrop';box.dataset.longTask=opts.longTask?'1':'0';
+ box.innerHTML=`<div class="v27ModalCard" role="dialog" aria-modal="true"><div class="v27ModalBar"><button class="v27ModalClose" aria-label="${opts.longTask?'작업 취소':'닫기'}" onclick="closeActiveModal()">×</button></div><div class="v27ModalContent">${inner}</div></div>`;
+ box.addEventListener('click',e=>{if(e.target===box){if(opts.longTask)requestLongTaskCancel();else box.remove()}});
  document.body.appendChild(box);
 }
 function showGenerating(c,refs,preset=generationPreset(c.id)){
-  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p><p class="lead">Activity에서도 진행 상태를 확인할 수 있습니다.</p></div>`);
+  modalShell(`<div class="loadingState" style="padding:18px 4px"><div class="loadingSpinner"></div><h2 style="font-size:15px">CUT ${String(c.id).padStart(3,'0')} 생성 중</h2><p class="lead">${esc(preset.name||'Standard')} · ${String(preset.quality||'medium').toUpperCase()} quality · Master ${refs.length}개 참조</p><p class="lead">Activity에서도 진행 상태를 확인할 수 있습니다.</p><div class="right"><button class="btn cancelBtn" onclick="cancelMatchingRequest('generate_cut',${c.id})">생성 취소</button></div></div>`);
 }
 async function saveGenerated(c,image,model){const preset=effectivePresetId(c.id);lastGenerated={cutId:c.id,image,model,preset};cutStates[stateKey(c.id)]={status:'generated',model,preset,updatedAt:new Date().toISOString()};saveStates();await putResult(stateKey(c.id),{image,model,preset,status:'generated',updatedAt:new Date().toISOString()})}
 function showGeneratedResult(c,refs,image,model,presetId=effectivePresetId(c.id)){

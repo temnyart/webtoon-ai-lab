@@ -14,7 +14,7 @@ Return ONLY JSON:
 {"map":{"geometry":"Korean description of room/set shape","orientation":"N/E/S/W interpretation","entrances":"doors/openings","fixedRules":"what must never move between cuts","anchors":[{"name":"침대","zone":"fixed|furniture|prop|path","x":20,"y":65,"fixed":true}]}}
 BACKGROUND: ${b.name||''}`;
   const model=process.env.OPENAI_QC_MODEL||process.env.OPENAI_ORCHESTRATOR_MODEL||'gpt-5';
-  const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'user',content:[{type:'input_text',text:prompt},{type:'input_image',image_url:b.image,detail:'high'}]}],max_output_tokens:1800})});
+  const r=await fetch('https://api.openai.com/v1/responses',{signal:req.signal,method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'user',content:[{type:'input_text',text:prompt},{type:'input_image',image_url:b.image,detail:'high'}]}],max_output_tokens:1800})});
   const data=await r.json();if(!r.ok)return Response.json({error:data?.error?.message||'Space map analysis failed'},{status:r.status});
   return Response.json({ok:true,model,map:parseJSON(textOf(data)).map});
  }catch(e){return Response.json({error:e?.message||'Unexpected server error'},{status:500})}
