@@ -269,6 +269,14 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 .letterHandle{position:absolute;width:11px;height:11px;border:2px solid #fff;background:#4c8df6;border-radius:50%;z-index:55;display:none;box-shadow:0 0 0 1px #4c8df6}.letterItem.selected .letterHandle{display:block}.letterHandle.resize-nw{left:-8px;top:-8px;cursor:nwse-resize}.letterHandle.resize-ne{right:-8px;top:-8px;cursor:nesw-resize}.letterHandle.resize-sw{left:-8px;bottom:-8px;cursor:nesw-resize}.letterHandle.resize-se{right:-8px;bottom:-8px;cursor:nwse-resize}.letterHandle.rotate{left:50%;top:-31px;transform:translateX(-50%);cursor:grab;background:#fff;border-color:#4c8df6}.letterHandle.rotate:after{content:"";position:absolute;width:1px;height:14px;background:#4c8df6;left:4px;top:9px}
 .letterInspectorEmpty{display:grid;place-items:center;text-align:center;min-height:340px;color:#999;font-size:9px;line-height:1.55}.letterInspectorEmpty b{color:#555;font-size:11px;margin-bottom:5px}.letterInspectorSection{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.letterInspectorSection:first-child{border-top:0;padding-top:0;margin-top:0}.letterInspectorSection h3{font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#777;margin:0 0 8px}.letterInspectorV41 label{display:block;font-size:7px;color:#777;font-weight:800;margin-top:7px}.letterInspectorV41 input,.letterInspectorV41 select,.letterInspectorV41 textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:7px;background:#fff;padding:7px;font-size:8px;margin-top:3px}.letterInspectorV41 textarea{resize:vertical;min-height:74px;line-height:1.45}.letterInspectorGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.letterInspectorActions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.letterInspectorActions .btn{flex:1}.letterPresetMini{display:grid;grid-template-columns:1fr 1fr;gap:5px}.letterPresetMini button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px;font-size:7px;cursor:pointer}.letterPresetMini button.on{background:#111;color:#fff;border-color:#111}.letterInlineHint{font-size:7px;color:#999;line-height:1.45;background:#f6f6f8;padding:7px;border-radius:7px;margin-top:8px}.letterNoItems{padding:14px 8px;color:#999;font-size:8px;text-align:center}.letterKeyboardHint{font-size:7px;color:#999}
 @media(max-width:1100px){.letterWorkspace{grid-template-columns:170px minmax(0,1fr) 250px}.letterStage.v41{width:min(650px,66vw)}}@media(max-width:820px){.letterEditorV41{height:auto;min-height:0}.letterWorkspace{grid-template-columns:1fr}.letterLayers{border-right:0;border-bottom:1px solid var(--line);max-height:180px}.letterInspectorV41{border-left:0;border-top:1px solid var(--line)}.letterCanvasWrap{min-height:560px}.letterStage.v41{width:min(680px,90vw)}}
+
+/* V41.1 — Lettering interaction stabilization */
+.letterItem.v41,.letterHandle{touch-action:none}
+.letterItem.v41{will-change:left,top,transform}
+.letterItem.v41 .letterText{pointer-events:auto}
+.letterScaleReadout{font-size:7px;color:#777;text-align:right;margin-top:2px}
+.letterInteractionStatus{display:inline-flex;align-items:center;gap:4px;font-size:7px;color:#287044;font-weight:800}.letterInteractionStatus:before{content:"";width:6px;height:6px;border-radius:50%;background:#35a85b}
+.letterEditOverlay{position:absolute;z-index:1000;min-width:130px;min-height:46px;padding:8px 10px;border:2px solid #21a366;border-radius:8px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.18);resize:both;font:inherit;line-height:1.35}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -1037,8 +1045,9 @@ const letteringUndoStack=[];
 const letteringRedoStack=[];
 function normalizeLetterItem(x){
  const type=x.type||'dialogue';
- return {...x,width:Number(x.width)||((type==='sfx')?28:(type==='narration'||type==='caption')?42:32),height:Number(x.height)||0,opacity:x.opacity==null?1:Number(x.opacity),align:x.align||'center',z:Number(x.z)||5};
+ return {...x,width:Number(x.width)||((type==='sfx')?28:(type==='narration'||type==='caption')?42:32),height:Number(x.height)||0,scale:Number(x.scale)||1,opacity:x.opacity==null?1:Number(x.opacity),align:x.align||'center',z:Number(x.z)||5};
 }
+
 function snapshotLettering(cutId,label='레터링 변경'){
  const c=cutsForEpisode()[cutId];if(!c)return;letteringUndoStack.push({cutId,label,before:JSON.stringify(letterItems(c)),after:null});if(letteringUndoStack.length>40)letteringUndoStack.shift();letteringRedoStack.length=0;
 }
@@ -1062,10 +1071,11 @@ function letterItems(c){const k=stateKey(c.id);if(!lettering[k]){lettering[k]=pa
 
 function setLetter(cutId,id,key,val,rerender=true){
  const arr=letterItems(cutsForEpisode()[cutId]),x=arr.find(a=>a.id===id);if(!x)return;
- const numeric=['x','y','size','rotate','weight','letterSpacing','lineHeight','width','height','opacity','z'];if(numeric.includes(key))val=Number(val);
- if(key==='opacity')val=Math.max(.1,Math.min(1,val));if(key==='width')val=Math.max(8,Math.min(80,val));if(key==='size')val=Math.max(8,Math.min(140,val));if(key==='rotate')val=((val+180)%360+360)%360-180;
- x[key]=val;if(key==='type')x.preset=guessPreset(val,x.text,cutsForEpisode()[cutId]);saveLettering();if(rerender){selectedLetterId=id;renderLetterEditor(cutId)}else updateSelectedLetterDom(cutId,id);
+ const numeric=['x','y','size','rotate','weight','letterSpacing','lineHeight','width','height','scale','opacity','z'];if(numeric.includes(key))val=Number(val);
+ if(key==='opacity')val=Math.max(.1,Math.min(1,val));if(key==='width')val=Math.max(8,Math.min(80,val));if(key==='scale')val=Math.max(.4,Math.min(3,val));if(key==='size')val=Math.max(8,Math.min(140,val));if(key==='rotate')val=((val+180)%360+360)%360-180;
+ x[key]=val;if(key==='type')x.preset=guessPreset(val,x.text,cutsForEpisode()[cutId]);saveLettering();if(rerender){selectedLetterId=id;renderLetterEditor(cutId)}else{updateSelectedLetterDom(cutId,id);syncLetterInspectorValues(x)}
 }
+
 
 function applyPreset(cutId,id,preset){const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(!x)return;const pd=BALLOON_PRESETS[preset]||SFX_PRESETS[preset];if(!pd)return;snapshotLettering(cutId,'프리셋 변경');x.preset=preset;x.type=pd.type||'sfx';if(pd.size)x.size=pd.size;if(pd.rotate!==undefined)x.rotate=pd.rotate;saveLettering();commitLetteringSnapshot(cutId);selectedLetterId=id;renderLetterEditor(cutId)}
 
@@ -1085,9 +1095,10 @@ function pasteLetter(cutId){if(!letteringClipboard)return reliabilityToast('복�
 
 function letterHtml(raw,editable=false){
  const x=normalizeLetterItem(raw),cls=`letterItem ${x.type} ${x.preset||''}${editable?' v41':''}${editable&&selectedLetterId===x.id?' selected':''}`;
- const handles=editable?`<span class="letterHandle resize-nw" data-handle="resize-nw"></span><span class="letterHandle resize-ne" data-handle="resize-ne"></span><span class="letterHandle resize-sw" data-handle="resize-sw"></span><span class="letterHandle resize-se" data-handle="resize-se"></span><span class="letterHandle rotate" data-handle="rotate"></span>`:'';
- return `<div class="${cls}" data-letter="${x.id}" style="left:${x.x}%;top:${x.y}%;width:${x.width}%;${x.height>0?`height:${x.height}%;`:''}font-size:${x.size}px;font-family:${x.font||'Noto Sans KR'},sans-serif;font-weight:${x.weight||700};letter-spacing:${x.letterSpacing||0}px;line-height:${x.lineHeight||1.25};opacity:${x.opacity??1};text-align:${x.align||'center'};z-index:${x.z||5};transform:translate(-50%,-50%) rotate(${x.rotate||0}deg)"><span class="letterText">${esc(x.text)}</span>${handles}</div>`;
+ const handles=editable?`<span class="letterHandle resize-nw" data-handle="scale-nw"></span><span class="letterHandle resize-ne" data-handle="scale-ne"></span><span class="letterHandle resize-sw" data-handle="scale-sw"></span><span class="letterHandle resize-se" data-handle="scale-se"></span><span class="letterHandle rotate" data-handle="rotate"></span>`:'';
+ return `<div class="${cls}" data-letter="${x.id}" style="left:${x.x}%;top:${x.y}%;width:${x.width}%;${x.height>0?`height:${x.height}%;`:''}font-size:${x.size}px;font-family:${x.font||'Noto Sans KR'},sans-serif;font-weight:${x.weight||700};letter-spacing:${x.letterSpacing||0}px;line-height:${x.lineHeight||1.25};opacity:${x.opacity??1};text-align:${x.align||'center'};z-index:${x.z||5};transform:translate(-50%,-50%) rotate(${x.rotate||0}deg) scale(${x.scale||1})"><span class="letterText">${esc(x.text)}</span>${handles}</div>`;
 }
+
 
 
 
@@ -2969,7 +2980,7 @@ function letterInspectorHtml(cutId,id){
  const presets=x.type==='sfx'?SFX_PRESETS:BALLOON_PRESETS;
  return `<div class="letterInspectorSection"><h3>Content</h3><textarea id="letterInspectorText" oninput="setLetter(${cutId},'${x.id}','text',this.value,false)">${esc(x.text)}</textarea><div class="letterInlineHint">캔버스에서 <b>더블클릭</b>하면 그 자리에서도 바로 수정할 수 있습니다.</div></div>
  <div class="letterInspectorSection"><h3>Type & Preset</h3><label>종류<select onchange="setLetter(${cutId},'${x.id}','type',this.value)">${['dialogue','thought','narration','caption','sfx'].map(t=>`<option value="${t}" ${x.type===t?'selected':''}>${letterTypeLabel(t)}</option>`).join('')}</select></label><div class="letterPresetMini" style="margin-top:7px">${Object.entries(presets).map(([k,p])=>`<button class="${x.preset===k?'on':''}" onclick="applyPreset(${cutId},'${x.id}','${k}')">${esc(p.label||k)}</button>`).join('')}</div></div>
- <div class="letterInspectorSection"><h3>Transform</h3><div class="letterInspectorGrid"><label>X %<input id="letterX" type="number" step=".1" value="${x.x}" onchange="setLetter(${cutId},'${x.id}','x',this.value,false)"></label><label>Y %<input id="letterY" type="number" step=".1" value="${x.y}" onchange="setLetter(${cutId},'${x.id}','y',this.value,false)"></label><label>너비 %<input id="letterWidth" type="number" min="8" max="80" step=".5" value="${x.width}" onchange="setLetter(${cutId},'${x.id}','width',this.value,false)"></label><label>회전 °<input id="letterRotate" type="number" step="1" value="${x.rotate||0}" onchange="setLetter(${cutId},'${x.id}','rotate',this.value,false)"></label></div><div class="letterInspectorActions"><button class="btn" onclick="rotateLetterStep(${cutId},-5)">↺ 5°</button><button class="btn" onclick="rotateLetterStep(${cutId},5)">↻ 5°</button></div></div>
+ <div class="letterInspectorSection"><h3>Transform</h3><div class="letterInspectorGrid"><label>X %<input id="letterX" type="number" step=".1" value="${x.x}" oninput="setLetter(${cutId},'${x.id}','x',this.value,false)"></label><label>Y %<input id="letterY" type="number" step=".1" value="${x.y}" oninput="setLetter(${cutId},'${x.id}','y',this.value,false)"></label><label>너비 %<input id="letterWidth" type="number" min="8" max="80" step=".5" value="${x.width}" oninput="setLetter(${cutId},'${x.id}','width',this.value,false)"></label><label>회전 °<input id="letterRotate" type="number" step="1" value="${x.rotate||0}" oninput="setLetter(${cutId},'${x.id}','rotate',this.value,false)"></label></div><label>스케일 <input id="letterScale" type="range" min="40" max="300" step="1" value="${Math.round((x.scale||1)*100)}" oninput="setLetter(${cutId},'${x.id}','scale',Number(this.value)/100,false)"><div id="letterScaleReadout" class="letterScaleReadout">${Math.round((x.scale||1)*100)}%</div></label><div class="letterInspectorActions"><button type="button" class="btn" onclick="scaleLetterStep(${cutId},-.1)">−10%</button><button type="button" class="btn" onclick="scaleLetterStep(${cutId},.1)">＋10%</button><button type="button" class="btn" onclick="rotateLetterStep(${cutId},-5)">↺ 5°</button><button type="button" class="btn" onclick="rotateLetterStep(${cutId},5)">↻ 5°</button></div></div>
  <div class="letterInspectorSection"><h3>Typography</h3><div class="letterInspectorGrid"><label>글자 크기<input id="letterSize" type="number" min="8" max="140" value="${x.size}" onchange="setLetter(${cutId},'${x.id}','size',this.value,false)"></label><label>굵기<select onchange="setLetter(${cutId},'${x.id}','weight',this.value,false)">${[400,500,600,700,800,900].map(v=>`<option value="${v}" ${Number(x.weight||700)===v?'selected':''}>${v}</option>`).join('')}</select></label><label>자간<input type="number" step=".2" value="${x.letterSpacing||0}" onchange="setLetter(${cutId},'${x.id}','letterSpacing',this.value,false)"></label><label>행간<input type="number" step=".05" value="${x.lineHeight||1.25}" onchange="setLetter(${cutId},'${x.id}','lineHeight',this.value,false)"></label></div><label>정렬<select onchange="setLetter(${cutId},'${x.id}','align',this.value,false)">${['left','center','right'].map(v=>`<option value="${v}" ${x.align===v?'selected':''}>${v}</option>`).join('')}</select></label><label>폰트<select onchange="setLetter(${cutId},'${x.id}','font',this.value,false)">${['Noto Sans KR','sans-serif','serif'].map(f=>`<option value="${f}" ${x.font===f?'selected':''}>${f}</option>`).join('')}</select></label></div>
  <div class="letterInspectorSection"><h3>Appearance</h3><div class="letterInspectorGrid"><label>투명도<input id="letterOpacity" type="number" min=".1" max="1" step=".05" value="${x.opacity??1}" onchange="setLetter(${cutId},'${x.id}','opacity',this.value,false)"></label><label>레이어 Z<input type="number" min="1" max="99" value="${x.z||5}" onchange="setLetter(${cutId},'${x.id}','z',this.value,false)"></label></div>${x.type!=='sfx'?`<label>꼬리<select onchange="setLetter(${cutId},'${x.id}','tail',this.value,false)">${['bottom-left','bottom-right','top-left','top-right','none'].map(v=>`<option value="${v}" ${x.tail===v?'selected':''}>${v}</option>`).join('')}</select></label>`:''}</div>
  <div class="letterInspectorSection"><div class="letterInspectorActions"><button class="btn" onclick="duplicateLetter(${cutId},'${x.id}')">복제</button><button class="btn" onclick="copyLetter(${cutId},'${x.id}')">복사</button><button class="btn" onclick="deleteLetter(${cutId},'${x.id}')">삭제</button></div></div>`;
@@ -2981,8 +2992,8 @@ async function renderLetterEditor(cutId){
   const r=await getResult(stateKey(cutId));if(!r?.image)return alert('레터링할 이미지가 없습니다. 먼저 Final 이미지를 생성·채택해주세요.');
   const arr=letterItems(c);if(selectedLetterId&&!arr.some(x=>x.id===selectedLetterId))selectedLetterId=null;
   view.innerHTML=`<div class="letterEditorV41" id="letterEditorV41" tabindex="0">
-   <div class="letterEditorBar"><div class="letterEditorBarLeft"><button class="btn" onclick="setCreateStage('lettering')">← 목록</button><span class="letterEditorTitle">CUT ${String(c.id).padStart(3,'0')} · ${esc(c.title)}</span><button class="btn" onclick="undoLettering(${c.id})">↶</button><button class="btn" onclick="redoLettering(${c.id})">↷</button><button class="btn" onclick="addLetter(${c.id},'dialogue')">＋ 말풍선</button><button class="btn" onclick="addLetter(${c.id},'sfx')">＋ SFX</button><button class="btn" onclick="pasteLetter(${c.id})">붙여넣기</button></div>
-   <div class="letterEditorBarRight"><button class="btn" onclick="setLetterZoom(-.1)">−</button><span id="letterZoomLabel" class="letterZoomLabel">${Math.round(letteringZoom*100)}%</span><button class="btn" onclick="setLetterZoom(.1)">＋</button><button class="btn" onclick="fitLetterCanvas()">Fit</button><button id="safeAreaBtn" class="btn ${letteringSafeArea?'dark':''}" onclick="toggleLetterSafeArea()">Safe Area</button><button class="btn" onclick="resetLetters(${c.id})">Reset</button><button class="btn ${episodeLetterDone(activeEpisodeId,c.id)?'dark':''}" onclick="markLetteringDone(${c.id},${!episodeLetterDone(activeEpisodeId,c.id)});renderLetterEditor(${c.id})">${episodeLetterDone(activeEpisodeId,c.id)?'✓ Done':'Done'}</button></div></div>
+   <div class="letterEditorBar"><div class="letterEditorBarLeft"><button type="button" class="btn" onclick="setCreateStage('lettering')">← 목록</button><span class="letterInteractionStatus">Interaction Ready</span><span class="letterEditorTitle">CUT ${String(c.id).padStart(3,'0')} · ${esc(c.title)}</span><button type="button" class="btn" onclick="undoLettering(${c.id})">↶</button><button type="button" class="btn" onclick="redoLettering(${c.id})">↷</button><button class="btn" onclick="addLetter(${c.id},'dialogue')">＋ 말풍선</button><button class="btn" onclick="addLetter(${c.id},'sfx')">＋ SFX</button><button class="btn" onclick="pasteLetter(${c.id})">붙여넣기</button></div>
+   <div class="letterEditorBarRight"><button class="btn" type="button" onclick="setLetterZoom(-.1)">−</button><span id="letterZoomLabel" class="letterZoomLabel">${Math.round(letteringZoom*100)}%</span><button class="btn" type="button" onclick="setLetterZoom(.1)">＋</button><button class="btn" onclick="fitLetterCanvas()">Fit</button><button id="safeAreaBtn" class="btn ${letteringSafeArea?'dark':''}" onclick="toggleLetterSafeArea()">Safe Area</button><button class="btn" onclick="resetLetters(${c.id})">Reset</button><button class="btn ${episodeLetterDone(activeEpisodeId,c.id)?'dark':''}" onclick="markLetteringDone(${c.id},${!episodeLetterDone(activeEpisodeId,c.id)});renderLetterEditor(${c.id})">${episodeLetterDone(activeEpisodeId,c.id)?'✓ Done':'Done'}</button></div></div>
    <div class="letterWorkspace"><aside class="letterLayers"><div class="letterPaneTitle"><b>Elements</b><small>${arr.length}</small></div>${letterLayersHtml(c.id)}<div class="letterInlineHint">클릭 선택 · 더블클릭 텍스트 편집<br>방향키 이동 · Shift+방향키 빠른 이동<br>Ctrl/Cmd+D 복제 · Delete 삭제</div></aside>
    <main class="letterCanvasWrap"><div id="letterCanvasScaler" class="letterCanvasScaler" style="transform:scale(${letteringZoom})"><div class="letterStage v41 ${letteringSafeArea?'showSafeArea':''}" id="letterStage"><img src="${r.image}"><div class="letterSafeArea"></div>${arr.map(x=>letterHtml(x,true)).join('')}</div></div></main>
    <aside class="letterInspectorV41"><div class="letterPaneTitle"><b>Inspector</b><small>선택 요소</small></div><div id="letterInspector">${letterInspectorHtml(c.id,selectedLetterId)}</div></aside></div></div>`;
@@ -2991,37 +3002,61 @@ async function renderLetterEditor(cutId){
 }
 
 
-function updateSelectedLetterDom(cutId,id){const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id),el=document.querySelector(`.letterItem[data-letter="${CSS.escape(String(id))}"]`);if(!x||!el)return;el.style.left=x.x+'%';el.style.top=x.y+'%';el.style.width=x.width+'%';el.style.fontSize=x.size+'px';el.style.fontWeight=x.weight||700;el.style.letterSpacing=(x.letterSpacing||0)+'px';el.style.lineHeight=x.lineHeight||1.25;el.style.opacity=x.opacity??1;el.style.textAlign=x.align||'center';el.style.zIndex=x.z||5;el.style.transform=`translate(-50%,-50%) rotate(${x.rotate||0}deg)`;const txt=el.querySelector('.letterText');if(txt&&txt.textContent!==x.text)txt.textContent=x.text}
+function updateSelectedLetterDom(cutId,id){
+ const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id),el=document.querySelector(`.letterItem[data-letter="${CSS.escape(String(id))}"]`);if(!x||!el)return;
+ el.style.left=x.x+'%';el.style.top=x.y+'%';el.style.width=x.width+'%';el.style.fontSize=x.size+'px';el.style.fontWeight=x.weight||700;el.style.letterSpacing=(x.letterSpacing||0)+'px';el.style.lineHeight=x.lineHeight||1.25;el.style.opacity=x.opacity??1;el.style.textAlign=x.align||'center';el.style.zIndex=x.z||5;el.style.transform=`translate(-50%,-50%) rotate(${x.rotate||0}deg) scale(${x.scale||1})`;const txt=el.querySelector('.letterText');if(txt&&txt.textContent!==x.text)txt.textContent=x.text;
+}
+
 function selectLetter(cutId,id,rerenderInspector=true){selectedLetterId=id;document.querySelectorAll('.letterItem.v41').forEach(el=>el.classList.toggle('selected',id!=null&&el.dataset.letter===String(id)));document.querySelectorAll('.letterLayer').forEach(el=>el.classList.toggle('selected',id!=null&&el.dataset.letter===String(id)));if(rerenderInspector){const ins=document.querySelector('#letterInspector');if(ins)ins.innerHTML=letterInspectorHtml(cutId,id)}}
-function beginInlineLetterEdit(cutId,id){selectLetter(cutId,id);const el=document.querySelector(`.letterItem[data-letter="${CSS.escape(String(id))}"]`),txt=el?.querySelector('.letterText');if(!txt)return;const original=txt.textContent;snapshotLettering(cutId,'텍스트 수정');el.classList.add('editing');txt.contentEditable='true';txt.focus();const range=document.createRange();range.selectNodeContents(txt);const sel=getSelection();sel.removeAllRanges();sel.addRange(range);const finish=()=>{txt.contentEditable='false';el.classList.remove('editing');const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(x){x.text=txt.innerText.trim();saveLettering();commitLetteringSnapshot(cutId);const ta=document.querySelector('#letterInspectorText');if(ta)ta.value=x.text}txt.onblur=null;txt.onkeydown=null};txt.onblur=finish;txt.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();txt.textContent=original;txt.blur()}if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();txt.blur()}}}
-function syncLetterInspectorValues(x){const map={letterX:x.x,letterY:x.y,letterWidth:x.width,letterSize:x.size,letterRotate:x.rotate||0,letterOpacity:x.opacity??1};for(const [id,val] of Object.entries(map)){const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=Math.round(Number(val)*10)/10}}
+function beginInlineLetterEdit(cutId,id){
+ selectLetter(cutId,id);const el=document.querySelector(`.letterItem[data-letter="${CSS.escape(String(id))}"]`),stage=document.querySelector('#letterStage'),x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(!el||!stage||!x)return;
+ document.querySelector('.letterEditOverlay')?.remove();snapshotLettering(cutId,'텍스트 수정');el.classList.add('editing');
+ const er=el.getBoundingClientRect(),sr=stage.getBoundingClientRect(),ta=document.createElement('textarea');ta.className='letterEditOverlay';ta.value=x.text||'';ta.style.left=Math.max(0,er.left-sr.left)+'px';ta.style.top=Math.max(0,er.top-sr.top)+'px';ta.style.width=Math.max(130,er.width)+'px';ta.style.fontSize=Math.max(14,Number(x.size)||24)+'px';stage.appendChild(ta);ta.focus();ta.select();
+ let closed=false;const finish=(commit=true)=>{if(closed)return;closed=true;if(commit){x.text=ta.value.trim();saveLettering();commitLetteringSnapshot(cutId)}else{letteringUndoStack.pop()}el.classList.remove('editing');ta.remove();updateSelectedLetterDom(cutId,id);const ins=document.querySelector('#letterInspector');if(ins)ins.innerHTML=letterInspectorHtml(cutId,id)};
+ ta.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();finish(false)}else if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();finish(true)}};ta.onblur=()=>finish(true);
+}
+
+function syncLetterInspectorValues(x){
+ const map={letterX:x.x,letterY:x.y,letterWidth:x.width,letterScale:Math.round((x.scale||1)*100),letterSize:x.size,letterRotate:x.rotate||0,letterOpacity:x.opacity??1};
+ for(const [id,val] of Object.entries(map)){const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=Math.round(Number(val)*10)/10}
+ const sr=document.querySelector('#letterScaleReadout');if(sr)sr.textContent=`${Math.round((x.scale||1)*100)}%`;
+}
+
 function nudgeLetter(cutId,dx,dy){if(!selectedLetterId)return;const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===selectedLetterId);if(!x)return;x.x=Math.max(2,Math.min(98,Number(x.x)+dx));x.y=Math.max(2,Math.min(98,Number(x.y)+dy));saveLettering();updateSelectedLetterDom(cutId,x.id);syncLetterInspectorValues(x)}
 function rotateLetterStep(cutId,delta){if(!selectedLetterId)return;const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===selectedLetterId);if(!x)return;x.rotate=(Number(x.rotate)||0)+delta;saveLettering();updateSelectedLetterDom(cutId,x.id);syncLetterInspectorValues(x)}
-function setLetterZoom(deltaOrValue){letteringZoom=typeof deltaOrValue==='number'&&Math.abs(deltaOrValue)<=.5?Math.max(.35,Math.min(2,letteringZoom+deltaOrValue)):Math.max(.35,Math.min(2,Number(deltaOrValue)||1));const sc=document.querySelector('#letterCanvasScaler');if(sc)sc.style.transform=`scale(${letteringZoom})`;const l=document.querySelector('#letterZoomLabel');if(l)l.textContent=Math.round(letteringZoom*100)+'%'}
-function fitLetterCanvas(){const wrap=document.querySelector('.letterCanvasWrap'),stage=document.querySelector('#letterStage');if(wrap&&stage)letteringZoom=Math.max(.35,Math.min(1,(wrap.clientWidth-50)/stage.offsetWidth));setLetterZoom(letteringZoom)}
+function scaleLetterStep(cutId,delta){if(!selectedLetterId)return;const x=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===selectedLetterId);if(!x)return;x.scale=Math.max(.4,Math.min(3,(Number(x.scale)||1)+delta));saveLettering();updateSelectedLetterDom(cutId,x.id);syncLetterInspectorValues(x)}
+function setLetterZoom(value,mode='delta'){
+ letteringZoom=mode==='absolute'?Math.max(.35,Math.min(2,Number(value)||1)):Math.max(.35,Math.min(2,letteringZoom+Number(value||0)));
+ const sc=document.querySelector('#letterCanvasScaler');if(sc)sc.style.transform=`scale(${letteringZoom})`;const l=document.querySelector('#letterZoomLabel');if(l)l.textContent=Math.round(letteringZoom*100)+'%';
+}
+
+function fitLetterCanvas(){const wrap=document.querySelector('.letterCanvasWrap'),stage=document.querySelector('#letterStage');if(wrap&&stage)letteringZoom=Math.max(.35,Math.min(1,(wrap.clientWidth-50)/stage.offsetWidth));setLetterZoom(letteringZoom,'absolute')}
+
 function toggleLetterSafeArea(){letteringSafeArea=!letteringSafeArea;document.querySelector('#letterStage')?.classList.toggle('showSafeArea',letteringSafeArea);document.querySelector('#safeAreaBtn')?.classList.toggle('dark',letteringSafeArea)}
 function enableLetterDrag(cutId){
  const stage=document.querySelector('#letterStage');if(!stage)return;
- stage.onclick=e=>{if(e.target===stage||e.target.tagName==='IMG')selectLetter(cutId,null)};
- stage.querySelectorAll('.letterItem.v41').forEach(el=>{
-  const id=el.dataset.letter;el.onclick=e=>{e.stopPropagation();selectLetter(cutId,id)};el.ondblclick=e=>{e.preventDefault();e.stopPropagation();beginInlineLetterEdit(cutId,id)};
-  el.onpointerdown=e=>{
-   if(e.target.closest('.letterText')?.contentEditable==='true')return;e.preventDefault();e.stopPropagation();selectLetter(cutId,id,false);
-   const item=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(!item)return;
-   const rect=stage.getBoundingClientRect(),handle=e.target.closest('.letterHandle')?.dataset.handle||'move';
-   const sx=e.clientX,sy=e.clientY,startX=item.x,startY=item.y,startW=item.width,startSize=item.size||24;snapshotLettering(cutId,handle==='rotate'?'회전':handle.startsWith('resize')?'크기 변경':'위치 이동');el.setPointerCapture(e.pointerId);
-   const move=ev=>{
-    const dx=(ev.clientX-sx)/rect.width*100,dy=(ev.clientY-sy)/rect.height*100;
-    if(handle==='move'){item.x=Math.max(2,Math.min(98,startX+dx));item.y=Math.max(2,Math.min(98,startY+dy))}
-    else if(handle.startsWith('resize')){const sign=handle.endsWith('w')?-1:1;item.width=Math.max(8,Math.min(80,startW+dx*2*sign));item.size=Math.max(8,Math.min(140,startSize*(item.width/startW)))}
-    else if(handle==='rotate'){const cx=rect.left+rect.width*item.x/100,cy=rect.top+rect.height*item.y/100;item.rotate=Math.round(Math.atan2(ev.clientY-cy,ev.clientX-cx)*180/Math.PI+90)}
-    updateSelectedLetterDom(cutId,id);syncLetterInspectorValues(item);
-   };
-   const up=()=>{el.onpointermove=null;el.onpointerup=null;el.onpointercancel=null;saveLettering();commitLetteringSnapshot(cutId)};
-   el.onpointermove=move;el.onpointerup=up;el.onpointercancel=up;
-  };
- });
+ let gesture=null;
+ stage.addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.letterItem.v41');if(!el){if(e.target===stage||e.target.tagName==='IMG')selectLetter(cutId,null);return}
+  if(e.target.closest('.letterEditOverlay'))return;
+  const id=el.dataset.letter,item=letterItems(cutsForEpisode()[cutId]).find(a=>a.id===id);if(!item)return;
+  const handle=e.target.closest('.letterHandle')?.dataset.handle||'move';selectLetter(cutId,id,false);
+  gesture={id,item,el,handle,startX:e.clientX,startY:e.clientY,startItemX:Number(item.x),startItemY:Number(item.y),startScale:Number(item.scale)||1,startRotate:Number(item.rotate)||0,rect:stage.getBoundingClientRect(),moved:false};
+  snapshotLettering(cutId,handle==='rotate'?'회전':handle.startsWith('scale')?'스케일':'위치 이동');
+  e.preventDefault();
+ },{passive:false});
+ const onMove=e=>{
+  if(!gesture)return;const g=gesture,dx=e.clientX-g.startX,dy=e.clientY-g.startY;if(Math.abs(dx)+Math.abs(dy)>2)g.moved=true;
+  if(g.handle==='move'){g.item.x=Math.max(2,Math.min(98,g.startItemX+dx/g.rect.width*100));g.item.y=Math.max(2,Math.min(98,g.startItemY+dy/g.rect.height*100))}
+  else if(g.handle.startsWith('scale')){const dir=(g.handle.endsWith('nw')||g.handle.endsWith('sw'))?-1:1;const factor=1+(dx*dir+dy)/Math.max(160,g.rect.width*.45);g.item.scale=Math.max(.4,Math.min(3,g.startScale*factor))}
+  else if(g.handle==='rotate'){const cx=g.rect.left+g.rect.width*g.item.x/100,cy=g.rect.top+g.rect.height*g.item.y/100;g.item.rotate=Math.round(Math.atan2(e.clientY-cy,e.clientX-cx)*180/Math.PI+90)}
+  updateSelectedLetterDom(cutId,g.id);syncLetterInspectorValues(g.item);e.preventDefault();
+ };
+ const onUp=e=>{if(!gesture)return;const g=gesture;gesture=null;saveLettering();commitLetteringSnapshot(cutId);if(!g.moved&&g.handle==='move')selectLetter(cutId,g.id);e.preventDefault()};
+ window.addEventListener('pointermove',onMove,{passive:false});window.addEventListener('pointerup',onUp,{passive:false});window.addEventListener('pointercancel',onUp,{passive:false});
+ stage.addEventListener('dblclick',e=>{const el=e.target.closest('.letterItem.v41');if(el){e.preventDefault();e.stopPropagation();beginInlineLetterEdit(cutId,el.dataset.letter)}});
 }
+
 
 function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function drawWrapped(ctx,text,cx,cy,maxW,lineH){const words=String(text).split(/\s+/),lines=[];let line='';for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);const top=cy-(lines.length-1)*lineH/2;lines.forEach((l,i)=>ctx.fillText(l,cx,top+i*lineH))}

@@ -1597,3 +1597,28 @@ Arrow keys move, Shift+Arrow moves faster, Ctrl/Cmd+D duplicate, Ctrl/Cmd+C/V co
 
 ### Compatibility
 Existing `wtal_lettering` data remains supported through runtime normalization. No paid API call is used by the editor.
+
+
+## V41.1 — Lettering Interaction Fix
+
+### Issue
+The first V41 layout rendered correctly, but direct manipulation was not reliable enough:
+- move/scale gestures could fail,
+- double-click editing was inconsistent,
+- zoom/fit used an ambiguous value/delta API,
+- Inspector fields often waited for `change` instead of responding live.
+
+### Interaction rewrite
+- canvas gestures now use a window-level pointer controller instead of per-element pointer capture,
+- `touch-action:none` is applied to draggable lettering and handles,
+- move, scale and rotate update continuously,
+- corner handles now control a real `scale` value (40–300%),
+- Inspector includes a live Scale slider and ±10% buttons,
+- double-click opens a dedicated on-canvas textarea overlay,
+- X/Y/width/rotation update on `input`,
+- Zoom and Fit use explicit delta/absolute modes,
+- toolbar buttons are explicitly `type="button"`.
+
+### Data
+Adds optional `scale` to normalized lettering items. Existing lettering remains compatible.
+No API calls or generation costs are involved.
