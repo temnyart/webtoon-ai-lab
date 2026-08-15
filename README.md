@@ -1995,3 +1995,50 @@ Fix:
 - Restored all five declarations from the pre-V43 source.
 - Added validation for the persisted inspector tab value.
 - Kept the V43.2.3 Create hard route.
+
+
+## V43.2.5 — Lettering Route Recovery
+
+Observed symptom:
+- Lettering window opened, but the title showed only `CUT` and the canvas was blank.
+- This means the standalone editor did not have a valid episode/cut target.
+
+Fixes:
+- Persist last lettering episode/cut before leaving the main app.
+- Pass explicit episode/cut query parameters with a version cache-buster.
+- Standalone editor falls back to persisted target if query parameters are lost.
+- Missing target now shows an explicit recovery message instead of a blank canvas.
+- Fixed malformed trailing script closing markup in the standalone editor.
+
+
+## V43.2.6 — Create Header Persistence
+
+Observed symptom:
+- CREATE stage navigation (스토리 / 콘티 / 제네레이트 / 리뷰 / 레터링 / 어셈블) was visible initially.
+- Clicking a CUT card called `renderEpisode()` directly.
+- `renderEpisode()` replaced the entire main `view.innerHTML`, so the CREATE stage header disappeared.
+
+Fix:
+- Added `restoreCreateChrome()`.
+- Every `renderEpisode()` redraw restores the CREATE stage header when `currentPage === 'CREATE'`.
+- CUT card clicks now go through `selectCreateCut()` instead of directly calling `renderEpisode()`.
+- Empty-state redraws also restore the CREATE stage header.
+- Existing V43.2.5 Lettering route recovery is preserved.
+
+
+## V43.3 — Full Regression Hardening
+
+A broad regression pass was run after repeated Create/Lettering regressions.
+
+Hardening:
+- Added a `MutationObserver` that keeps the CREATE stage header alive across *all* internal Create-stage redraws, not only CUT card redraws.
+- Registered new Lettering/Typography storage keys in the data-health registry.
+- Registered recent UI navigation keys used by Lettering recovery.
+- Preserved Create hard route, global navigation recovery, Lettering target recovery, Assemble fidelity, and Export Preflight.
+
+Audit file:
+- `V43.3_REGRESSION_AUDIT.json`
+
+Important:
+- All main/editor/API JavaScript files pass syntax validation.
+- This is a static regression audit; a deployed browser smoke test is still the final proof for event/runtime behavior.

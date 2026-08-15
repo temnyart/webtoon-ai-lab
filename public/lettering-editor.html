@@ -129,7 +129,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.1</span>
+    <span class="badge">LETTERING V43.2.5</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -147,9 +147,19 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div id="toast" class="t<script>
 
 (()=>{
-const q=new URLSearchParams(location.search), episode=q.get('episode'), cut=Number(q.get('cut'));
-const key=`${episode}:${cut}`;
+const q=new URLSearchParams(location.search);
+const queryEpisode=q.get('episode');
+const queryCut=Number(q.get('cut'));
+const episode=queryEpisode||localStorage.getItem('wtal_last_lettering_episode')||localStorage.getItem('wtal_active_episode')||'EP01';
+const cut=Number.isFinite(queryCut)&&queryCut>0?queryCut:Number(localStorage.getItem('wtal_last_lettering_cut')||0);
+const key=cut>0?`${episode}:${cut}`:'';
+
 const storeKey='wtal_lettering';
+if(cut>0){
+ localStorage.setItem('wtal_last_lettering_episode',episode);
+ localStorage.setItem('wtal_last_lettering_cut',String(cut));
+}
+
 const savedStyleKey='wtal_lettering_saved_styles';
 const userFontKey='wtal_typography_user_fonts';
 const favFontKey='wtal_typography_favorites';
@@ -985,6 +995,7 @@ async function runStressAudit(){
  toast(results.some(x=>x.status==='fail')?'Stress FAIL':'Stress PASS');
 }
 async function imageLoad(){
+ if(!key)throw new Error('Lettering target CUT is missing');
  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
  const rec=await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly'), r=tx.objectStore('results').get(key); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error)});
  if(!rec?.image) throw new Error('Final image not found: '+key);
@@ -999,10 +1010,22 @@ try{recentFonts=JSON.parse(localStorage.getItem(recentFontKey)||'[]')||[]}catch{
 syncFontFaces();
 
 items=Array.isArray(all[key])?all[key].map(norm):[];
-$('#title').textContent=`CUT ${String(cut).padStart(3,'0')} · ${episode||''}`;
-imageLoad().then(()=>{render(); requestAnimationFrame(()=>$('#fit').click()); toast('LETTERING V43.1 준비 완료')}).catch(err=>{console.error(err); $('#status').textContent='Image load error'; $('#status').style.color='#a22'; toast(err.message); render()});
+$('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`:'CUT 미지정';
+imageLoad().then(()=>{
+ render();
+ requestAnimationFrame(()=>$('#fit').click());
+ toast('LETTERING V43.2.5 준비 완료');
+}).catch(err=>{
+ console.error(err);
+ $('#status').textContent='Image load error';
+ $('#status').style.color='#a22';
+ render();
+ const stage=$('#stage');
+ if(stage)stage.innerHTML=`<div style="position:absolute;inset:0;display:grid;place-items:center;background:#f5f5f7;color:#333;text-align:center;padding:30px"><div><b style="font-size:16px">레터링 원본 이미지를 불러오지 못했습니다.</b><div style="margin-top:8px;font-size:11px">${esc(err.message)}</div><button onclick="history.back()" style="margin-top:14px;padding:8px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer">← 이전 화면으로</button></div></div>`;
+ toast(err.message);
+});
 })();
 
-</script>script>cript>
+</script>
 </body>
 </html>
