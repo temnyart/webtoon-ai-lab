@@ -248,6 +248,8 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 .requestRunningBadge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 7px;background:#fff4df;border:1px solid #ead1a1;color:#8c5907;font-size:8px;font-weight:800}.requestRunningBadge:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:reqPulse 1s infinite alternate}@keyframes reqPulse{to{opacity:.35}}.requestCancelNotice{border:1px solid #ecd0d0;background:#fff6f6;border-radius:9px;padding:8px 10px;font-size:8px;color:#8b3737;line-height:1.5;margin-top:8px}.requestModalHint{font-size:8px;color:#888;line-height:1.5;margin-top:7px}.requestModalLocked{cursor:default}.requestModalLocked .v27ModalCard{box-shadow:0 20px 80px rgba(0,0,0,.28)}
 
 .letterPresetBar{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 9px}.letterPresetBar .btn{font-size:7px}
+
+.masterStorageNote{border:1px solid #d9e4f1;background:#f5f9fd;border-radius:10px;padding:9px 11px;font-size:8px;color:#496278;line-height:1.5}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -1057,8 +1059,8 @@ async function restoreHistoryEntry(id,side='before'){
    const raw=side==='before'?h.beforeRaw:h.afterRaw;if(raw==null)localStorage.removeItem(h.key);else localStorage.setItem(h.key,raw);
   }else if(h.kind==='master_meta'){mergeMasterMetadata(side==='before'?h.before:h.after)}
   else if(h.kind==='master_delete'){
-   if(side==='before'&&h.asset){if(!assets.some(a=>a.id===h.asset.id))assets.push(h.asset);persistAssets();repairMasterPrimaryPolicy()}
-   else if(side==='after'&&h.asset){assets=assets.filter(a=>a.id!==h.asset.id);persistAssets();repairMasterPrimaryPolicy()}
+   if(side==='before'&&h.asset){if(!assets.some(a=>a.id===h.asset.id)){assets.push(h.asset);if(h.asset.img)await masterImagePut(h.asset.id,h.asset.img)}persistAssets();repairMasterPrimaryPolicy()}
+   else if(side==='after'&&h.asset){assets=assets.filter(a=>a.id!==h.asset.id);await masterImageDelete(h.asset.id).catch(()=>{});persistAssets();repairMasterPrimaryPolicy()}
   }else if(h.kind==='checkpoint'){
    for(const [k,raw] of Object.entries(h.stores||{})){if(raw==null)localStorage.removeItem(k);else localStorage.setItem(k,raw)}
    mergeMasterMetadata(h.masterMeta||[]);
@@ -1090,7 +1092,7 @@ async function showHistoryDetail(id){
 }
 async function createNamedHistoryCheckpoint(){const n=prompt('Checkpoint 이름','중요 수정 전');if(!n?.trim())return;await historyCreateCheckpoint(n.trim());document.querySelector('#genResult')?.remove();openProjectHistory()}
 function persistEpisodes(){localStorage.setItem('wtal_episodes',JSON.stringify(episodes));localStorage.setItem('wtal_dynamic_cuts',JSON.stringify(dynamicCuts));saveCutSpecMaps();}
-function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',3);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('results'))r.result.createObjectStore('results');if(!r.result.objectStoreNames.contains('history')){const h=r.result.createObjectStore('history',{keyPath:'id'});h.createIndex('at','at',{unique:false});h.createIndex('episodeId','episodeId',{unique:false})}if(!r.result.objectStoreNames.contains('projects')){const p=r.result.createObjectStore('projects',{keyPath:'id'});p.createIndex('updatedAt','updatedAt',{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open('wtal_db',4);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('results'))r.result.createObjectStore('results');if(!r.result.objectStoreNames.contains('history')){const h=r.result.createObjectStore('history',{keyPath:'id'});h.createIndex('at','at',{unique:false});h.createIndex('episodeId','episodeId',{unique:false})}if(!r.result.objectStoreNames.contains('projects')){const p=r.result.createObjectStore('projects',{keyPath:'id'});p.createIndex('updatedAt','updatedAt',{unique:false})}if(!r.result.objectStoreNames.contains('master_images')){const m=r.result.createObjectStore('master_images',{keyPath:'key'});m.createIndex('projectId','projectId',{unique:false});m.createIndex('assetId','assetId',{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function putResult(key,value){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readwrite');tx.objectStore('results').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted'))})}catch(e){recordFailure({operation:'indexeddb_write',endpoint:String(key),message:e?.name+': '+e?.message,retryable:false});reliabilityToast('이미지 결과 저장에 실패했습니다. Backup/저장공간을 확인하세요.','error');throw e}}
 async function getResult(key){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction('results','readonly');const r=tx.objectStore('results').get(key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}catch(e){recordFailure({operation:'indexeddb_read',endpoint:String(key),message:e?.name+': '+e?.message,retryable:false});throw e}}
 async function getAllResults(){
@@ -1110,6 +1112,78 @@ async function replaceAllResults(entries){
   for(const item of entries||[])store.put(item.value,item.key);
   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('IndexedDB restore aborted'));
  });
+}
+
+function masterImageKey(projectId,assetId){return `${projectId}::${assetId}`}
+async function masterImagePut(assetId,image,projectId=activeProjectId){
+ if(!assetId||!image)return;
+ const db=await openDb();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('master_images','readwrite');
+  tx.objectStore('master_images').put({key:masterImageKey(projectId,assetId),projectId,assetId,image,updatedAt:new Date().toISOString()});
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('MASTER image write aborted'));
+ });
+}
+async function masterImageGet(assetId,projectId=activeProjectId){
+ const db=await openDb();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('master_images','readonly'),r=tx.objectStore('master_images').get(masterImageKey(projectId,assetId));
+  r.onsuccess=()=>resolve(r.result?.image||null);r.onerror=()=>reject(r.error);
+ });
+}
+async function masterImageDelete(assetId,projectId=activeProjectId){
+ const db=await openDb();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('master_images','readwrite');tx.objectStore('master_images').delete(masterImageKey(projectId,assetId));
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+}
+async function masterImagesForProject(projectId=activeProjectId){
+ const db=await openDb();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('master_images','readonly'),store=tx.objectStore('master_images'),idx=store.index('projectId'),out=[];
+  const req=idx.openCursor(IDBKeyRange.only(projectId));
+  req.onsuccess=()=>{const cur=req.result;if(cur){out.push({assetId:cur.value.assetId,image:cur.value.image,updatedAt:cur.value.updatedAt||null});cur.continue()}else resolve(out)};
+  req.onerror=()=>reject(req.error);
+ });
+}
+async function replaceMasterImagesForProject(projectId,entries=[]){
+ const db=await openDb();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('master_images','readwrite'),store=tx.objectStore('master_images'),idx=store.index('projectId');
+  const req=idx.openCursor(IDBKeyRange.only(projectId));
+  req.onsuccess=()=>{const cur=req.result;if(cur){cur.delete();cur.continue()}else{
+   for(const item of entries||[]){if(item?.assetId&&item?.image)store.put({key:masterImageKey(projectId,item.assetId),projectId,assetId:item.assetId,image:item.image,updatedAt:item.updatedAt||new Date().toISOString()})}
+  }};
+  req.onerror=()=>reject(req.error);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('MASTER image restore aborted'));
+ });
+}
+async function hydrateMasterAssets(){
+ let migrated=0,missing=0;
+ for(const a of assets){
+  if(a.img&&String(a.img).startsWith('data:image/')){
+   await masterImagePut(a.id,a.img);migrated++;continue;
+  }
+  const image=await masterImageGet(a.id);if(image)a.img=image;else missing++;
+ }
+ if(migrated){
+  const ok=persistAssets();
+  if(ok)reliabilityToast(`MASTER 이미지 ${migrated}개를 IndexedDB로 이전했습니다.`);
+ }
+ return {migrated,missing,total:assets.length};
+}
+function masterMetadataForStorage(){return assets.map(({img,...rest})=>({...rest,imageStorage:'indexeddb'}))}
+
+async function masterStorageStatus(){
+ let usage=0,quota=0,persisted=false;
+ try{
+  const e=await navigator.storage?.estimate?.();usage=Number(e?.usage||0);quota=Number(e?.quota||0);
+  persisted=await navigator.storage?.persisted?.()||false;
+ }catch(_){}
+ return {usage,quota,persisted,pct:quota?Math.round(usage/quota*100):0};
+}
+async function requestPersistentMasterStorage(){
+ try{
+  if(!navigator.storage?.persist)return alert('이 브라우저에서는 영구 저장소 요청을 지원하지 않습니다.');
+  const ok=await navigator.storage.persist();
+  reliabilityToast(ok?'브라우저 영구 저장소가 허용되었습니다.':'영구 저장소가 허용되지 않았습니다. IndexedDB 저장은 계속 사용됩니다.',ok?'':'warn');
+  renderAssets();
+ }catch(e){alert('저장소 요청 실패: '+e.message)}
 }
 
 function episodeSelector(){return `<select class="episode-select" onchange="switchEpisode(this.value)">${episodes.map(e=>`<option value="${e.id}" ${e.id===activeEpisodeId?'selected':''}>EP.${String(e.number).padStart(2,'0')} · ${e.title}</option>`).join('')}</select>`}
@@ -1621,13 +1695,13 @@ function masterSafeDeleteReason(a){
  const children=assets.filter(x=>x.parentId===a.id||x.versionOf===a.id);if(children.length)return `연결된 하위/버전 Master ${children.length}개가 있습니다.`;
  return '';
 }
-function deleteMasterSafe(id){
+async function deleteMasterSafe(id){
  const a=assets.find(x=>x.id===id);if(!a)return;
  const reason=masterSafeDeleteReason(a);if(reason)return alert('삭제할 수 없습니다.\n\n'+reason);
  if(!confirm(`미사용 Master "${a.name}"을 삭제할까요?\n이 작업은 Library에서 즉시 제거됩니다.`))return;
  const historyAsset=JSON.parse(JSON.stringify(a));assets=assets.filter(x=>x.id!==id);
  delete spaceMaps[id];delete spaceMaps[a.name];
- persistAssets();saveSpaceMaps();repairMasterPrimaryPolicy();historyPut({id:`hist_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,at:new Date().toISOString(),type:'master',label:`MASTER 삭제 · ${a.name}`,episodeId:activeEpisodeId||'',kind:'master_delete',asset:historyAsset,restorable:true});
+ await masterImageDelete(id);persistAssets();saveSpaceMaps();repairMasterPrimaryPolicy();historyPut({id:`hist_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,at:new Date().toISOString(),type:'master',label:`MASTER 삭제 · ${a.name}`,episodeId:activeEpisodeId||'',kind:'master_delete',asset:historyAsset,restorable:true});
  document.querySelector('#genResult')?.remove();renderAssets();
 }
 function cleanupUnusedMasters(){
@@ -1635,11 +1709,12 @@ function cleanupUnusedMasters(){
  if(!candidates.length)return alert('안전하게 정리할 수 있는 미사용 Master가 없습니다.');
  modalShell(`<div class="eyebrow">SAFE CLEANUP · V30</div><h2>미사용 Master 정리</h2><p class="lead">PRIMARY가 아니고, CUT 사용 기록과 하위 버전 연결이 없는 자산만 표시합니다.</p><div class="masterAuditList">${candidates.map(a=>`<div class="masterAuditRow"><span><b>${esc(a.name)}</b><small>${a.type} · ${masterCategoryLabel(a)} · v${versionNumber(a)}</small></span><span class="masterAuditBadge">SAFE</span></div>`).join('')}</div><div class="masterDangerZone"><b>${candidates.length}개 삭제 예정</b><p>생성 이미지/CUT 데이터는 건드리지 않습니다. 위 Master 자산만 제거합니다.</p><button class="btn" onclick="confirmCleanupUnusedMasters()">선택 후보 모두 삭제</button></div>`);
 }
-function confirmCleanupUnusedMasters(){
+async function confirmCleanupUnusedMasters(){
  const historyBefore=historyAssetMetadata();const ids=masterUnusedAssets().filter(a=>!masterSafeDeleteReason(a)).map(a=>a.id);if(!ids.length)return;
  if(!confirm(`${ids.length}개의 안전한 미사용 Master를 삭제할까요?`))return;
  const idset=new Set(ids),removed=assets.filter(a=>idset.has(a.id));assets=assets.filter(a=>!idset.has(a.id));
  removed.forEach(a=>{delete spaceMaps[a.id];delete spaceMaps[a.name]});
+ await Promise.all(ids.map(id=>masterImageDelete(id).catch(()=>{})));
  persistAssets();saveSpaceMaps();repairMasterPrimaryPolicy();historyRecordMaster('미사용 MASTER 정리',historyBefore);document.querySelector('#genResult')?.remove();renderAssets();
 }
 function openMasterAudit(){
@@ -1739,7 +1814,7 @@ function renderAssets(){
  const cards=list.map(a=>{
    const role=assetRole(a),parent=a.parentId?assets.find(x=>x.id===a.parentId):null,child=assets.find(x=>x.parentId===a.id&&assetRole(x)==='production'),usage=masterUsage(a),cat=defaultMasterSubtype(a),ver=versionNumber(a);
    return `<article class="asset">
-     <div class="assetimg" style="background-image:url('${a.img}')"><span>${a.type}</span><b class="assetrole ${role}">${role==='production'?'WEBTOON MASTER':'SOURCE MASTER'}</b>${isPrimaryMaster(a)?'<div class="approvedmark">★ PRIMARY</div>':''}${audit.dupIds.has(a.id)?'<div class="masterDuplicateMark">DUPLICATE?</div>':!masterIsUsed(a)?'<div class="masterUnusedMark">UNUSED</div>':''}</div>
+     <div class="assetimg" style="${a.img?`background-image:url('${a.img}')`:'background:#eee'}"><span>${a.type}</span><b class="assetrole ${role}">${role==='production'?'WEBTOON MASTER':'SOURCE MASTER'}</b>${isPrimaryMaster(a)?'<div class="approvedmark">★ PRIMARY</div>':''}${audit.dupIds.has(a.id)?'<div class="masterDuplicateMark">DUPLICATE?</div>':!masterIsUsed(a)?'<div class="masterUnusedMark">UNUSED</div>':''}</div>
      <div class="assetbody"><h3>${esc(a.name)}</h3><code>${a.id}</code>
        <div class="masterMetaLine"><span class="masterChip">${MASTER_SUBTYPE_LABELS[cat]||cat}</span><span class="masterChip version">v${ver}</span>${a.timeOfDay?`<span class="masterChip time">${esc(a.timeOfDay)}</span>`:''}</div>
        ${parent?`<div class="assetpair">SOURCE: ${esc(parent.name)}</div>`:''}${child?`<div class="assetpair">WEBTOON 변환본: ✓ ${esc(child.name)}</div>`:''}
@@ -1757,15 +1832,17 @@ function renderAssets(){
  }).join('');
  view.innerHTML=`${pageHeaderHtml('LIBRARY','Master Library','캐릭터·의상·소품·배경·LOOK의 제작 기준을 한곳에서 관리합니다.',`<button class="btn" onclick="openMasterAudit()">Library 검사</button><button class="btn dark" onclick="pendingVersionOf=null;openMaster()">＋ Master 등록</button>`)}
  <div class="masterHealthStrip"><div class="masterHealthTile"><small>TOTAL</small><b>${assets.length}</b>assets</div><div class="masterHealthTile"><small>PRIMARY</small><b>${primary}</b>groups</div><div class="masterHealthTile ${audit.dupGroups.length?'warn':''}"><small>DUPLICATES</small><b>${audit.dupGroups.length}</b>groups</div><div class="masterHealthTile ${audit.naming.length?'warn':''}"><small>NAMING</small><b>${audit.naming.length}</b>issues</div><div class="masterHealthTile"><small>UNUSED SAFE</small><b>${audit.unused.filter(x=>!masterSafeDeleteReason(x)).length}</b>cleanup</div></div>
- <div class="libraryV27Top"><div class="libraryV27Filters"><span class="spatialBadge">SPACE MAP ${Object.keys(spaceMaps).length}</span></div><span class="pageMeta">${list.length} / ${assets.length} assets</span></div>
+ <div class="libraryV27Top"><div class="libraryV27Filters"><span class="spatialBadge">SPACE MAP ${Object.keys(spaceMaps).length}</span><span class="spatialBadge">IMAGE STORAGE · IndexedDB</span><span class="spatialBadge" id="masterStorageUsage">저장공간 확인 중…</span><button class="btn small" onclick="requestPersistentMasterStorage()">영구 저장 요청</button></div><span class="pageMeta">${list.length} / ${assets.length} assets</span></div>
  <div class="masterTaxonomy">${cats.map(x=>`<button class="${masterLibraryFilter.category===x?'on':''}" onclick="setMasterFilter('category','${x}')">${x==='ALL'?'전체':MASTER_SUBTYPE_LABELS[x]}</button>`).join('')}</div>
  <div class="masterLibToolbar"><input placeholder="MASTER 검색" value="${esc(masterLibraryFilter.search)}" oninput="masterLibraryFilter.search=this.value;renderAssets()"><select onchange="setMasterFilter('role',this.value)"><option value="ALL" ${masterLibraryFilter.role==='ALL'?'selected':''}>SOURCE + PRODUCTION</option><option value="source" ${masterLibraryFilter.role==='source'?'selected':''}>SOURCE</option><option value="production" ${masterLibraryFilter.role==='production'?'selected':''}>PRODUCTION</option></select><select onchange="setMasterFilter('health',this.value)"><option value="ALL" ${masterLibraryFilter.health==='ALL'?'selected':''}>전체 상태</option><option value="USED" ${masterLibraryFilter.health==='USED'?'selected':''}>사용 중</option><option value="UNUSED" ${masterLibraryFilter.health==='UNUSED'?'selected':''}>미사용</option><option value="ISSUE" ${masterLibraryFilter.health==='ISSUE'?'selected':''}>검사 필요</option></select><span class="lead">${list.length}개 표시</span></div>
 
  <div class="assetgrid">${cards||emptyStateHtml('해당 Master가 없습니다','필터를 변경하거나 새 Master를 등록해보세요.','<button class="btn dark" onclick="pendingVersionOf=null;openMaster()">Master 등록</button>','＋')}</div>`;
+ masterStorageStatus().then(st=>{const el=document.querySelector('#masterStorageUsage');if(el)el.textContent=st.quota?`브라우저 ${byteText(st.usage)} / ${byteText(st.quota)} · ${st.pct}%${st.persisted?' · PERSISTENT':''}`:'IndexedDB 사용 중'});
+
 }
 function persistAssets(){
- const ok=safeStorageSet('wtal_assets',JSON.stringify(assets),{quiet:true});
- if(!ok)reliabilityToast('MASTER 저장 실패 · 브라우저 저장 공간을 확인하세요.','error');
+ const ok=safeStorageSet('wtal_assets',JSON.stringify(masterMetadataForStorage()),{quiet:true});
+ if(!ok)reliabilityToast('MASTER 메타데이터 저장 실패 · 브라우저 저장 공간을 확인하세요.','error');
  return ok;
 }
 function downloadAsset(id){
@@ -1808,27 +1885,21 @@ function showMasterTransformResult(source,image,model){
   <button class="btn" onclick="document.querySelector('#genResult')?.remove();transformMaster('${source.id}')">다시 생성</button>
   <button class="btn dark" id="approveMasterTransform">✓ PRODUCTION MASTER 채택</button>
  </div>`);
- document.querySelector('#approveMasterTransform').onclick=()=>{
+ document.querySelector('#approveMasterTransform').onclick=async()=>{
    const prior=assets.find(x=>x.parentId===source.id&&assetRole(x)==='production'&&x.approved);
-   if(prior)prior.approved=false;
    const converted={
-     id:`${source.type}_WEBTOON_${Date.now()}`,
-     type:source.type,
-     name:`${source.name} · WEBTOON`,
-     img:image,
-     masterRole:'production',
-     parentId:source.id,
-     approved:true,
-     subtype:defaultMasterSubtype(source),
-     versionGroup:source.versionGroup||source.id,
-     version:Math.max(1,...versionSiblings(source).map(versionNumber))+1,
-     versionNote:'WEBTOON PRODUCTION 변환',
-     timeOfDay:source.timeOfDay||'',
-     lookScene:source.lookScene||'',
-     createdAt:new Date().toISOString()
+     id:`${source.type}_WEBTOON_${Date.now()}`,type:source.type,name:`${source.name} · WEBTOON`,img:image,imageStorage:'indexeddb',
+     masterRole:'production',parentId:source.id,approved:true,subtype:defaultMasterSubtype(source),versionGroup:source.versionGroup||source.id,
+     version:Math.max(1,...versionSiblings(source).map(versionNumber))+1,versionNote:'WEBTOON PRODUCTION 변환',
+     timeOfDay:source.timeOfDay||'',lookScene:source.lookScene||'',createdAt:new Date().toISOString()
    };
-   assets.push(converted);persistAssets();masterPrimary[masterVersionGroup(converted)]=converted.id;saveMasterPrimary();
-   document.querySelector('#genResult')?.remove();renderAssets();
+   try{
+    await masterImagePut(converted.id,image);
+    if(prior)prior.approved=false;assets.push(converted);
+    if(!persistAssets())throw new Error('MASTER 메타데이터 저장 실패');
+    masterPrimary[masterVersionGroup(converted)]=converted.id;saveMasterPrimary();
+    document.querySelector('#genResult')?.remove();reliabilityToast('PRODUCTION MASTER를 IndexedDB에 저장했습니다.');renderAssets();
+   }catch(e){assets=assets.filter(x=>x.id!==converted.id);try{await masterImageDelete(converted.id)}catch(_){}alert('PRODUCTION MASTER 저장 실패: '+(e?.message||e))}
  };
 }
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
@@ -1892,7 +1963,7 @@ function renderCostDashboard(){
 
 
 const BACKUP_FORMAT='WTAL_PROJECT_BACKUP';
-const BACKUP_VERSION=36;
+const BACKUP_VERSION=40;
 let backupPreferences=wtalReadJSON('wtal_backup_preferences',{autoSnapshotMinutes:120,fullBackupReminderDays:7,lastAutoSnapshotAt:null});
 function saveBackupPreferences(){safeStorageSet('wtal_backup_preferences',JSON.stringify(backupPreferences),{quiet:true})}
 
@@ -1909,6 +1980,7 @@ function backupIntegrityReport(b){
  if(!local.wtal_episodes)warnings.push('Episode index 없음');
  if(!local.wtal_assets)warnings.push('MASTER Library 없음');
  if(!Array.isArray(idb))issues.push('IndexedDB results 형식 오류');
+ if(b.masterImages!==undefined&&!Array.isArray(b.masterImages))issues.push('MASTER images 형식 오류');
  const eps=backupEpisodeIdsFromLocal(local);
  return {ok:issues.length===0,issues,warnings,episodes:eps,version:Number(m.version||0),schema:Number(m.dataSchemaVersion||0),currentVersion:BACKUP_VERSION,currentSchema:WTAL_SCHEMA_VERSION};
 }
@@ -1990,8 +2062,9 @@ function clearLiveProjectStorage(){
 async function projectStorePut(record){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function projectStoreGet(id){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),r=tx.objectStore('projects').get(id);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
 async function projectStoreDelete(id){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function deleteProjectMasterImages(id){return replaceMasterImagesForProject(id,[])}
 async function captureActiveProjectSnapshot(){
- return {localStorage:projectLocalStorageSnapshot(),results:await getAllResults(),history:await historyAll()};
+ return {localStorage:projectLocalStorageSnapshot(),results:await getAllResults(),history:await historyAll(),masterImages:await masterImagesForProject(activeProjectId)};
 }
 async function persistActiveProjectToWorkspace(){
  const snap=await captureActiveProjectSnapshot(),rows=workspaceProjectsRead(),meta=rows.find(x=>x.id===activeProjectId)||{id:activeProjectId,createdAt:new Date().toISOString()};
@@ -2015,10 +2088,11 @@ async function activateWorkspaceProject(id,{discardActive=false,deleteActiveId=n
   clearLiveProjectStorage();
   for(const [k,v] of Object.entries(target.snapshot.localStorage||{}))if(k.startsWith('wtal_')&&!WORKSPACE_KEYS.has(k))localStorage.setItem(k,String(v));
   await replaceAllResults(target.snapshot.results||[]);await replaceAllHistory(target.snapshot.history||[]);
+  await replaceMasterImagesForProject(id,target.snapshot.masterImages||[]);
   localStorage.setItem('wtal_workspace_active_project',id);activeProjectId=id;
   updateWorkspaceProjectMeta(id,{lastOpenedAt:new Date().toISOString(),archived:false});
   await projectStoreDelete(id); // active project lives in normal stores; no stale duplicate.
-  if(deleteActiveId){await projectStoreDelete(deleteActiveId);workspaceProjectsWrite(workspaceProjectsRead().filter(x=>x.id!==deleteActiveId))}
+  if(deleteActiveId){await projectStoreDelete(deleteActiveId);await deleteProjectMasterImages(deleteActiveId);workspaceProjectsWrite(workspaceProjectsRead().filter(x=>x.id!==deleteActiveId))}
   location.reload();
  }catch(e){document.querySelector('#projectSwitching')?.remove();alert('프로젝트 전환 실패: '+e.message)}
 }
@@ -2055,7 +2129,7 @@ async function createWorkspaceProject(){
    const pd=wtalSafeParse(cloned.localStorage?.wtal_project||'{}',{});pd.title=title;cloned.localStorage.wtal_project=JSON.stringify(pd);cloned.localStorage.wtal_ui_page='HOME';
    await projectStorePut({id,updatedAt:now,snapshot:cloned});rows.push({id,title,genre:pd.genre||'',createdAt:now,updatedAt:now,lastOpenedAt:null,archived:false});
   }else{
-   const local=newProjectTemplateData(title,document.querySelector('#newProjectGenre')?.value.trim()||'');await projectStorePut({id,updatedAt:now,snapshot:{localStorage:local,results:[],history:[]}});
+   const local=newProjectTemplateData(title,document.querySelector('#newProjectGenre')?.value.trim()||'');await projectStorePut({id,updatedAt:now,snapshot:{localStorage:local,results:[],history:[],masterImages:[]}});
    rows.push({id,title,genre:document.querySelector('#newProjectGenre')?.value.trim()||'',createdAt:now,updatedAt:now,lastOpenedAt:null,archived:false});
   }
   workspaceProjectsWrite(rows);document.querySelector('#projectSwitching')?.remove();await activateWorkspaceProject(id);
@@ -2092,7 +2166,7 @@ async function deleteWorkspaceProject(id){
   if(!target)return alert('먼저 다른 프로젝트를 만들어주세요.');
   return activateWorkspaceProject(target.id,{discardActive:true,deleteActiveId:id});
  }
- await projectStoreDelete(id);workspaceProjectsWrite(rows.filter(x=>x.id!==id));renderProjectsHub();
+ await projectStoreDelete(id);await deleteProjectMasterImages(id);workspaceProjectsWrite(rows.filter(x=>x.id!==id));renderProjectsHub();
 }
 let projectHubFilter='active',projectHubSearch='';
 function renderProjectsHub(){
@@ -2127,6 +2201,7 @@ function countBackupKinds(entries){
 }
 async function buildProjectBackupPayload(includeImages=true){
  const idb=includeImages?await getAllResults():[];
+ const masterImages=includeImages?await masterImagesForProject(activeProjectId):[];
  const history=await historyAll();
  const local=backupLocalStorageSnapshot();
  const kinds=countBackupKinds(idb);
@@ -2137,9 +2212,10 @@ async function buildProjectBackupPayload(includeImages=true){
   projectTitle:projectData?.title||'Untitled',
   activeEpisodeId,
   includeImages,
-  summary:{episodes:episodes.length,masters:assets.length,indexedDbEntries:idb.length,cuts:kinds.cuts,storyboards:kinds.storyboards,revisions:kinds.revisions,localStorageKeys:Object.keys(local).length},
+  summary:{episodes:episodes.length,masters:assets.length,masterImages:masterImages.length,indexedDbEntries:idb.length,cuts:kinds.cuts,storyboards:kinds.storyboards,revisions:kinds.revisions,localStorageKeys:Object.keys(local).length},
   localStorage:local,
   indexedDbResults:idb,
+  masterImages,
   historyEntries:history
  };
 }
@@ -2153,15 +2229,16 @@ async function exportProjectBackup(includeImages=true){
    {name:'manifest.json',blob:jsonBlob(manifest)},
    {name:'data/local-storage.json',blob:jsonBlob(payload.localStorage)},
    {name:'data/indexeddb-results.json',blob:jsonBlob(payload.indexedDbResults)},
+   {name:'data/master-images.json',blob:jsonBlob(payload.masterImages||[])},
    {name:'data/history.json',blob:jsonBlob(payload.historyEntries)},
-   {name:'README.txt',blob:new Blob([`Webtoon AI Lab Project Backup\nVersion: ${payload.version}\nCreated: ${payload.createdAt}\nProject: ${payload.projectTitle}\nEpisodes: ${payload.summary.episodes}\nMasters: ${payload.summary.masters}\nIndexedDB entries: ${payload.summary.indexedDbEntries}\n\n복원은 Webtoon AI Lab > BACKUP > PROJECT 복원에서 이 ZIP 파일을 선택하세요.\n`],{type:'text/plain;charset=utf-8'})}
+   {name:'README.txt',blob:new Blob([`Webtoon AI Lab Project Backup\nVersion: ${payload.version}\nCreated: ${payload.createdAt}\nProject: ${payload.projectTitle}\nEpisodes: ${payload.summary.episodes}\nMasters: ${payload.summary.masters}\nMASTER images: ${payload.summary.masterImages||0}\nIndexedDB entries: ${payload.summary.indexedDbEntries}\n\n복원은 Webtoon AI Lab > BACKUP > PROJECT 복원에서 이 ZIP 파일을 선택하세요.\n`],{type:'text/plain;charset=utf-8'})}
   ];
   const z=await zipStore(files);
   const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19),safe=(payload.projectTitle||'project').replace(/[\\/:*?"<>|]/g,'_');
   downloadBlob(z,`${safe}_BACKUP_${stamp}.zip`);
   localStorage.setItem('wtal_last_backup_at',payload.createdAt);
   localStorage.setItem('wtal_last_backup_size',String(z.size));
-  if(status)status.innerHTML=`<div class="backupOk"><b>백업 완료</b><br>${payload.summary.episodes}화 · MASTER ${payload.summary.masters}개 · 이미지/콘티 데이터 ${payload.summary.indexedDbEntries}개 · ${byteText(z.size)}</div>`;
+  if(status)status.innerHTML=`<div class="backupOk"><b>백업 완료</b><br>${payload.summary.episodes}화 · MASTER ${payload.summary.masters}개 / 이미지 ${payload.summary.masterImages||0}개 · CUT/콘티 ${payload.summary.indexedDbEntries}개 · ${byteText(z.size)}</div>`;
   renderBackupPage();
  }catch(e){alert('프로젝트 백업 실패: '+e.message)}
 }
@@ -2188,8 +2265,9 @@ async function inspectBackupFile(file){
  if(Number(manifest.version)>BACKUP_VERSION)throw new Error(`이 백업은 더 최신 버전(V${manifest.version})에서 생성되었습니다.`);
  const local=JSON.parse(dec.decode(files['data/local-storage.json']));
  const idb=JSON.parse(dec.decode(files['data/indexeddb-results.json']));
+ const masterImages=files['data/master-images.json']?JSON.parse(dec.decode(files['data/master-images.json'])):[];
  const history=files['data/history.json']?JSON.parse(dec.decode(files['data/history.json'])):[];
- const raw={manifest,localStorage:local,indexedDbResults:idb,historyEntries:Array.isArray(history)?history:[],fileName:file.name,fileSize:file.size};
+ const raw={manifest,localStorage:local,indexedDbResults:idb,masterImages:Array.isArray(masterImages)?masterImages:[],historyEntries:Array.isArray(history)?history:[],fileName:file.name,fileSize:file.size};
  return migrateBackupPayload(raw);
 }
 async function selectBackupFile(file){
@@ -2219,6 +2297,7 @@ async function restorePendingBackup(){
    keys.forEach(k=>localStorage.removeItem(k));
    for(const [k,v] of Object.entries(b.localStorage||{})){if(k.startsWith('wtal_')&&!WORKSPACE_KEYS.has(k))localStorage.setItem(k,String(v))}
    await replaceAllResults(b.indexedDbResults||[]);
+   await replaceMasterImagesForProject(activeProjectId,b.masterImages||[]);
    if(Array.isArray(b.historyEntries)&&b.historyEntries.length)await replaceAllHistory(b.historyEntries);
   }else if(scope==='episode'){
    if(!episodeId)throw new Error('복원할 Episode를 선택하세요.');
@@ -2228,6 +2307,7 @@ async function restorePendingBackup(){
   }else if(scope==='master'){
    const merged=mergeMasterLocal(current,b.localStorage||{});
    for(const k of ['wtal_assets','wtal_master_primary','wtal_space_maps'])if(merged[k]!=null)localStorage.setItem(k,String(merged[k]));
+   await replaceMasterImagesForProject(activeProjectId,b.masterImages||[]);
   }
   localStorage.setItem('wtal_data_schema_version',String(WTAL_SCHEMA_VERSION));
   localStorage.setItem('wtal_last_restore_at',new Date().toISOString());
@@ -2241,7 +2321,8 @@ function backupInventoryHtml(){
  const rows=[
   ['Story Bible / Project','localStorage'],
   ['Episode / CUT 제작명세','localStorage'],
-  ['MASTER + MASTER 이미지','localStorage'],
+  ['MASTER 메타데이터','localStorage'],
+  ['MASTER 이미지','IndexedDB · master_images'],
   ['SCENE LOOK / SPACE MAP / CAMERA','localStorage'],
   ['Character State / Continuity','localStorage'],
   ['Lettering / Assemble / Export 상태','localStorage'],
@@ -3049,6 +3130,7 @@ async function preProductionAuditData(){
   {name:'CUT 제작명세',ok:cuts.length>0,warn:false,desc:`${cuts.length} CUT · 이미지 CUT ${images.length}`},
   {name:'소량 테스트 MASTER',ok:sampleUnique.length===0,warn:false,desc:sampleUnique.length?`${sampleUnique.length}개 MASTER 누락`:`추천 ${samples.length} CUT 기준 충족`},
   {name:'전체 EP MASTER',ok:uniqueMissing.length===0,warn:uniqueMissing.length>0,desc:uniqueMissing.length?`전체 제작 전 ${uniqueMissing.length}개 보강 필요`:'전체 참조 충족'},
+  {name:'MASTER 이미지 저장소',ok:assets.every(a=>!!a.img),warn:assets.some(a=>!a.img),desc:assets.some(a=>!a.img)?`${assets.filter(a=>!a.img).length}개 이미지 누락 · Recovery 확인`:`IndexedDB · ${assets.length}개 이미지 로드 확인`},
   {name:'데이터 무결성',ok:health.issues===0,warn:health.issues>0,desc:`Schema v${health.version} · issues ${health.issues}`},
   {name:'미해결 오류',ok:fails.length===0,warn:fails.length>0,desc:fails.length?`${fails.length}개 Recovery 확인 필요`:'미해결 오류 없음'},
   {name:'Full Backup',ok:!!lastBackup,warn:!lastBackup,desc:lastBackup?new Date(lastBackup).toLocaleString():'실제 생성 테스트 전 1회 권장'}
@@ -3109,7 +3191,7 @@ function runDataIntegrityRepair(){
  ];
  for(const [key,fn] of transforms){const current=wtalReadJSON(key,{}),r=fn(current);if(r.changed){localStorage.setItem(key,JSON.stringify(r.value));changed+=r.changed}}
  const ep=wtalReadJSON('wtal_episodes',[]),ne=wtalNormalizeEpisodesRaw(ep);if(JSON.stringify(ep)!==JSON.stringify(ne)){localStorage.setItem('wtal_episodes',JSON.stringify(ne));changed++}
- const aa=wtalReadJSON('wtal_assets',[]),na=wtalNormalizeAssetsRaw(aa);if(JSON.stringify(aa)!==JSON.stringify(na)){localStorage.setItem('wtal_assets',JSON.stringify(na));changed++}
+ const aa=wtalReadJSON('wtal_assets',[]),na=wtalNormalizeAssetsRaw(aa).map(({img,...rest})=>({...rest,imageStorage:'indexeddb'}));if(JSON.stringify(aa)!==JSON.stringify(na)){safeStorageSet('wtal_assets',JSON.stringify(na),{quiet:true});changed++}
  wtalMigrationLog('수동 무결성 정리',`${changed} changes · before issues ${before.issues}`);
  document.querySelector('#genResult')?.remove();if(changed){alert(`데이터 정리 완료: ${changed}개 항목을 정규화했습니다. 페이지를 새로고침해 반영합니다.`);location.reload()}else alert('정리할 중복/레거시 키가 없습니다.');
 }
@@ -3288,7 +3370,26 @@ function savePrompt(id){
  pushCutUndo(`CUT ${id} 프롬프트 수정`);c.prompt=value;map[id]=c;if(!ep().builtin)dynamicCuts[activeEpisodeId]=map;saveCutSpecMaps();persistEpisodes();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 프롬프트 저장 완료`);
 }
 const modal=document.querySelector('#modal'),drop=document.querySelector('#drop'),file=document.querySelector('#file'),name=document.querySelector('#name'),type=document.querySelector('#type');
-window.openMaster=(t='',n='')=>{if(t)type.value=t;if(n)name.value=n;modal.classList.add('show')};document.querySelector('#close').onclick=()=>{modal.classList.remove('show');pendingVersionOf=null};drop.onclick=()=>file.click();['dragenter','dragover'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));file.onchange=e=>loadFile(e.target.files[0]);function loadFile(f){if(!f||!f.type.startsWith('image/'))return;name.value=name.value||f.name.replace(/\.[^.]+$/,'');const r=new FileReader();r.onload=()=>{assetData=r.result;drop.innerHTML=`<img src="${assetData}">`;};r.readAsDataURL(f)}document.querySelector('#save').onclick=()=>{if(!assetData||!name.value.trim())return alert('이미지와 이름을 입력해주세요.');name.value=name.value.trim().replace(/\s+/g,' ').replace(/\.(png|jpg|jpeg|webp)$/i,'');const duplicate=assets.find(a=>a.type===type.value&&masterCanonicalName(a.name)===masterCanonicalName(name.value)&&!pendingVersionOf);if(duplicate&&!confirm(`같은 이름의 ${type.value} Master가 이미 있습니다.\n\n${duplicate.name}\n\n새 자산으로 계속 등록할까요?`))return;const id=`${type.value}_${Date.now()}`;const parent=pendingVersionOf?assets.find(x=>x.id===pendingVersionOf):null;const group=parent?masterVersionGroup(parent):id;const version=parent?Math.max(0,...versionSiblings(parent).map(versionNumber))+1:1;const created={id,type:type.value,name:name.value.trim(),img:assetData,masterRole:'source',subtype:parent?defaultMasterSubtype(parent):(type.value==='CHARACTER'?'IDENTITY':type.value==='BACKGROUND'?'BACKGROUND':'PROP'),versionGroup:group,versionOf:parent?masterRootId(parent):null,version,versionNote:parent?'새 SOURCE 버전':'',timeOfDay:parent?.timeOfDay||'',lookScene:parent?.lookScene||'',createdAt:new Date().toISOString()};assets.push(created);persistAssets();if(parent){masterPrimary[group]=id;saveMasterPrimary()}pendingVersionOf=null;assetData='';name.value='';modal.classList.remove('show');drop.innerHTML='<span><b>이미지를 여기에 드래그</b><br><small>또는 클릭해서 PNG · JPG · WEBP 선택</small></span>';renderAssets()};
+window.openMaster=(t='',n='')=>{if(t)type.value=t;if(n)name.value=n;modal.classList.add('show')};document.querySelector('#close').onclick=()=>{modal.classList.remove('show');pendingVersionOf=null};drop.onclick=()=>file.click();['dragenter','dragover'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));file.onchange=e=>loadFile(e.target.files[0]);function loadFile(f){if(!f||!f.type.startsWith('image/'))return;name.value=name.value||f.name.replace(/\.[^.]+$/,'');const r=new FileReader();r.onload=()=>{assetData=r.result;drop.innerHTML=`<img src="${assetData}">`;};r.readAsDataURL(f)}document.querySelector('#save').onclick=async()=>{
+ if(!assetData||!name.value.trim())return alert('이미지와 이름을 입력해주세요.');
+ name.value=name.value.trim().replace(/\s+/g,' ').replace(/\.(png|jpg|jpeg|webp)$/i,'');
+ const duplicate=assets.find(a=>a.type===type.value&&masterCanonicalName(a.name)===masterCanonicalName(name.value)&&!pendingVersionOf);
+ if(duplicate&&!confirm(`같은 이름의 ${type.value} Master가 이미 있습니다.\n\n${duplicate.name}\n\n새 자산으로 계속 등록할까요?`))return;
+ const id=`${type.value}_${Date.now()}`,parent=pendingVersionOf?assets.find(x=>x.id===pendingVersionOf):null,group=parent?masterVersionGroup(parent):id,version=parent?Math.max(0,...versionSiblings(parent).map(versionNumber))+1:1;
+ const created={id,type:type.value,name:name.value.trim(),img:assetData,imageStorage:'indexeddb',masterRole:'source',subtype:parent?defaultMasterSubtype(parent):(type.value==='CHARACTER'?'IDENTITY':type.value==='BACKGROUND'?'BACKGROUND':'PROP'),versionGroup:group,versionOf:parent?masterRootId(parent):null,version,versionNote:parent?'새 SOURCE 버전':'',timeOfDay:parent?.timeOfDay||'',lookScene:parent?.lookScene||'',createdAt:new Date().toISOString()};
+ const saveBtn=document.querySelector('#save');if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='저장 중…'}
+ try{
+  await masterImagePut(id,assetData);
+  assets.push(created);
+  if(!persistAssets())throw new Error('MASTER 메타데이터를 저장하지 못했습니다.');
+  if(parent){masterPrimary[group]=id;saveMasterPrimary()}
+  pendingVersionOf=null;assetData='';name.value='';modal.classList.remove('show');drop.innerHTML='<span><b>이미지를 여기에 드래그</b><br><small>또는 클릭해서 PNG · JPG · WEBP 선택</small></span>';
+  reliabilityToast('MASTER 저장 완료 · 이미지가 IndexedDB에 저장되었습니다.');renderAssets();
+ }catch(e){
+  assets=assets.filter(x=>x.id!==id);try{await masterImageDelete(id)}catch(_){}
+  alert('MASTER 저장 실패: '+(e?.message||e));
+ }finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='저장'}}
+};
 
 
 function compressReferenceDataUrl(dataUrl,maxSide=1200,quality=0.78){
@@ -3501,7 +3602,13 @@ async function checkApi(){
 }
 if(!['HOME','CREATE','LIBRARY','EPISODES','PROJECTS','PROJECT'].includes(currentPage))currentPage='HOME';
 
-render();
-
-setTimeout(()=>showFirstRunWelcome(),700);
+async function bootstrapApp(){
+ try{
+  const h=await hydrateMasterAssets();
+  if(h.missing)recordFailure({operation:'master_storage',endpoint:'IndexedDB',message:`MASTER 이미지 ${h.missing}개를 찾지 못했습니다.`,retryable:false});
+ }catch(e){recordFailure({operation:'master_storage',endpoint:'IndexedDB',message:e?.name+': '+e?.message,retryable:false});reliabilityToast('MASTER 이미지 저장소 초기화에 실패했습니다. Recovery Center를 확인하세요.','error')}
+ render();
+ setTimeout(()=>showFirstRunWelcome(),700);
+}
+bootstrapApp();
 </script></body></html>

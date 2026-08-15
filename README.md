@@ -1349,3 +1349,79 @@ Removed declaration-only leftovers after the first cleanup pass:
 - settingsToggleHtml
 
 - commandKeydown
+
+
+## V40.4 — MASTER Storage Architecture
+
+### Why this patch exists
+MASTER images previously lived inside `wtal_assets` as base64 Data URLs in LocalStorage.
+LocalStorage is appropriate for small metadata, not production image binaries. Large MASTER libraries could therefore hit browser quota and fail to save.
+
+### New storage split
+- `localStorage / wtal_assets`: MASTER metadata only.
+- `IndexedDB / wtal_db v4 / master_images`: MASTER image Data URLs.
+- Runtime `assets[]`: metadata + hydrated image for compatibility with the existing production pipeline.
+
+Existing code that reads `asset.img` continues to work after startup hydration.
+
+### Automatic migration
+On first V40.4 load:
+1. existing `wtal_assets` is read,
+2. every legacy embedded `img` is copied to IndexedDB,
+3. `wtal_assets` is rewritten without image binaries,
+4. in-memory assets keep their image for the running session.
+
+No manual re-registration is required for MASTER images that were successfully stored before the previous LocalStorage quota failure.
+
+A MASTER whose save already failed before V40.4 was never committed and must be registered again.
+
+### New MASTER writes
+New SOURCE MASTER and accepted PRODUCTION MASTER images are written to IndexedDB first.
+Only after the binary write succeeds is metadata committed to LocalStorage.
+If metadata commit fails, the new IndexedDB image is rolled back.
+
+### Delete / cleanup
+Single safe delete and bulk unused cleanup remove the corresponding IndexedDB image as well as metadata.
+
+### Workspace projects
+Project snapshots now carry `masterImages` separately from LocalStorage.
+Switch / clone / delete flows preserve or remove the correct project-scoped image namespace.
+
+### Backup V40
+Full Backup now contains:
+- `data/local-storage.json`
+- `data/indexeddb-results.json`
+- `data/master-images.json`
+- `data/history.json`
+
+Old V36 backups remain accepted. If an old backup has MASTER images embedded in `wtal_assets`, V40.4 migrates them on the reload after restore.
+
+MASTER-only restore also restores `master-images.json` when present.
+
+### Browser storage health
+MASTER Library displays browser storage usage/quota when the browser exposes `navigator.storage.estimate()`.
+`영구 저장 요청` calls the browser Persistent Storage API as a best-effort protection against automatic eviction.
+
+### IndexedDB version
+`wtal_db`: v3 → v4
+New object store:
+- `master_images`
+  - key: `<projectId>::<assetId>`
+  - indices: `projectId`, `assetId`
+
+### Next
+After deploying V40.4:
+1. open MASTER Library once and allow the automatic migration,
+2. confirm `IMAGE STORAGE · IndexedDB`,
+3. re-register the MASTER that previously failed to save,
+4. run V40 Preflight,
+5. create a Full Backup,
+6. proceed to EP01 CUT 013–016 sample production.
+
+
+### Final V40.4 validation
+- frontend + 10 API routes: `node --check` PASS
+- `wtal_assets` production persistence: metadata-only
+- Data Integrity manual repair also strips legacy `img` before writing `wtal_assets`
+- no direct runtime save path intentionally writes MASTER image binaries back into LocalStorage
+- workspace clone/switch/delete, backup/full restore/MASTER restore reviewed for `masterImages`.
