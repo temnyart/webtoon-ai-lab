@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Webtoon AI Lab · Lettering V43.3.6</title>
+<title>Webtoon AI Lab · Lettering V43.3.7</title>
 <style>
 :root{--bg:#f4f4f6;--panel:#fff;--line:#e1e1e5;--text:#1d1d1f;--muted:#86868b;--accent:#111;--blue:#3578f6}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);overflow:hidden}
@@ -26,7 +26,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 @media(max-width:900px){.work{grid-template-columns:160px 1fr 240px}.stage{width:min(680px,64vw)}} 
 
 /* V42.1 — style + faster direct manipulation */
-.floatbar{position:absolute;z-index:2000;display:none;align-items:center;gap:4px;padding:5px;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.18);transform:translate(-50%,-120%);backdrop-filter:blur(8px)}
+.floatbar{position:absolute;z-index:2000;display:none;align-items:center;gap:4px;padding:5px;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.18);transform:translateX(-50%);backdrop-filter:blur(8px);white-space:nowrap}
 .floatbar.show{display:flex}.floatbar button{height:25px;min-width:25px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:0 7px;font-size:8px;cursor:pointer}.floatbar button:hover{background:#f2f2f4}
 .color-row{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:6px}.swatch{aspect-ratio:1;border-radius:7px;border:1px solid #d5d5d9;cursor:pointer;position:relative}.swatch.on:after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font-size:9px;font-weight:900;text-shadow:0 1px 2px rgba(255,255,255,.8)}
 .custom-color{display:grid;grid-template-columns:1fr 38px;gap:6px;align-items:end}.custom-color input[type="color"]{padding:2px;height:30px}
@@ -124,7 +124,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 .audit-row{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:start;border-bottom:1px solid #eee;padding:8px 0;font-size:8px}.audit-row .pass{color:#257543;font-weight:800}.audit-row .warn{color:#996b00;font-weight:800}.audit-row .fail{color:#a22;font-weight:800}.audit-log{font-family:ui-monospace,Consolas,monospace;font-size:7px;white-space:pre-wrap;background:#111;color:#ddd;border-radius:8px;padding:9px;margin-top:10px;max-height:220px;overflow:auto}
 @media(max-width:800px){.audit-summary{grid-template-columns:repeat(2,1fr)}.audit-panel{inset:60px 10px 10px}}
 
-/* V43.3.6 — simplified inspector + standard webtoon balloons */
+/* V43.3.7 — simplified inspector + standard webtoon balloons */
 .inspector{padding:12px 11px}.inspector .pane-title{position:sticky;top:-12px;background:#fff;z-index:5;padding:12px 0 8px;margin:0 0 4px}
 .inspector-intro{font-size:7px;line-height:1.55;color:#888;background:#f6f6f8;border-radius:8px;padding:8px;margin:6px 0 10px}
 .basic-style-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.basic-style-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 7px;text-align:left;cursor:pointer}.basic-style-btn:hover{background:#f5f5f7}.basic-style-btn.on{border-color:#111;box-shadow:inset 0 0 0 1px #111}.basic-style-btn b{display:block;font-size:8px}.basic-style-btn small{display:block;font-size:7px;color:#888;margin-top:2px}
@@ -151,7 +151,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
 <div class="app">
   <div class="top">
     <button id="back" class="btn">← 돌아가기</button>
-    <span class="badge">LETTERING V43.3.6</span>
+    <span class="badge">LETTERING V43.3.7</span>
     <span id="status" class="status">Reliability Audit</span>
     <div id="title" class="title">CUT</div><span id="sourceStatus" class="status" style="display:none"></span>
     <button id="undo" class="btn">↶</button><button id="redo" class="btn">↷</button>
@@ -166,7 +166,7 @@ button,input,select,textarea{font:inherit}.app{height:100%;display:grid;grid-tem
     <aside class="inspector"><div class="pane-title"><b>Inspector</b><small>선택 요소</small></div><div id="inspector"></div></aside>
   </div>
 </div>
-<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.6 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
+<div id="auditPanel" class="audit-panel"><div class="audit-head"><b>LETTERING V43.3.7 · Reliability Audit</b><button id="runAudit" class="btn dark">전체 검사</button><button id="stressAudit" class="btn">30개 Stress</button><button id="closeAudit" class="btn">닫기</button></div><div id="auditBody" class="audit-body"></div></div>
 <div id="toast" class="toast"></div>
 <script>
 
@@ -529,21 +529,29 @@ function hexToRgba(hex,alpha){
  const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
  return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,alpha))})`;
 }
+function normalizeTailForStyle(x,id){
+ const noTail=new Set(['caption-black','narration-cream','monologue-dark','thought-cloud','borderless-monologue','sfx-impact-white','sfx-impact-black']);
+ if(noTail.has(id)){x.tail='none';x.directTail=false;return}
+ if(id==='bubble-white'||id==='emotion-red'||id==='shout-jagged'){
+  x.directTail=false;
+  if(!x.tail||x.tail==='none')x.tail='br';
+ }
+}
 function applyCompleteStylePreset(x,id){
  const presets={
   'bubble-white':{type:'dialogue',shape:'ellipse',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:2,radius:50,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'br',directTail:false,paddingX:18,paddingY:14},
-  'caption-black':{type:'caption',shape:'box',fill:'#111111',bgOpacity:1,textColor:'#ffffff',strokeWidth:0,radius:6,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff'},
-  'narration-cream':{type:'narration',shape:'box',fill:'#f2eadf',bgOpacity:1,textColor:'#111111',strokeColor:'#8e806d',strokeWidth:1,radius:6,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff'},
-  'monologue-dark':{type:'narration',shape:'box',fill:'#292a2d',bgOpacity:.92,textColor:'#ffffff',strokeWidth:0,radius:4,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic'},
-  'emotion-red':{type:'dialogue',shape:'rounded',fill:'#fff4f4',bgOpacity:1,textColor:'#9d1c1c',strokeColor:'#c33434',strokeWidth:2.5,radius:20,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff'},
-  'thought-cloud':{type:'thought',shape:'cloud',fill:'#ffffff',bgOpacity:.96,textColor:'#333333',strokeColor:'#777777',strokeWidth:1.5,radius:48,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff'},
+  'caption-black':{type:'caption',shape:'box',fill:'#111111',bgOpacity:1,textColor:'#ffffff',strokeWidth:0,radius:6,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'none',directTail:false},
+  'narration-cream':{type:'narration',shape:'box',fill:'#f2eadf',bgOpacity:1,textColor:'#111111',strokeColor:'#8e806d',strokeWidth:1,radius:6,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'none',directTail:false},
+  'monologue-dark':{type:'narration',shape:'box',fill:'#292a2d',bgOpacity:.92,textColor:'#ffffff',strokeWidth:0,radius:4,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic',tail:'none',directTail:false},
+  'emotion-red':{type:'dialogue',shape:'rounded',fill:'#fff4f4',bgOpacity:1,textColor:'#9d1c1c',strokeColor:'#c33434',strokeWidth:2.5,radius:20,shadow:'soft',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'br',directTail:false},
+  'thought-cloud':{type:'thought',shape:'cloud',fill:'#ffffff',bgOpacity:.96,textColor:'#333333',strokeColor:'#777777',strokeWidth:1.5,radius:48,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',tail:'none',directTail:false},
   'shout-jagged':{type:'dialogue',shape:'jagged',fill:'#ffffff',bgOpacity:1,textColor:'#111111',strokeColor:'#111111',strokeWidth:3,radius:0,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',weight:900,tail:'br',directTail:false},
-  'borderless-monologue':{type:'narration',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic'},
-  'sfx-impact-white':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:2,textStrokeColor:'#ffffff',weight:900},
-  'sfx-impact-black':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#ffffff',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:3,textStrokeColor:'#111111',weight:900}
+  'borderless-monologue':{type:'narration',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:0,textStrokeColor:'#ffffff',fontStyle:'italic',tail:'none',directTail:false},
+  'sfx-impact-white':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#111111',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:2,textStrokeColor:'#ffffff',weight:900,tail:'none',directTail:false},
+  'sfx-impact-black':{type:'sfx',shape:'borderless',fill:'transparent',bgOpacity:0,textColor:'#ffffff',strokeWidth:0,radius:0,shadow:'none',textStrokeWidth:3,textStrokeColor:'#111111',weight:900,tail:'none',directTail:false}
  };
  const p=presets[id];if(!p)return;
- Object.assign(x,p);x.stylePresetId=id;rememberStyle(x,'스타일 프리셋');
+ Object.assign(x,p);x.stylePresetId=id;normalizeTailForStyle(x,id);rememberStyle(x,'스타일 프리셋');
 }
 function styleStudioCards(x){
  const cards=[
@@ -646,10 +654,29 @@ function ensureFloatbar(){
  });
  return b;
 }
-function positionFloatbar(el){const b=ensureFloatbar(); if(!el){b.classList.remove('show'); return} b.style.left=el.style.left; b.style.top=el.style.top; b.classList.add('show')}
+function positionFloatbar(el){
+ const b=ensureFloatbar();
+ if(!el){b.classList.remove('show');return}
+ const stage=$('#stage');if(!stage)return;
+ const sr=stage.getBoundingClientRect(),er=el.getBoundingClientRect();
+ b.classList.add('show');
+ // measure after showing so width/height are real
+ const br=b.getBoundingClientRect(),gap=14;
+ let left=er.left-sr.left+er.width/2;
+ let top=er.top-sr.top-br.height-gap;
+ let placement='top';
+ // If there is not enough room above, place it below the element.
+ if(top<8){top=er.bottom-sr.top+gap;placement='bottom'}
+ // Keep toolbar inside the canvas horizontally.
+ const half=br.width/2+8;
+ left=Math.max(half,Math.min(sr.width-half,left));
+ b.style.left=left+'px';
+ b.style.top=Math.max(8,top)+'px';
+ b.dataset.placement=placement;
+}
 function showFloatbar(x){const el=$$('.item').find(n=>n.dataset.id===x.id); positionFloatbar(el)}
 function hideFloatbar(){ensureFloatbar().classList.remove('show')}
-function syncFloatbar(){const x=items.find(v=>v.id===selected); if(x) showFloatbar(x)}
+function syncFloatbar(){const x=items.find(v=>v.id===selected);if(x)requestAnimationFrame(()=>showFloatbar(x));else hideFloatbar()}
 
 function renderInspector(){
  const x=items.find(v=>v.id===selected);
@@ -696,7 +723,7 @@ function renderInspector(){
  on('#fBgOpacity','input',()=>{x.bgOpacity=Number($('#fBgOpacity').value)/100;updateOne(x);persistQuiet()});
  on('#fTextStrokeWidth','input',()=>{x.textStrokeWidth=Number($('#fTextStrokeWidth').value);updateOne(x);persistQuiet()});
  on('#fTextStrokeColorPicker','input',()=>{x.textStrokeColor=$('#fTextStrokeColorPicker').value;updateOne(x);persistQuiet()});
- $$('[data-complete-style]').forEach(b=>b.addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,b.dataset.completeStyle);if(b.dataset.completeStyle==='bubble-white'&&x.tail==='none')x.tail='br';updateOne(x);renderInspector();persistQuiet();toast('스타일 적용')}));
+ $$('[data-complete-style]').forEach(b=>b.addEventListener('click',()=>{snapshot();applyCompleteStylePreset(x,b.dataset.completeStyle);render();persistQuiet();toast('스타일 적용')}));
  $$('[data-color-field]').forEach(b=>b.addEventListener('click',()=>{x[b.dataset.colorField]=b.dataset.color;updateOne(x);renderInspector();persistQuiet()}));
  on('#copyLettering','click',copySelectedToClipboard);on('#pasteLettering','click',pasteFromClipboard);on('#importPrevCut','click',importPreviousCutLettering);
  on('#savedStyleSelect','change',()=>{const st=savedStyles[$('#savedStyleSelect').value];if(!st)return;snapshot();Object.assign(x,st);render();persist()});
@@ -1035,7 +1062,7 @@ $('#title').textContent=cut>0?`CUT ${String(cut).padStart(3,'0')} · ${episode}`
 imageLoad().then(()=>{
  render();
  requestAnimationFrame(()=>$('#fit').click());
- toast('LETTERING V43.3.6 준비 완료');
+ toast('LETTERING V43.3.7 준비 완료');
 }).catch(err=>{
  console.error(err);
  $('#status').textContent='Image load error · V43.3.5';

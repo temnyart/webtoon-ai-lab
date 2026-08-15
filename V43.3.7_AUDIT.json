@@ -1,0 +1,15 @@
+{
+  "version": "V43.3.7",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "toolbar_bounds_logic": true,
+    "toolbar_no_center_overlay": true,
+    "caption_clears_tail": true,
+    "thought_clears_tail": true,
+    "tail_normalizer": true,
+    "render_after_style_change": true,
+    "version": true
+  },
+  "overall": "PASS"
+}

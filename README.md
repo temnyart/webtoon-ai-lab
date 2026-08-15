@@ -50,3 +50,12 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - 기존 50px rounded-rectangle 느낌 대신 `50% / 44%` 타원 geometry 사용.
 - 꼬리를 회전 사각형 방식에서 이중 삼각형(outline + fill) 방식으로 교체.
 - 새 말풍선 생성 시 기본 꼬리와 웹툰형 padding 적용.
+
+
+## V43.3.7 — Selection Toolbar + Tail State Fix
+- Floating selection toolbar now positions above the selected object's real bounding box, not over the text.
+- If there is no room above, the toolbar moves below the object automatically.
+- Toolbar is clamped inside the canvas width.
+- Non-balloon styles explicitly clear both preset tail and direct-tail state.
+- Caption / narration / monologue / thought / SFX no longer inherit a sharp tail from the previous balloon style.
+- Standard dialogue / emotion / shout styles restore a normal balloon tail when needed.
