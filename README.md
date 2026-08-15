@@ -1622,3 +1622,16 @@ The first V41 layout rendered correctly, but direct manipulation was not reliabl
 ### Data
 Adds optional `scale` to normalized lettering items. Existing lettering remains compatible.
 No API calls or generation costs are involved.
+
+
+## V41.2 — Direct Manipulation Hardening
+V41.1 still did not respond reliably in the deployed browser. V41.2 removes the fragile per-render event attachment for core canvas gestures.
+
+- Move / scale / rotate use inline pointerdown → one global pointermove/up controller.
+- No pointer capture dependency.
+- No CSS.escape dependency for selecting lettering objects.
+- Editor rendering receives the real CUT id explicitly.
+- Visible `V41.2 LIVE` badge proves the deployed editor version.
+- `Test` button verifies the canvas, inspector, lettering layer and pointer controller are loaded.
+- Double-click editor remains an on-canvas textarea overlay.
+- Existing lettering and Assemble data remain compatible.
