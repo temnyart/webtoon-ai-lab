@@ -1981,3 +1981,17 @@ This patch makes the sidebar Create action deterministic:
 - Home "Continue creating" and Command Palette "Create" use the same hard route.
 
 No API request is made by navigation.
+
+
+## V43.2.4 — Runtime Declaration Recovery
+
+The visible browser error was `inspectorTab is not defined`.
+
+Root cause:
+- During the V43 export refactor, a function-replacement pass accidentally removed the non-function state declarations that originally sat between `exportPlatformFiles()` and `saveActivity()`.
+- Missing declarations included `createStage`, `inspectorTab`, `activityItems`, `commandSelection`, and `CREATE_STAGES`.
+
+Fix:
+- Restored all five declarations from the pre-V43 source.
+- Added validation for the persisted inspector tab value.
+- Kept the V43.2.3 Create hard route.

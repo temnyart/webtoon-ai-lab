@@ -330,7 +330,7 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 </header>
 <div class="shell">
   <aside class="appSidebar">
-    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · CREATE FIX V43.2.3</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
+    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · RUNTIME FIX V43.2.4</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
     <nav class="primaryNav">
       <button class="nav active" data-page="HOME"><span class="navIcon">⌂</span><span>Home</span></button>
       <button class="nav" data-page="CREATE"><span class="navIcon">✦</span><span>Create</span></button>
@@ -3430,6 +3430,11 @@ async function exportPlatformFiles(asZip){
   setExportStatus(`완료 · ${r.files.length}개 · ${r.ex.format.toUpperCase()} · 총 ${mb.toFixed(1)}MB · 최대 파일 ${maxMb.toFixed(1)}MB · ${r.width}px · Manifest 포함`);
  }catch(e){setExportStatus('오류 · '+e.message);alert(e.message)}
 }
+let createStage=localStorage.getItem('wtal_create_stage')||'generate';
+let inspectorTab=['spec','masters','state','qc'].includes(localStorage.getItem('wtal_inspector_tab'))?localStorage.getItem('wtal_inspector_tab'):'spec';
+let activityItems=[];try{activityItems=JSON.parse(sessionStorage.getItem('wtal_activity')||'[]')}catch(e){}
+let commandSelection=0;
+const CREATE_STAGES=[['story','Story'],['conte','Conte'],['generate','Generate'],['review','Review'],['lettering','Lettering'],['assemble','Assemble']];
 function saveActivity(){sessionStorage.setItem('wtal_activity',JSON.stringify(activityItems.slice(-80)));renderActivity()}
 function activityStart(operation,meta={}){
  const id=`act_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,label={generate_cut:'Generate CUT',partial_edit:'Partial Edit',storyboard:'Generate Conte',continuity_qc:'Continuity QC',character_state:'Character State',space_map:'Space Map',transform_master:'Master Convert',episode_story:'Story Draft',episode_specs:'Build Specs'}[operation]||operation;
