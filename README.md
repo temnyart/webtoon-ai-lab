@@ -1967,3 +1967,17 @@ Fixes:
 - V43.2.1 Create-stage normalization retained
 
 No paid API calls.
+
+
+## V43.2.3 — Create Hard Route Fix
+
+Home navigation was already working, but Create could still fail inside the generic page renderer.
+
+This patch makes the sidebar Create action deterministic:
+- Create no longer enters through the generic `goPage('CREATE')` path.
+- `openCreateWorkspace()` always opens the Generate/CUT workspace directly.
+- It persists `currentPage=CREATE` and `createStage=generate`.
+- Create Header, Activity, and tooltips are loaded as optional post-render enhancements so they cannot block the workspace itself.
+- Home "Continue creating" and Command Palette "Create" use the same hard route.
+
+No API request is made by navigation.

@@ -1,0 +1,25 @@
+V43.2.3 CREATE HARD ROUTE VERIFICATION
+
+JavaScript syntax: PASS (12 files)
+Create nav buttons found: 1
+renderEpisode defined: True
+openCreateWorkspace defined: True
+
+Checks:
+- openCreateWorkspace_defined: PASS
+- direct_renderEpisode: PASS
+- persists_CREATE: PASS
+- persists_generate: PASS
+- sidebar_create_uses_hard_route: PASS
+- home_continue_uses_hard_route: PASS
+- command_palette_uses_hard_route: PASS
+- create_header_is_guarded: PASS
+- activity_is_guarded: PASS
+- tooltips_are_guarded: PASS
+- visible_marker: PASS
+
+Conflicts:
+- generic_sidebar_create_goPage: PASS (not found)
+- home_continue_generic: PASS (not found)
+
+OVERALL: PASS

@@ -330,7 +330,7 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 </header>
 <div class="shell">
   <aside class="appSidebar">
-    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · NAV FIX V43.2.2</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
+    <div class="projectMini" onclick="goPage('PROJECTS')" style="cursor:pointer"><small>CURRENT PROJECT · CREATE FIX V43.2.3</small><strong>죽음을 기억하는 자</strong><span id="sidebarEpisode">EP.01 · 열일곱</span></div>
     <nav class="primaryNav">
       <button class="nav active" data-page="HOME"><span class="navIcon">⌂</span><span>Home</span></button>
       <button class="nav" data-page="CREATE"><span class="navIcon">✦</span><span>Create</span></button>
@@ -3579,6 +3579,21 @@ function setCreateStage(stage){
  localStorage.setItem('wtal_ui_page','CREATE');
  render();
 }
+function openCreateWorkspace(){
+ createStage='generate';
+ currentPage='CREATE';
+ localStorage.setItem('wtal_create_stage','generate');
+ localStorage.setItem('wtal_ui_page','CREATE');
+ document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page==='CREATE'));
+ try{
+  renderEpisode();
+  try{injectCreateHeader()}catch(e){console.warn('Create header skipped',e)}
+  try{renderActivity()}catch(e){console.warn('Create activity skipped',e)}
+  try{applyContextTooltips()}catch(e){console.warn('Create tooltip skipped',e)}
+ }catch(error){
+  showNavigationError('CREATE',error);
+ }
+}
 function injectCreateHeader(){if(currentPage!=='CREATE')return;const existing=document.querySelector('.createHeader');if(existing)return;view.insertAdjacentHTML('afterbegin',createHeaderHtml());enhanceInspectorTabs();simplifyLegacyPageChrome()}
 function renderCreate(){
  const normalized=normalizeCreateStage(createStage);
@@ -3671,7 +3686,7 @@ function setInspectorTab(k){inspectorTab=k;localStorage.setItem('wtal_inspector_
 function commandEntries(){
  const entries=[
   {type:'Page',title:'Home',sub:'Production overview',run:()=>goPage('HOME')},
-  {type:'Page',title:'Create',sub:'Production workspace',run:()=>goPage('CREATE')},
+  {type:'Page',title:'Create',sub:'Production workspace',run:()=>openCreateWorkspace()},
   {type:'Action',title:'CUT Edit Mode',sub:'Add · duplicate · bulk edit · scene tools',run:()=>{cutEditMode=true;createStage='generate';goPage('CREATE')}},
   {type:'Page',title:'Library',sub:'Masters & assets',run:()=>goPage('LIBRARY')},
   {type:'Page',title:'Episodes',sub:'Episode manager',run:()=>goPage('EPISODES')},
@@ -3768,7 +3783,7 @@ function renderHome(){
  const attention=[];
  for(const [name,cuts] of blockers.slice(0,5))attention.push({name,cuts,action:name==='MASTER 누락'?`goPage('LIBRARY')`:name.includes('CONTE')?`setCreateStage('conte')`:name==='QC 문제'?`setCreateStage('review')`:`goPage('CREATE')`});
  view.innerHTML=`${reliabilityBannerHtml()}${contextHelpBarHtml()}<div class="controlTitleLine"><div><div class="eyebrow">HOME</div><h1>EP.${String(e.number).padStart(2,'0')} · ${esc(e.title)}</h1><p class="lead">지금 필요한 작업만 보여줍니다.</p></div><div class="homeProgress">${pct}% <small>ready</small></div></div>
- <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn dark" onclick="goPage('CREATE')">Continue creating</button><button class="btn" onclick="openPreProductionAudit()">V40 Preflight <span style="font-size:7px;opacity:.55">· BUILD V42</span></button></div><div class="controlMini">${st.approved}/${st.imageTotal} images approved · ${usd(cost)} tracked</div></div>
+ <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn dark" onclick="openCreateWorkspace()">Continue creating</button><button class="btn" onclick="openPreProductionAudit()">V40 Preflight <span style="font-size:7px;opacity:.55">· BUILD V42</span></button></div><div class="controlMini">${st.approved}/${st.imageTotal} images approved · ${usd(cost)} tracked</div></div>
  <div class="controlKpis"><div class="controlKpi ${st.masterMissing?'alert':'good'}"><small>MASTER BLOCK</small><b>${st.masterMissing}</b></div><div class="controlKpi"><small>CONTE TO REVIEW</small><b>${st.contePending}</b></div><div class="controlKpi"><small>FINAL REVIEW</small><b>${st.approvalPending}</b></div><div class="controlKpi ${st.qcIssues?'alert':'good'}"><small>QC ISSUE</small><b>${st.qcIssues}</b></div><div class="controlKpi"><small>LETTERING</small><b>${st.letteringPending}</b></div><div class="controlKpi"><small>API COST</small><b>${usd(cost)}</b></div></div>
  <div class="homeOverview"><section class="homeCard"><div class="eyebrow">NEEDS YOUR ATTENTION</div><h2>Next actions</h2><div class="homeAttention">${attention.length?attention.map(x=>`<div class="homeAttentionRow"><span><strong>${esc(x.name)}</strong><small>${x.cuts.slice(0,6).map(c=>`CUT ${String(c.id).padStart(3,'0')}`).join(' · ')}${x.cuts.length>6?` 외 ${x.cuts.length-6}`:''}</small></span><button class="btn" onclick="${x.action}">Review</button></div>`).join(''):'<div class="backupOk">현재 긴급하게 처리할 항목이 없습니다.</div>'}</div></section>
  <section class="homeCard"><div class="eyebrow">SCENE PROGRESS</div><h2>Episode overview</h2><div class="sceneHealth">${controlSceneHealth().map(x=>`<div class="sceneHealthRow"><div class="sceneHealthTop"><b>${esc(x.scene)}</b><span>${x.pct}%${x.issues?` · ⚠ ${x.issues}`:''}</span></div><div class="sceneHealthBar"><span style="width:${x.pct}%"></span></div></div>`).join('')}</div></section></div>`;
@@ -3984,20 +3999,14 @@ function render(){
 }
 document.querySelectorAll('.nav').forEach(btn=>btn.onclick=()=>{
  const page=btn.dataset.page;
- if(page==='CREATE'){
-  createStage=normalizeCreateStage(createStage);
-  localStorage.setItem('wtal_create_stage',createStage);
- }
+ if(page==='CREATE'){openCreateWorkspace();return}
  goPage(page);
 });
 document.addEventListener('click',e=>{
  const btn=e.target.closest?.('.nav[data-page]');
  if(!btn||btn.onclick)return;
  const page=btn.dataset.page;
- if(page==='CREATE'){
-  createStage=normalizeCreateStage(createStage);
-  localStorage.setItem('wtal_create_stage',createStage);
- }
+ if(page==='CREATE'){openCreateWorkspace();return}
  goPage(page);
 });
 function toggleManual(cutId,assetId){const k=stateKey(cutId);const arr=new Set(manualLinks[k]||manualLinks[cutId]||[]);arr.has(assetId)?arr.delete(assetId):arr.add(assetId);manualLinks[k]=[...arr];localStorage.setItem('wtal_cut_links',JSON.stringify(manualLinks));renderEpisode()}
