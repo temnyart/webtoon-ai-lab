@@ -1151,3 +1151,78 @@ Local-only operations such as:
 are not presented as cancellable jobs because they do not issue repeated paid API calls and are normally short.
 
 Full backup/export rendering remains a local CPU/I/O operation; it has status text but is not yet converted into a resumable worker. This is lower risk than the API batch issue and should only be promoted to a worker if real large-project testing shows UI blocking.
+
+
+## V40 — Final Pre-Production Audit / Fix Pack
+V40 does not run paid image generation. It is the final static/data-readiness pass before the planned EP01 sample test.
+
+### Bugs found and fixed
+1. **Help Center Production Flow runtime error**
+   - V38 called nonexistent `continuityStatus(c.id)`.
+   - Replaced with the actual `continuityReport(c.id)?.severity` state.
+2. **Builtin EP01 Prompt save was not persistent**
+   - `savePrompt()` modified the in-memory builtin CUT but only persisted non-builtin episodes.
+   - It now materializes the editable CUT map and saves through V32's persistent CUT spec layer.
+3. **User cancellation displayed as normal generation failure**
+   - Generate / Storyboard / Character State / Continuity cancellation paths now recognize Abort/user-cancel semantics.
+   - Cancelled work no longer opens a scary generic error dialog.
+4. **Critical save helpers bypassed Reliability storage handling**
+   - Episode Story
+   - Episode Stage flags
+   - Lettering completion
+   - Scene Pipeline
+   - Auto Repair History
+   now use `safeStorageSet`.
+
+### Static audit results
+- Frontend script syntax: PASS
+- 10 API route scripts syntax: PASS
+- 528 named frontend functions: no duplicate declarations
+- 9 client `trackedFetch` API endpoints: all routes exist
+- `/api/health` exists as a non-tracked health endpoint
+- All OpenAI response routes retain request AbortSignal propagation from V39
+- Workspace keys remain excluded from single-project backup payloads.
+
+### In-app V40 Preflight
+Home and Command Search now expose `V40 Preflight`.
+
+It checks without paid generation:
+- OpenAI API configuration
+- Episode Story approval
+- CUT spec presence
+- MASTER availability for recommended sample CUTs
+- MASTER availability across the whole Episode
+- Data Health / schema issues
+- unresolved Recovery failures
+- Full Backup history.
+
+### EP01 sample recommendation
+For the built-in EP01, the first sample target is:
+- CUT 013
+- CUT 014
+- CUT 015
+- CUT 016
+
+Reason:
+they are adjacent CUTs in the same dawn-bedroom sequence and are suitable for testing:
+- character identity consistency
+- acting progression
+- Scene Look continuity
+- camera/shot variation
+- previous-approved-CUT continuity
+without immediately paying for a large Episode batch.
+
+### Planned validation sequence
+1. V40 static/data Preflight
+2. resolve BLOCK items
+3. Full Backup
+4. EP01 CUT 013–016:
+   - Conte
+   - approve Conte
+   - Standard Final generation
+   - human result approval
+   - Continuity QC
+5. if stable, run one complete Scene
+6. only then expand to full EP01.
+
+V40 intentionally does **not** automatically start the sample production test.

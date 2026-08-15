@@ -239,6 +239,10 @@ input,select,textarea{border-color:var(--line)!important;border-radius:9px!impor
 /* V39 — Long Task UX / Cancellation Audit */
 .longTaskBox{padding:6px 2px}.longTaskHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.longTaskHead h2{font-size:15px;margin:3px 0 5px}.longTaskMeta{font-size:8px;color:#888;line-height:1.5}.longTaskProgress{height:9px;background:#ececef;border-radius:999px;overflow:hidden;margin:12px 0 7px}.longTaskProgress span{display:block;height:100%;width:0;background:#111;transition:width .18s}.longTaskStatus{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:#666}.longTaskLive{max-height:190px;overflow:auto;border:1px solid var(--line);background:#fafafa;border-radius:9px;margin-top:9px}.longTaskLiveRow{display:grid;grid-template-columns:60px 70px 1fr;gap:7px;padding:6px 8px;border-bottom:1px solid #eee;font-size:8px}.longTaskLiveRow:last-child{border-bottom:0}.longTaskLiveRow.cancel{color:#9a6410}.longTaskLiveRow.error{color:#a22}.longTaskActions{display:flex;justify-content:flex-end;gap:7px;margin-top:11px}.cancelBtn{border-color:#e3baba!important;color:#9b2e2e!important;background:#fff8f8!important}.activityCancel{border:1px solid #e4bebe;background:#fff7f7;color:#9b3333;border-radius:6px;padding:4px 6px;font-size:8px;cursor:pointer;margin-top:6px}.activityItem.cancelled{opacity:.7}.activityItem.cancelled .activityProgress span{width:100%!important;background:#aaa!important}.taskAuditCard{border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px;margin:10px 0}.taskAuditGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.taskAuditStat{background:#fafafa;border:1px solid #eee;border-radius:9px;padding:8px}.taskAuditStat small{display:block;font-size:7px;color:#999}.taskAuditStat b{display:block;font-size:13px;margin-top:2px}.taskPolicy{font-size:8px;color:#666;line-height:1.55;margin-top:8px}.taskPolicy b{color:#222}.batchButtonNote{font-size:8px;color:#888;margin-left:5px}
 @media(max-width:650px){.taskAuditGrid{grid-template-columns:1fr 1fr}.longTaskLiveRow{grid-template-columns:50px 1fr}.longTaskLiveRow span:last-child{grid-column:2}}
+
+/* V40 — Final Pre-Production Audit */
+.preflightGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.preflightStat{border:1px solid var(--line);background:#fafafa;border-radius:10px;padding:9px}.preflightStat small{display:block;font-size:7px;color:#999}.preflightStat b{display:block;font-size:15px;margin-top:2px}.preflightChecks{display:grid;gap:6px}.preflightRow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:9px;background:#fff;padding:8px}.preflightIcon{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#f1f1f3;font-size:9px;font-weight:800}.preflightIcon.ok{background:#eaf6ed;color:#27703b}.preflightIcon.warn{background:#fff4df;color:#8c5907}.preflightIcon.bad{background:#fff0f0;color:#a12c2c}.preflightRow b{display:block;font-size:9px}.preflightRow small{display:block;font-size:8px;color:#888;margin-top:2px}.preflightTag{font-size:7px;font-weight:800;border-radius:999px;padding:3px 6px;background:#f1f1f3;color:#666}.preflightPlan{border:1px solid var(--line);border-radius:11px;background:#fafafa;padding:11px;margin-top:10px}.preflightPlan h3{font-size:11px;margin:0 0 6px}.preflightCuts{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.preflightCuts button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 8px;font-size:8px;cursor:pointer}.auditFixList{display:grid;gap:6px;margin-top:8px}.auditFix{font-size:8px;color:#666;line-height:1.5;padding:7px 9px;border-left:3px solid #d7d7da;background:#fafafa}.auditFix b{color:#222}.preflightReady{border:1px solid #cfe5d5;background:#eff8f1;border-radius:10px;padding:10px;color:#27703b;font-size:9px;line-height:1.5}.preflightBlocked{border:1px solid #ead2a8;background:#fff7e9;border-radius:10px;padding:10px;color:#805b18;font-size:9px;line-height:1.5}
+@media(max-width:700px){.preflightGrid{grid-template-columns:1fr 1fr}.preflightRow{grid-template-columns:24px 1fr}.preflightTag{grid-column:2;width:max-content}}
 </style></head><body>
 <header class="appTopbar">
   <div class="brandLockup"><span class="brandMark">W</span><div><b>Webtoon AI Lab</b><small>Production Studio</small></div></div>
@@ -555,11 +559,11 @@ if(!episodeStories.EP01){
   };
 }
 function episodeStory(id=activeEpisodeId){return episodeStories[id]||{status:'draft',brief:'',story:'',updatedAt:null}}
-function saveEpisodeStories(){localStorage.setItem('wtal_episode_stories',JSON.stringify(episodeStories))}
+function saveEpisodeStories(){return safeStorageSet('wtal_episode_stories',JSON.stringify(episodeStories),{label:'Episode Story 변경'})}
 let episodeStageFlags=wtalReadJSON('wtal_episode_stage_flags',{});
 let letteringDone=wtalReadJSON('wtal_lettering_done',{});
-function saveEpisodeStageFlags(){localStorage.setItem('wtal_episode_stage_flags',JSON.stringify(episodeStageFlags))}
-function saveLetteringDone(){localStorage.setItem('wtal_lettering_done',JSON.stringify(letteringDone))}
+function saveEpisodeStageFlags(){return safeStorageSet('wtal_episode_stage_flags',JSON.stringify(episodeStageFlags))}
+function saveLetteringDone(){return safeStorageSet('wtal_lettering_done',JSON.stringify(letteringDone))}
 function episodeCutsById(id){const e=episodes.find(x=>x.id===id);return cutSpecMaps[id]||(e?.builtin?CUTS:(dynamicCuts[id]||{}))}
 function episodeCutState(id,cutId){return cutStates[`${id}:${cutId}`]||{status:'draft'}}
 function episodeStoryboardState(id,cutId){return storyboardMeta[`storyboard:${id}:${cutId}`]||{status:'draft'}}
@@ -867,7 +871,7 @@ function saveStoryboardMeta(){return safeStorageSet('wtal_storyboard_meta',JSON.
 function storyboardState(id){return storyboardMeta[storyboardKey(id)]||{status:'draft',note:'',updatedAt:null}}
 function setStoryboardState(id,patch){storyboardMeta[storyboardKey(id)]={...storyboardState(id),...patch,updatedAt:new Date().toISOString()};saveStoryboardMeta()}
 let scenePipelineState=wtalReadJSON('wtal_scene_pipeline',{});
-function saveScenePipeline(){localStorage.setItem('wtal_scene_pipeline',JSON.stringify(scenePipelineState))}
+function saveScenePipeline(){return safeStorageSet('wtal_scene_pipeline',JSON.stringify(scenePipelineState))}
 function scenePipeKey(scene){return `${activeEpisodeId}::${scene}`}
 function scenePipe(scene){return scenePipelineState[scenePipeKey(scene)]||{status:'idle',logs:[],updatedAt:null}}
 function updateScenePipe(scene,patch){scenePipelineState[scenePipeKey(scene)]={...scenePipe(scene),...patch,updatedAt:new Date().toISOString()};saveScenePipeline()}
@@ -875,7 +879,7 @@ function pipeLog(scene,stage,message,level='info'){const p=scenePipe(scene),logs
 let autoRepairHistory=wtalReadJSON('wtal_auto_repair_history',{});
 let autoRepairEnabled=localStorage.getItem('wtal_auto_repair_enabled')!=='false';
 let autoRepairMaxAttempts=Math.max(1,Math.min(3,Number(localStorage.getItem('wtal_auto_repair_max')||2)));
-function saveAutoRepairHistory(){localStorage.setItem('wtal_auto_repair_history',JSON.stringify(autoRepairHistory))}
+function saveAutoRepairHistory(){return safeStorageSet('wtal_auto_repair_history',JSON.stringify(autoRepairHistory))}
 function autoRepairKey(id){return stateKey(id)}
 function repairHistory(id){return autoRepairHistory[autoRepairKey(id)]||[]}
 function addRepairHistory(id,item){autoRepairHistory[autoRepairKey(id)]=[...repairHistory(id),item].slice(-20);saveAutoRepairHistory()}
@@ -1290,7 +1294,7 @@ async function generateStoryboard(id,silent=false,signal=null){
   setStoryboardState(id,{status:'generated'});
   if(!silent){document.querySelector('#genResult')?.remove();reviewStoryboard(id)}
   return true;
- }catch(e){if(!silent){document.querySelector('#genResult')?.remove();alert('콘티 생성 실패: '+e.message)}return false}
+ }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 콘티 생성을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('콘티 생성 실패: '+e.message)}return false}
 }
 async function reviewStoryboard(id){
  const c=cutsForEpisode()[id],r=await getStoryboard(id);if(!r?.image)return alert('콘티가 없습니다.');
@@ -2386,7 +2390,7 @@ async function autoTrackCharacterStates(cutId,silent=false,signal=null){
   const data=await res.json();if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   for(const [name,st] of Object.entries(data.states||{}))characterStates[characterStateKey(cutId,name)]={...st,source:'auto',updatedAt:new Date().toISOString()};
   saveCharacterStates();if(!silent){document.querySelector('#genResult')?.remove();render()}return data.states;
- }catch(e){if(!silent){document.querySelector('#genResult')?.remove();alert('상태 분석 실패: '+e.message)}return null}
+ }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(cutId).padStart(3,'0')} 상태 분석을 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('상태 분석 실패: '+e.message)}return null}
 }
 function openCharacterStateTimeline(){
  const cs=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id);const rows=[];
@@ -2540,7 +2544,7 @@ async function checkContinuity(id,silent=false,includeGeneratedRefs=false,signal
   continuityReports[stateKey(id)]={...data.report,checkedAt:new Date().toISOString(),referenceCuts:refs.filter(x=>x.cutId).map(x=>x.cutId)};saveContinuityReports();
   if(!silent){document.querySelector('#genResult')?.remove();openContinuityReport(id)}
   return continuityReports[stateKey(id)];
- }catch(e){if(!silent){document.querySelector('#genResult')?.remove();alert('Continuity 검수 실패: '+e.message)}return null}
+ }catch(e){if(e?.cancelled||e?.name==='AbortError'||/작업이 취소/.test(e?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} Continuity 검수를 취소했습니다.`,'warn')}throw e;}if(!silent){document.querySelector('#genResult')?.remove();alert('Continuity 검수 실패: '+e.message)}return null}
 }
 async function checkEpisodeContinuity(){
  const vals=Object.values(cutsForEpisode()).filter(c=>cutState(c.id).status==='approved');
@@ -2825,7 +2829,7 @@ function helpFlowStatus(id){
  if(id==='master')return assets.length?'done':'blocked';
  if(id==='conte')return cuts.length&&cuts.every(c=>storyboardState(c.id).status==='approved')?'done':cuts.some(c=>storyboardState(c.id).status!=='draft')?'ready':'blocked';
  if(id==='generate')return cuts.length&&approved===cuts.length?'done':cuts.some(c=>cutState(c.id).status!=='draft')?'ready':'blocked';
- if(id==='review')return cuts.length&&cuts.filter(c=>continuityStatus(c.id)==='ok').length===cuts.length?'done':approved?'ready':'blocked';
+ if(id==='review')return cuts.length&&cuts.filter(c=>continuityReport(c.id)?.severity==='ok').length===cuts.length?'done':approved?'ready':'blocked';
  if(id==='lettering')return approved&&cuts.filter(c=>cutState(c.id).status==='approved').every(c=>episodeLetterDone(activeEpisodeId,c.id))?'done':approved?'ready':'blocked';
  if(id==='assemble')return stageFlag(activeEpisodeId,'assemble')?'done':approved?'ready':'blocked';
  return 'blocked';
@@ -2978,6 +2982,7 @@ function commandEntries(){
   {type:'Setting',title:'Cost Settings',sub:'API cost estimates',run:()=>{settingsTab='cost';goPage('PROJECT')}},
   {type:'Tool',title:'Recovery Center',sub:'Failed CUTs · API · network · storage',run:()=>openReliabilityCenter()},
   {type:'Tool',title:'Running Tasks',sub:'Activity · cancel long requests',run:()=>toggleActivityPanel(true)},
+  {type:'Tool',title:'V40 Pre-Production Audit',sub:'API · MASTER · data · sample test readiness',run:()=>openPreProductionAudit()},
   {type:'Tool',title:'Project History',sub:'Undo · restore · checkpoint',run:()=>openProjectHistory()},
   {type:'Help',title:'Help Center',sub:'Production flow · shortcuts · FAQ',run:()=>openHelpCenter()},
   {type:'Help',title:'Guided Tour',sub:'UI quick tour',run:()=>startGuidedTour()}
@@ -2998,13 +3003,55 @@ function renderCommandResults(q=''){
  el._rows=rows;
 }
 function commandKeydown(e){const el=document.querySelector('#commandResults'),rows=el?._rows||[];if(e.key==='Escape')return closeCommandPalette();if(e.key==='ArrowDown'){e.preventDefault();commandSelection=Math.min(rows.length-1,commandSelection+1);renderCommandResults(document.querySelector('#commandInput').value)}if(e.key==='ArrowUp'){e.preventDefault();commandSelection=Math.max(0,commandSelection-1);renderCommandResults(document.querySelector('#commandInput').value)}if(e.key==='Enter'&&rows[commandSelection]){rows[commandSelection].run();closeCommandPalette()}}
+
+function preflightSampleCuts(){
+ const cuts=Object.values(cutsForEpisode()).sort((a,b)=>a.id-b.id);
+ if(activeEpisodeId==='EP01'){
+  const ids=[13,14,15,16].filter(id=>cutsForEpisode()[id]);if(ids.length>=3)return ids.map(id=>cutsForEpisode()[id]);
+ }
+ const groups=sceneGroups().filter(g=>g.cuts.filter(cutNeedsImage).length>=3).sort((a,b)=>b.cuts.length-a.cuts.length);
+ const pool=(groups[0]?.cuts||cuts).filter(cutNeedsImage);return pool.slice(0,Math.min(4,pool.length));
+}
+function preflightSampleScene(){
+ const samples=preflightSampleCuts();if(samples.length&&samples.every(c=>c.scene===samples[0].scene))return samples[0].scene;
+ const groups=sceneGroups().filter(g=>g.cuts.filter(cutNeedsImage).length>=3);return groups[0]?.scene||sceneGroups()[0]?.scene||'';
+}
+async function preProductionAuditData(){
+ const cuts=Object.values(cutsForEpisode()),images=cuts.filter(cutNeedsImage),samples=preflightSampleCuts(),sampleMissing=samples.flatMap(c=>masterMissingForCut(c).map(x=>({cutId:c.id,...x}))),allMissing=cuts.flatMap(c=>masterMissingForCut(c)),health=wtalStorageHealth(),api=await checkApi(),story=episodeStory(),fails=unresolvedFailures(activeEpisodeId),lastBackup=localStorage.getItem('wtal_last_backup_at');
+ const uniqueMissing=[...new Map(allMissing.map(x=>[`${x.type}:${x.name}`,x])).values()],sampleUnique=[...new Map(sampleMissing.map(x=>[`${x.type}:${x.name}`,x])).values()];
+ const checks=[
+  {name:'API 연결',ok:!!api?.openaiConfigured,warn:false,desc:api?.openaiConfigured?'OpenAI API 환경변수 확인됨':'OPENAI_API_KEY 또는 Health 응답 확인 필요'},
+  {name:'Episode Story',ok:story.status==='approved',warn:story.status!=='approved'&&!!story.story?.trim(),desc:story.status==='approved'?'스토리 승인 완료':story.story?.trim()?'스토리는 있으나 승인 전':'Episode Story 없음'},
+  {name:'CUT 제작명세',ok:cuts.length>0,warn:false,desc:`${cuts.length} CUT · 이미지 CUT ${images.length}`},
+  {name:'소량 테스트 MASTER',ok:sampleUnique.length===0,warn:false,desc:sampleUnique.length?`${sampleUnique.length}개 MASTER 누락`:`추천 ${samples.length} CUT 기준 충족`},
+  {name:'전체 EP MASTER',ok:uniqueMissing.length===0,warn:uniqueMissing.length>0,desc:uniqueMissing.length?`전체 제작 전 ${uniqueMissing.length}개 보강 필요`:'전체 참조 충족'},
+  {name:'데이터 무결성',ok:health.issues===0,warn:health.issues>0,desc:`Schema v${health.version} · issues ${health.issues}`},
+  {name:'미해결 오류',ok:fails.length===0,warn:fails.length>0,desc:fails.length?`${fails.length}개 Recovery 확인 필요`:'미해결 오류 없음'},
+  {name:'Full Backup',ok:!!lastBackup,warn:!lastBackup,desc:lastBackup?new Date(lastBackup).toLocaleString():'실제 생성 테스트 전 1회 권장'}
+ ];
+ const blockers=checks.filter(x=>!x.ok&&!x.warn),warnings=checks.filter(x=>!x.ok&&x.warn);
+ return {cuts,images,samples,scene:preflightSampleScene(),checks,blockers,warnings,uniqueMissing,sampleUnique,api,health,fails,lastBackup};
+}
+async function openPreProductionAudit(){
+ modalShell(`<div class="eyebrow">V40 · FINAL PRE-PRODUCTION AUDIT</div><h2>최종 제작 준비 상태 확인 중…</h2>${loadingStateHtml('프로젝트 · API · MASTER · Backup 상태 검사 중…')}`);
+ const d=await preProductionAuditData(),ready=d.blockers.length===0;
+ const rows=d.checks.map(x=>{const state=x.ok?'ok':x.warn?'warn':'bad';return `<div class="preflightRow"><span class="preflightIcon ${state}">${x.ok?'✓':x.warn?'!':'×'}</span><span><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></span><span class="preflightTag">${x.ok?'PASS':x.warn?'CHECK':'BLOCK'}</span></div>`}).join('');
+ const sampleText=d.samples.map(c=>`CUT ${String(c.id).padStart(3,'0')}`).join(' · ');
+ modalShell(`<div class="eyebrow">V40 · FINAL PRE-PRODUCTION AUDIT</div><h2>실제 제작 직전 감사 결과</h2><p class="lead">유료 이미지 생성 없이 코드/데이터 구조와 현재 프로젝트 준비 상태를 검사합니다.</p>
+ <div class="preflightGrid"><div class="preflightStat"><small>TOTAL CUT</small><b>${d.cuts.length}</b></div><div class="preflightStat"><small>IMAGE CUT</small><b>${d.images.length}</b></div><div class="preflightStat"><small>BLOCKERS</small><b>${d.blockers.length}</b></div><div class="preflightStat"><small>WARNINGS</small><b>${d.warnings.length}</b></div></div>
+ ${ready?`<div class="preflightReady"><b>소량 제작 테스트로 넘어갈 수 있는 구조입니다.</b><br>아래 추천 CUT만 먼저 Conte → Final → QC까지 돌린 뒤 SCENE 단위 테스트로 확장하세요.</div>`:`<div class="preflightBlocked"><b>아직 소량 제작 테스트 전 해결할 BLOCK 항목이 있습니다.</b><br>아래 BLOCK 항목을 먼저 해결하세요. 경고 항목은 테스트 자체를 막지는 않습니다.</div>`}
+ <div class="helpSection"><h3>Preflight checks</h3><div class="preflightChecks">${rows}</div></div>
+ <div class="preflightPlan"><h3>1차 소량 제작 테스트 추천</h3><div class="sectionDesc">${d.scene?`같은 SCENE 연속성을 확인하기 위해 <b>${esc(d.scene)}</b>의 인접 CUT을 우선 추천합니다.`:'현재 CUT 구성에서 대표 CUT을 선택했습니다.'}</div><div class="preflightCuts">${d.samples.map(c=>`<button onclick="document.querySelector('#genResult')?.remove();selectedCut=${c.id};setCreateStage('conte')">CUT ${String(c.id).padStart(3,'0')} · ${esc(c.title)}</button>`).join('')||'추천 가능한 이미지 CUT 없음'}</div><div class="helpTip" style="margin-top:8px"><b>권장 순서:</b> ${esc(sampleText||'CUT 준비 필요')} → 콘티 승인 → Standard로 Final 생성 → 사람 승인 → Continuity QC. 처음부터 전체 EP Pipeline을 실행하지 않습니다.</div></div>
+ <div class="taskAuditCard"><div class="eyebrow">STATIC AUDIT · FIXED IN V40</div><div class="auditFixList"><div class="auditFix"><b>Help Center 오류</b> · 존재하지 않는 continuityStatus() 호출을 실제 continuityReport severity 판정으로 수정.</div><div class="auditFix"><b>EP01 프롬프트 저장</b> · builtin CUT의 Prompt 저장이 실제로 영속화되지 않던 문제를 Editable CUT Map으로 수정.</div><div class="auditFix"><b>취소 UX</b> · 사용자 Abort를 일반 API 실패처럼 표시하지 않고 취소 상태로 분리.</div><div class="auditFix"><b>저장 안정성</b> · Episode Story / Stage / Lettering 완료 / Scene Pipeline / Auto Repair History 저장을 safeStorageSet으로 통합.</div><div class="auditFix"><b>API route</b> · 호출되는 9개 API endpoint와 실제 route가 일치하며 OpenAI route cancellation signal 연결을 확인.</div><div class="auditFix"><b>JS 구조</b> · frontend + 10 API routes syntax 검사 및 528개 function 중복 선언 없음 확인.</div></div></div>
+ <div class="right" style="margin-top:12px"><button class="btn" onclick="document.querySelector('#genResult')?.remove();currentPage='BACKUP';render()">Full Backup</button><button class="btn" onclick="document.querySelector('#genResult')?.remove();openReliabilityCenter()">Recovery</button><button class="btn dark" onclick="document.querySelector('#genResult')?.remove()">닫기</button></div>`);
+}
 function goPage(page){currentPage=page;localStorage.setItem('wtal_ui_page',page);render()}
 function renderHome(){
  const e=ep(),st=controlEpisodeStats(),blockers=controlBlockers(),pct=st.imageTotal?Math.round(st.complete/st.imageTotal*100):0,cost=costEvents(activeEpisodeId).reduce((a,x)=>a+Number(x.estimatedUsd||0),0);
  const attention=[];
  for(const [name,cuts] of blockers.slice(0,5))attention.push({name,cuts,action:name==='MASTER 누락'?`goPage('LIBRARY')`:name.includes('CONTE')?`setCreateStage('conte')`:name==='QC 문제'?`setCreateStage('review')`:`goPage('CREATE')`});
  view.innerHTML=`${reliabilityBannerHtml()}${contextHelpBarHtml()}<div class="controlTitleLine"><div><div class="eyebrow">HOME</div><h1>EP.${String(e.number).padStart(2,'0')} · ${esc(e.title)}</h1><p class="lead">지금 필요한 작업만 보여줍니다.</p></div><div class="homeProgress">${pct}% <small>ready</small></div></div>
- <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn dark" onclick="goPage('CREATE')">Continue creating</button></div><div class="controlMini">${st.approved}/${st.imageTotal} images approved · ${usd(cost)} tracked</div></div>
+ <div class="topbar"><div class="tabsrow">${episodeSelector()}<button class="btn dark" onclick="goPage('CREATE')">Continue creating</button><button class="btn" onclick="openPreProductionAudit()">V40 Preflight</button></div><div class="controlMini">${st.approved}/${st.imageTotal} images approved · ${usd(cost)} tracked</div></div>
  <div class="controlKpis"><div class="controlKpi ${st.masterMissing?'alert':'good'}"><small>MASTER BLOCK</small><b>${st.masterMissing}</b></div><div class="controlKpi"><small>CONTE TO REVIEW</small><b>${st.contePending}</b></div><div class="controlKpi"><small>FINAL REVIEW</small><b>${st.approvalPending}</b></div><div class="controlKpi ${st.qcIssues?'alert':'good'}"><small>QC ISSUE</small><b>${st.qcIssues}</b></div><div class="controlKpi"><small>LETTERING</small><b>${st.letteringPending}</b></div><div class="controlKpi"><small>API COST</small><b>${usd(cost)}</b></div></div>
  <div class="homeOverview"><section class="homeCard"><div class="eyebrow">NEEDS YOUR ATTENTION</div><h2>Next actions</h2><div class="homeAttention">${attention.length?attention.map(x=>`<div class="homeAttentionRow"><span><strong>${esc(x.name)}</strong><small>${x.cuts.slice(0,6).map(c=>`CUT ${String(c.id).padStart(3,'0')}`).join(' · ')}${x.cuts.length>6?` 외 ${x.cuts.length-6}`:''}</small></span><button class="btn" onclick="${x.action}">Review</button></div>`).join(''):'<div class="backupOk">현재 긴급하게 처리할 항목이 없습니다.</div>'}</div></section>
  <section class="homeCard"><div class="eyebrow">SCENE PROGRESS</div><h2>Episode overview</h2><div class="sceneHealth">${controlSceneHealth().map(x=>`<div class="sceneHealthRow"><div class="sceneHealthTop"><b>${esc(x.scene)}</b><span>${x.pct}%${x.issues?` · ⚠ ${x.issues}`:''}</span></div><div class="sceneHealthBar"><span style="width:${x.pct}%"></span></div></div>`).join('')}</div></section></div>`;
@@ -3143,7 +3190,8 @@ function renderSettingsAdvanced(){
  const h=wtalStorageHealth();
  return `<section class="settingsSection">${settingsHeader('Advanced','데이터 구조·Migration·개발자 수준 설정입니다. 일반 제작 중에는 변경할 필요가 없습니다.')}<div class="settingsForm">
  <div class="settingsRow"><div class="settingsLabel"><b>Data Schema</b><small>현재 프로젝트 저장 구조 버전</small></div><div class="settingsControl"><div class="settingsInline"><span class="dataHealthBadge ${h.issues?'warn':''}">v${h.version}</span><span>Health ${h.score}/100 · ${h.issues} issues · ${byteSizeHuman(h.totalBytes)}</span></div></div></div>
- <div class="settingsRow"><div class="settingsLabel"><b>Recovery Center</b><small>API · 네트워크 · 저장 실패와 재시도 관리</small></div><div class="settingsControl"><button class="btn" onclick="openReliabilityCenter()">Recovery Center 열기</button></div></div><div class="settingsRow"><div class="settingsLabel"><b>Project History</b><small>CUT · Story · Scene Look · Assemble · Settings 변경 복원</small></div><div class="settingsControl"><button class="btn" onclick="openProjectHistory()">History & Recovery 열기</button></div></div><div class="settingsRow"><div class="settingsLabel"><b>Help & Onboarding</b><small>제작 흐름·단축키·화면 안내 다시 보기</small></div><div class="settingsControl settingsInline"><button class="btn" onclick="openHelpCenter()">Help Center</button><button class="btn" onclick="startGuidedTour()">Guided Tour</button><button class="mutedLink" onclick="localStorage.removeItem('wtal_onboarding_seen_v38');showFirstRunWelcome()">Welcome 다시 보기</button></div></div>
+ <div class="settingsRow"><div class="settingsLabel"><b>Recovery Center</b><small>API · 네트워크 · 저장 실패와 재시도 관리</small></div><div class="settingsControl"><button class="btn" onclick="openReliabilityCenter()">Recovery Center 열기</button></div></div><div class="settingsRow"><div class="settingsLabel"><b>Project History</b><small>CUT · Story · Scene Look · Assemble · Settings 변경 복원</small></div><div class="settingsControl"><button class="btn" onclick="openProjectHistory()">History & Recovery 열기</button></div></div><div class="settingsRow"><div class="settingsLabel"><b>Pre-Production Audit</b><small>실제 생성 테스트 전 API · MASTER · 데이터 · Backup 준비 상태</small></div><div class="settingsControl"><button class="btn dark" onclick="openPreProductionAudit()">V40 Preflight 실행</button></div></div>
+ <div class="settingsRow"><div class="settingsLabel"><b>Help & Onboarding</b><small>제작 흐름·단축키·화면 안내 다시 보기</small></div><div class="settingsControl settingsInline"><button class="btn" onclick="openHelpCenter()">Help Center</button><button class="btn" onclick="startGuidedTour()">Guided Tour</button><button class="mutedLink" onclick="localStorage.removeItem('wtal_onboarding_seen_v38');showFirstRunWelcome()">Welcome 다시 보기</button></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>Data Architecture</b><small>저장소 상태와 migration history</small></div><div class="settingsControl"><button class="btn" onclick="openDataArchitecture()">Data Architecture 열기</button></div></div>
  <div class="settingsRow"><div class="settingsLabel"><b>Project defaults</b><small>작품 기본값으로 되돌리기</small></div><div class="settingsControl"><div class="settingsDanger"><b>주의</b><br>General/Generation의 작품 기본 정보만 초기 설정으로 복원합니다. 생성 이미지와 에피소드 데이터는 삭제하지 않습니다.<br><button class="btn" style="margin-top:8px" onclick="resetProjectFromNotion()">프로젝트 기본값 복원</button></div></div></div>
  </div></section>`;
@@ -3213,7 +3261,10 @@ function render(){
 
 document.querySelectorAll('.nav').forEach(btn=>btn.onclick=()=>goPage(btn.dataset.page));
 function toggleManual(cutId,assetId){const k=stateKey(cutId);const arr=new Set(manualLinks[k]||manualLinks[cutId]||[]);arr.has(assetId)?arr.delete(assetId):arr.add(assetId);manualLinks[k]=[...arr];localStorage.setItem('wtal_cut_links',JSON.stringify(manualLinks));renderEpisode()}
-function savePrompt(id){const cs=cutsForEpisode();cs[id].prompt=document.querySelector('#promptBox').value;if(!ep().builtin){dynamicCuts[activeEpisodeId]=cs;persistEpisodes()}alert('프롬프트를 저장했습니다.')}
+function savePrompt(id){
+ const value=document.querySelector('#promptBox')?.value??'',map=materializeEditableCutMap(),c=map[id];if(!c)return alert('CUT을 찾을 수 없습니다.');
+ pushCutUndo(`CUT ${id} 프롬프트 수정`);c.prompt=value;map[id]=c;if(!ep().builtin)dynamicCuts[activeEpisodeId]=map;saveCutSpecMaps();persistEpisodes();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 프롬프트 저장 완료`);
+}
 const modal=document.querySelector('#modal'),drop=document.querySelector('#drop'),file=document.querySelector('#file'),name=document.querySelector('#name'),type=document.querySelector('#type');
 window.openMaster=(t='',n='')=>{if(t)type.value=t;if(n)name.value=n;modal.classList.add('show')};document.querySelector('#close').onclick=()=>{modal.classList.remove('show');pendingVersionOf=null};drop.onclick=()=>file.click();['dragenter','dragover'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));file.onchange=e=>loadFile(e.target.files[0]);function loadFile(f){if(!f||!f.type.startsWith('image/'))return;name.value=name.value||f.name.replace(/\.[^.]+$/,'');const r=new FileReader();r.onload=()=>{assetData=r.result;drop.innerHTML=`<img src="${assetData}">`;};r.readAsDataURL(f)}document.querySelector('#save').onclick=()=>{if(!assetData||!name.value.trim())return alert('이미지와 이름을 입력해주세요.');name.value=name.value.trim().replace(/\s+/g,' ').replace(/\.(png|jpg|jpeg|webp)$/i,'');const duplicate=assets.find(a=>a.type===type.value&&masterCanonicalName(a.name)===masterCanonicalName(name.value)&&!pendingVersionOf);if(duplicate&&!confirm(`같은 이름의 ${type.value} Master가 이미 있습니다.\n\n${duplicate.name}\n\n새 자산으로 계속 등록할까요?`))return;const id=`${type.value}_${Date.now()}`;const parent=pendingVersionOf?assets.find(x=>x.id===pendingVersionOf):null;const group=parent?masterVersionGroup(parent):id;const version=parent?Math.max(0,...versionSiblings(parent).map(versionNumber))+1:1;const created={id,type:type.value,name:name.value.trim(),img:assetData,masterRole:'source',subtype:parent?defaultMasterSubtype(parent):(type.value==='CHARACTER'?'IDENTITY':type.value==='BACKGROUND'?'BACKGROUND':'PROP'),versionGroup:group,versionOf:parent?masterRootId(parent):null,version,versionNote:parent?'새 SOURCE 버전':'',timeOfDay:parent?.timeOfDay||'',lookScene:parent?.lookScene||'',createdAt:new Date().toISOString()};assets.push(created);persistAssets();if(parent){masterPrimary[group]=id;saveMasterPrimary()}pendingVersionOf=null;assetData='';name.value='';modal.classList.remove('show');drop.innerHTML='<span><b>이미지를 여기에 드래그</b><br><small>또는 클릭해서 PNG · JPG · WEBP 선택</small></span>';renderAssets()};
 
@@ -3305,6 +3356,7 @@ async function generateCut(id,opts={}){
     if(!silent)showGeneratedResult(c,refs,data.image,data.model,data.preset||genCfg.id);
     return {ok:true,image:data.image,model:data.model,preset:data.preset||genCfg.id};
   }catch(err){
+    if(err?.cancelled||err?.name==='AbortError'||/작업이 취소/.test(err?.message||'')){if(!silent){document.querySelector('#genResult')?.remove();reliabilityToast(`CUT ${String(id).padStart(3,'0')} 생성을 취소했습니다.`,'warn')}return {ok:false,cancelled:true,error:'사용자 취소'};}
     if(!silent)showGenerateError(c,err.message);
     return {ok:false,error:err.message};
   }finally{
