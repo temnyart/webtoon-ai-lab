@@ -1641,3 +1641,19 @@ V41.1 still did not respond reliably in the deployed browser. V41.2 removes the 
 Core Lettering controls no longer rely on inline onclick handlers. After the editor renders, toolbar, Elements, Inspector, presets, canvas pointer gestures and keyboard shortcuts are bound with `addEventListener`.
 
 A visible `V41.3 LIVE` badge confirms the deployed build. `Test` verifies real DOM controls and controllers. `Log` opens a client-side event/error log so dead controls can no longer fail silently.
+
+
+## V42 — Standalone Lettering Engine
+
+After repeated dead-button behavior inside the monolithic `index.html`, Lettering is now isolated into `/lettering-editor.html`.
+
+This is an architectural fix, not another event-handler patch.
+
+- Entering Edit Lettering navigates the app iframe to a standalone same-origin editor.
+- The editor reads the existing Final image from IndexedDB `wtal_db/results`.
+- It reads/writes the existing `wtal_lettering` LocalStorage structure using the same `<episode>:<cut>` key.
+- It has no dependency on the main app render cycle, create header injection, modal lifecycle, inspector enhancer, or legacy Lettering event code.
+- Bubble/SFX buttons, drag, resize-scale, rotate, inline double-click editing, Inspector, undo/redo, zoom/fit and safe area are implemented in a single isolated script.
+- Back uses browser history to return to the main app.
+
+This removes the class of failures where main-app rerenders or legacy listeners interfere with Lettering.
