@@ -1,0 +1,19 @@
+{
+  "version": "V43.4",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "skin_tone_lock_fields": true,
+    "render_style_lock": true,
+    "identity_profiles": true,
+    "jin_main_identity": true,
+    "identity_editor": true,
+    "identity_anchors": true,
+    "payload_identity": true,
+    "server_identity_rules": true,
+    "server_skin_rules": true,
+    "server_style_rules": true,
+    "main_face_priority": true
+  },
+  "overall": "PASS"
+}

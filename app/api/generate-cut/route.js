@@ -19,7 +19,7 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,characterState={},spatialContext={},continuityReference=null,storyboardReference=null,storyboardNote='',prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',generationPreset=null,projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
+    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,characterState={},spatialContext={},characterIdentityProfiles=[],identityAnchorIds=[],continuityReference=null,storyboardReference=null,storyboardNote='',prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',generationPreset=null,projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
@@ -65,11 +65,42 @@ export async function POST(req){
       'Do not reinterpret the time of day between cuts. Do not switch cool light to warm light or warm light to cool light.',
       'Keep key-light direction, ambient fill, practical-light intensity, exposure, black level, saturation, skin tone, costume colors, wall/floor colors and background brightness consistent across the scene.',
       'A candle/lantern may appear warm locally, but it must NOT recolor the entire scene if the locked scene is cool dawn/night.',
-      'Different shot sizes may change depth of field and visible background area, but NOT white balance, overall grade, weather, time, or material colors.'
+      'Different shot sizes may change depth of field and visible background area, but NOT white balance, overall grade, weather, time, or material colors.',
+      ...(sceneLook.skinToneLock!==false ? [
+        'SCENE SKIN TONE LOCK IS ACTIVE.',
+        `BASE COMPLEXION: ${sceneLook.skinBase||'preserve the same neutral complexion across the scene'}`,
+        `SKIN SHADOW TINT: ${sceneLook.skinShadowTint||'consistent muted shadow hue'}`,
+        `SKIN HIGHLIGHT TONE: ${sceneLook.skinHighlightTone||'consistent neutral highlight'}`,
+        `SKIN SATURATION CLAMP: ${sceneLook.saturationClamp??0.2}`,
+        'Lighting may alter value/shadow placement, but must not make the same person look like they have a different underlying skin color in another cut. Avoid yellow/orange skin drift and avoid excessive blue/cyan skin drift.'
+      ] : []),
+      ...(sceneLook.renderStyleLock!==false ? [
+        'SCENE RENDER STYLE LOCK IS ACTIVE.',
+        `RENDER STYLE CANON: ${sceneLook.renderStyle||'consistent line weight and 2-3 step cel shading'}`,
+        'Keep line density, facial simplification, eye rendering, cel-shading step count, edge softness and texture density consistent across all cuts in this scene. Do not switch between semi-realistic painting, glossy illustration and clean cel webtoon rendering.'
+      ] : [])
     ] : [];
+    const characterIdentityRules=(Array.isArray(characterIdentityProfiles)?characterIdentityProfiles:[]).flatMap(p=>p?.locked===false?[]:[
+      `CHARACTER IDENTITY CANON — ${p.name||'character'}${p.priority==='main'?' · MAIN PRIORITY':''}:`,
+      `FACE SHAPE: ${p.faceShape||''}`,
+      `JAW: ${p.jawLine||''}`,
+      `EYES: ${p.eyeShape||''}`,
+      `EYEBROWS: ${p.eyebrowShape||''}`,
+      `NOSE: ${p.noseShape||''}`,
+      `LIPS: ${p.lipShape||''}`,
+      `AGE IMPRESSION: ${p.ageLook||''}`,
+      `HAIR: ${p.hairStyle||''}`,
+      `FRINGE/PARTING: ${p.fringePattern||''}`,
+      `BASE COMPLEXION: ${p.skinBase||''}`,
+      `SIGNATURE IMPRESSION: ${p.signatureImpression||''}`,
+      `IDENTITY NOTE: ${p.notes||''}`,
+      p.priority==='main'
+        ? 'MAIN CHARACTER IDENTITY OVERRIDES BEAUTIFICATION AND STYLE NOVELTY. The viewer must immediately recognize the exact same person as the CHARACTER MASTER and neighboring cuts.'
+        : 'Preserve this exact recognizable identity across cuts.'
+    ]);
     const content=[{type:'input_text',text:[
       'TASK: Render exactly one vertical Korean martial-arts webtoon CUT from a locked production specification.',
-      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) APPROVED STORYBOARD composition if supplied, 3) CUT action/pose/blocking, 4) SCENE VISUAL LOCK, 5) SPACE MAP/BACKGROUND MASTER continuity, 6) CHARACTER/PROP MASTER identity, 7) SHOT/CAMERA, 8) visual style, 9) episode/lore context.',
+      'PRIORITY ORDER: 1) MAIN CHARACTER IDENTITY CANON / CHARACTER MASTER recognizability, 2) CUT STORY BEAT / KNOWLEDGE / ACTING, 3) APPROVED STORYBOARD composition if supplied, 4) CUT action/pose/blocking, 5) SCENE SKIN TONE + RENDER STYLE LOCK, 6) SPACE MAP/BACKGROUND MASTER continuity, 7) CHARACTER/PROP MASTER identity, 8) SHOT/CAMERA, 9) episode/lore context.',
       ...presetRules,
       ...(sceneDirecting ? [
         'SCENE DIRECTING CONTEXT:',
@@ -113,6 +144,7 @@ export async function POST(req){
         storyboardNote ? `DIRECTOR CONTE NOTE: ${storyboardNote}` : ''
       ] : []),
       ...sceneRules,
+      ...characterIdentityRules,
       ...identityRules,
       ...compositionRules,
       'WEBTOON STYLE: clean controlled line art, 2-3 step cel shading, readable Korean action-webtoon composition. Avoid photorealism, 3D render appearance, glossy novel-cover illustration, excessive skin texture, and unnecessary ornaments.',
@@ -132,7 +164,7 @@ export async function POST(req){
       storyVisual ? `Visual Bible constraints: ${storyVisual}` : '',
       characterCanon ? `Character canon for identity/personality only. Do not use it to invent a different pose or location:\n${characterCanon.slice(0,8000)}` : '',
       episodeContext ? `Episode context for narrative continuity only. Do not copy unrelated events, poses, locations, or props from this context:\n${episodeContext}` : '',
-      'FINAL CHECK BEFORE RENDERING: same SCENE color temperature/white balance/weather/lighting as the SCENE LOCK and previous approved CUT; same set as background MASTER; same character as character MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
+      'FINAL CHECK BEFORE RENDERING: the main character must be the same recognizable face as the CHARACTER MASTER/identity anchors; same underlying skin complexion as neighboring cuts; same SCENE color temperature/white balance/weather/lighting/render style as the SCENE LOCK and previous approved CUT; same set as background MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
     ].filter(Boolean).join('\n')}];
     if(storyboardReference && /^data:image\/(png|jpeg|webp);base64,/i.test(storyboardReference)){
       content.push({type:'input_text',text:'APPROVED STORYBOARD · COMPOSITION/BLOCKING REFERENCE ONLY. Match framing and staging; render in the final locked webtoon style.'});
@@ -150,7 +182,7 @@ export async function POST(req){
           ref.type==='BACKGROUND'
           ? `BACKGROUND MASTER ${ri}: ${ref.name||ref.id||''}. This is the exact physical set for this CUT. Preserve geometry and object positions. Do not redesign or substitute the environment.`
           : ref.type==='CHARACTER'
-          ? `CHARACTER MASTER ${ri}: ${ref.name||ref.id||''}. This is the exact character identity. Preserve face, hair, age, proportions and costume. Pose must still come only from the CUT specification.`
+          ? `CHARACTER MASTER ${ri}: ${ref.name||ref.id||''}${identityAnchorIds.includes(ref.id)?' · IDENTITY/FACE ANCHOR':''}. This is the exact character identity. Preserve face bone structure, eye spacing/shape, hair silhouette, age, proportions and costume. If this is an identity anchor, use it to keep the same recognizable face; pose must still come only from the CUT specification.`
           : `PROP MASTER ${ri}: ${ref.name||ref.id||''}. Preserve this exact prop design.`
         });
         content.push({type:'input_image',image_url:ref.dataUrl,detail:'high'});

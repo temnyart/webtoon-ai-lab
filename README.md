@@ -81,3 +81,13 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Added `wtal_cut_states` and `wtal_lettering` to tracked History keys.
 - History recording is now isolated from the actual storage write: a History error can no longer make a successful browser save appear failed.
 - This does not require regenerating existing images.
+
+## V43.4 — Continuity Identity Lock
+- Scene Skin Tone Lock: base complexion, shadow tint, highlight tone, saturation clamp.
+- Scene Render Style Lock: line/shading/render-density consistency across the same scene.
+- Character Identity Canon with built-in Jin Muhyeon 17 MAIN profile.
+- CUT Inspector identity editor.
+- Up to 3 matching character MASTER images are automatically reused as identity/face anchors, within the existing 6-reference limit.
+- Generation request sends identity profiles and anchor IDs.
+- Prompt priority now puts main-character recognizability first and explicitly blocks skin-tone/style drift.
+- Existing images remain untouched. Regeneration is only needed when you want new cuts to use the new lock.
