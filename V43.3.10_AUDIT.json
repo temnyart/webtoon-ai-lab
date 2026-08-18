@@ -1,0 +1,16 @@
+{
+  "version": "V43.3.10",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "history_suppressed_declared": true,
+    "tracked_keys_declared": true,
+    "history_preferences_declared": true,
+    "cut_states_tracked": true,
+    "lettering_tracked": true,
+    "history_isolated_primary": true,
+    "history_isolated_retry": true,
+    "no_regeneration_change": true
+  },
+  "overall": "PASS"
+}

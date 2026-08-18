@@ -73,3 +73,11 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Lettering error-state back button uses the same route.
 - Main app now consumes a one-shot `return=create-lettering` route and restores `currentPage=CREATE`, `createStage=lettering`.
 - Normal app reload also restores saved top-level page state from `wtal_ui_page`.
+
+## V43.3.10 — Storage History ReferenceError Fix
+- Root cause: Project History code referenced missing globals `historySuppressed`, `HISTORY_TRACKED_KEYS`, and `historyPreferences`.
+- Because history logging ran immediately after a successful `localStorage.setItem`, that ReferenceError was incorrectly reported as "브라우저 저장 실패".
+- Restored the missing History declarations.
+- Added `wtal_cut_states` and `wtal_lettering` to tracked History keys.
+- History recording is now isolated from the actual storage write: a History error can no longer make a successful browser save appear failed.
+- This does not require regenerating existing images.
