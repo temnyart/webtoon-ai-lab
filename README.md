@@ -1,48 +1,75 @@
-# Webtoon AI Lab V3
+# Webtoon AI Lab V43.3.4 — Lettering Source Recovery
 
-Vercel/Next.js production workflow.
+## 목표
+- 이미지 생성은 성공했지만 레터링 진입 시 원본 이미지를 찾지 못하는 문제를 우선 복구
+- 레터링 진입 전에 현재 CUT 이미지 소스를 세션에 백업해 두고, 레터링 에디터에서 IndexedDB → Snapshot → Session fallback 순서로 복구
 
-## Added
-- Multi-episode selector and new episode/CUT creation
-- Project + Story Bible working pages
-- Generated result save/hold/approve system (IndexedDB)
-- Production board with statuses and thumbnails
-- Assemble page for approved cuts + long image export
-- STRICT MASTER LOCK with stronger character/background/prop identity constraints
-- OpenAI image generation through server-side API
+## 핵심 수정
+1. **세션 기반 레터링 소스 캐시 추가**
+   - `wtal_lettering_source::<episode:cut>` 키로 최근 3개 CUT 원본 이미지를 sessionStorage에 저장
+   - Generate 성공 직후와 Storage Recovery 모달에서 자동 캐시
+2. **레터링 진입 직전 소스 확보 강화**
+   - IndexedDB 결과 이미지 우선 확인
+   - 현재 세션의 `lastGenerated` / DOM 이미지까지 fallback 확보 후 `/lettering-editor.html` 이동
+3. **레터링 에디터 복구 강화**
+   - IndexedDB에 결과가 없으면 sessionStorage fallback 이미지 사용
+   - session fallback을 사용해 열리면 즉시 IndexedDB canonical key로 재저장 시도
+4. **진단 메시지 개선**
+   - ‘다시 생성해야 하는지’가 아니라 어느 단계에서 소스를 못 찾았는지 보이도록 문구 정리
 
-Environment variable: `OPENAI_API_KEY`
+## 기대 효과
+- 생성 성공 + 저장 경고가 있었던 CUT도, 같은 브라우저 세션에서는 레터링을 바로 열 가능성이 크게 높아짐
+- 레터링 진입 순간에 fallback으로 복구되면 이후에는 IndexedDB canonical key에도 다시 저장되어 다음 진입도 안정화
 
-
-## V6 updates
-- EPISODE STORY screen: per-episode story brief, GPT draft generation, save/approve flow.
-- Approved episode story -> automatic SCENE/CUT production specification generation.
-- Global Story Bible is applied to story/spec planning for every episode.
-- Generate CUT now receives the current episode story as continuity context.
-- STRICT COMPOSITION LOCK added: literal pose/action/blocking/camera enforcement.
-- BACKGROUND MASTER is treated as the same physical set; geometry and furniture positions are locked.
-- Image generation no longer sends the entire lore bible as undifferentiated context; only visual/character canon + current episode context are used at render time to reduce irrelevant poses and location drift.
-
-
-## V7 — Dual MASTER workflow
-- Existing imported images are treated as SOURCE MASTER assets.
-- Each SOURCE MASTER can be converted to a WEBTOON PRODUCTION MASTER through OpenAI image generation.
-- Conversion locks identity/geometry/pose/composition and changes only the rendering language.
-- Background conversion locks architecture, door/window/furniture positions and perspective.
-- Character conversion locks identity, age, hair, proportions, costume, pose and framing.
-- CUT automatic MASTER linking prioritizes approved WEBTOON PRODUCTION MASTER assets over SOURCE MASTER assets.
+## 남은 리스크
+- 완전히 다른 브라우저/새 세션에서는 sessionStorage fallback이 없으므로 IndexedDB/Project Snapshot 복구가 여전히 핵심
+- 장기적으로는 Result Store 진단/정리 UI를 더 강화하는 것이 좋음
 
 
-## V8 — Scene Visual Lock
-- Each SCENE stores one locked visual profile: time, weather, color temperature, palette, lighting and background/set continuity.
-- All CUT image requests inherit the same Scene Look Profile.
-- The nearest previous APPROVED CUT from the same SCENE is automatically attached as a continuity reference for grade, white balance, lighting, skin tone, costume colors and background exposure only.
-- Previous CUT pose/camera/action are explicitly forbidden from overriding the current CUT specification.
-- Scene Look can be edited from each SCENE header or CUT inspector.
+## V43.3.5 — Lettering Runtime Repair
 
-## V9 — V2 Story Directing Production Spec
-- EP.01 124 CUT production data now exposes V2 STORY / ACTING fields in the CUT inspector.
-- CUT generation sends storyBeat, previousContext, character knowledge state, intention, primary/secondary emotion, intensity, facial acting, body acting, gaze target, avoid acting, and next beat to the image orchestrator.
-- Story/acting is higher priority than action, Scene Look, MASTER identity, and general lore context.
-- SCENE V2 directing provides purpose, emotion arc, and locked look values. Important recurring scenes use explicit Notion V2 look values.
-- Future episode SCENE/CUT auto-generation now requests the same V2 schema, so EP.02+ uses the same directing system automatically.
+Root structural issue found during full re-check:
+- `public/lettering-editor.html` had a malformed HTML/script boundary: `<div id="toast" class="t<script>`.
+- The Audit panel controls were referenced by JavaScript but the panel DOM was missing.
+
+Repairs:
+- Restored a valid `<div id="toast" class="toast"></div>` followed by a real `<script>` tag.
+- Restored the Reliability Audit panel DOM.
+- Preserved V43.3.4 source fallback: IndexedDB / project snapshot / session source cache.
+- Added a visible `SOURCE · ...` badge showing where the Lettering source image was loaded from.
+- Main app opens Lettering with `v=43.3.5` plus timestamp cache busting.
+
+This patch specifically targets the standalone Lettering runtime boot path rather than requiring image regeneration.
+
+
+## V43.3.6 — Lettering Simplified UI + Webtoon Balloon
+- 오른쪽 Inspector를 Content / Bubble Style / Text / Quick Color / Quick Workflow 중심으로 축소.
+- 이동, 크기, 회전, 폭은 캔버스 직접 조작만 사용하고 Inspector에서 중복 노출 제거.
+- 세부 폰트 라이브러리, Auto Layout, 외곽선 등은 기본 닫힘 `고급 설정`으로 이동.
+- 기본 대사 말풍선을 웹툰에서 흔히 쓰는 흰색 타원 + 검정 외곽선 + 뾰족한 꼬리 형태로 교체.
+- 기존 50px rounded-rectangle 느낌 대신 `50% / 44%` 타원 geometry 사용.
+- 꼬리를 회전 사각형 방식에서 이중 삼각형(outline + fill) 방식으로 교체.
+- 새 말풍선 생성 시 기본 꼬리와 웹툰형 padding 적용.
+
+
+## V43.3.7 — Selection Toolbar + Tail State Fix
+- Floating selection toolbar now positions above the selected object's real bounding box, not over the text.
+- If there is no room above, the toolbar moves below the object automatically.
+- Toolbar is clamped inside the canvas width.
+- Non-balloon styles explicitly clear both preset tail and direct-tail state.
+- Caption / narration / monologue / thought / SFX no longer inherit a sharp tail from the previous balloon style.
+- Standard dialogue / emotion / shout styles restore a normal balloon tail when needed.
+
+## V43.3.8 — Advanced Inspector Cleanup
+- Advanced panel open state persists during Inspector rerenders.
+- Removed low-value/duplicated advanced UI: direct-tail selector, shadow, font browser/favorites, saved styles, Auto Layout master toggle, Auto Expand, Min Font, Padding X/Y.
+- Kept outline/opacity, tracking/leading, text outline, Auto Fit/max lines, fit-now, line-break cleanup.
+
+
+## V43.3.9 — Lettering Return Route
+- Standalone Lettering `돌아가기` no longer uses browser `history.back()`.
+- It explicitly returns to `Create → Lettering`.
+- Active episode and current CUT context are preserved.
+- Lettering error-state back button uses the same route.
+- Main app now consumes a one-shot `return=create-lettering` route and restores `currentPage=CREATE`, `createStage=lettering`.
+- Normal app reload also restores saved top-level page state from `wtal_ui_page`.

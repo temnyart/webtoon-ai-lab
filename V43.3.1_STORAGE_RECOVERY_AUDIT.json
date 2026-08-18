@@ -1,0 +1,19 @@
+{
+  "version": "V43.3.1",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "targeted_checks": {
+    "ram_recovery": true,
+    "blob_retry": true,
+    "hydrate_result": true,
+    "storage_recovery_modal": true,
+    "no_regenerate_warning": true,
+    "save_only_retry": true,
+    "recovery_download": true,
+    "lettering_blob_support": true,
+    "lettering_error_textcontent": true,
+    "create_observer": true,
+    "export_preflight": true
+  },
+  "note": "Client storage recovery patch. No paid API call is triggered by save recovery."
+}

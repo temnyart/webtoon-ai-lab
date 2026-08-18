@@ -1,0 +1,17 @@
+{
+  "version": "V43.3.9",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "explicit_return_function": true,
+    "back_uses_route": true,
+    "sets_create_page": true,
+    "sets_lettering_stage": true,
+    "return_query": true,
+    "main_consumes_return": true,
+    "main_sets_create_stage": true,
+    "saved_page_reload": true,
+    "version": true
+  },
+  "overall": "PASS"
+}

@@ -1,0 +1,16 @@
+{
+  "syntax_pass": true,
+  "checks": {
+    "api_usage_nonfatal": true,
+    "api_usage_500": true,
+    "api_usage_200": true,
+    "preflight": true,
+    "preflight_block": true,
+    "lettering_check": true,
+    "result_recovery": true,
+    "storage_top_keys": true,
+    "binary_first": true,
+    "editor_version": true
+  },
+  "confirmed_root": "saveApiUsage QuotaExceeded after HTTP 200"
+}

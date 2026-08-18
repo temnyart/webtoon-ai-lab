@@ -19,11 +19,24 @@ export async function POST(req){
   try{
     if(!process.env.OPENAI_API_KEY) return Response.json({error:'OPENAI_API_KEY가 Vercel 환경변수에 등록되지 않았습니다.'},{status:503});
     const body = await req.json();
-    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,continuityReference=null,prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
+    const {cutId,scene='',sceneLook=null,sceneDirecting=null,storyActing=null,characterState={},spatialContext={},continuityReference=null,storyboardReference=null,storyboardNote='',prompt,references=[],continuity,shot,camera,action,dialogue='',characters=[],backgrounds=[],props=[],masterLock='strict',compositionLock='strict',generationPreset=null,projectStyle='',storyVisual='',characterCanon='',episodeContext='',episodeId=''} = body || {};
     if(!prompt) return Response.json({error:'prompt is required'},{status:400});
     if(references.length > 6) return Response.json({error:'MASTER reference는 최대 6개까지 전송할 수 있습니다.'},{status:400});
     const strict = masterLock === 'strict';
     const compositionStrict = compositionLock === 'strict';
+    const presetQuality=['low','medium','high'].includes(generationPreset?.quality)?generationPreset.quality:'high';
+    const presetInputFidelity=['low','high'].includes(generationPreset?.inputFidelity)?generationPreset.inputFidelity:'high';
+    const presetFocus=['speed','balanced','final','character','background'].includes(generationPreset?.focus)?generationPreset.focus:'balanced';
+    const presetCompression=Math.max(70,Math.min(100,Number(generationPreset?.outputCompression)||92));
+    const resolvedPresetId=generationPreset?.id||'standard';
+    const presetRules=[
+      `GENERATION PRESET: ${generationPreset?.name||generationPreset?.id||'Standard'} · quality ${presetQuality} · focus ${presetFocus}.`,
+      ...(presetFocus==='speed'?['DRAFT SPEED FOCUS: preserve required identity/composition, but favor fast visual validation over micro-detail. Do not add unnecessary texture or decorative detail.']:[]),
+      ...(presetFocus==='final'?['FINAL QUALITY FOCUS: resolve clean linework, anatomy, facial features, material edges, costume details and background construction carefully while preserving every production lock.']:[]),
+      ...(presetFocus==='character'?['CHARACTER IDENTITY FOCUS: character MASTER identity outranks stylistic novelty. Pay exceptional attention to face proportions, eye spacing, hair silhouette, age impression, costume construction and body proportions. Do not beautify or redesign the person.']:[]),
+      ...(presetFocus==='background'?['BACKGROUND CONTINUITY FOCUS: background MASTER / SPACE MAP geometry outranks cinematic novelty. Pay exceptional attention to walls, doors, windows, furniture, pillars, floor levels, perspective anchors and object placement. Do not redesign the set.']:[])
+    ];
+
     const identityRules = strict ? [
       'STRICT MASTER LOCK IS ACTIVE. Treat every supplied MASTER image as a binding production asset, not as inspiration.',
       'CHARACTER MASTER: preserve the same recognizable person. Lock face shape, eye shape/spacing, nose/mouth proportions, hair silhouette, bangs/parting, body proportions, age impression, costume cut, costume layering, and major colors. Do not redesign, beautify, age up/down, change hairstyle, or replace with a similar person.',
@@ -56,7 +69,8 @@ export async function POST(req){
     ] : [];
     const content=[{type:'input_text',text:[
       'TASK: Render exactly one vertical Korean martial-arts webtoon CUT from a locked production specification.',
-      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) CUT action/pose/blocking, 3) SCENE VISUAL LOCK, 4) BACKGROUND MASTER spatial continuity, 5) CHARACTER/PROP MASTER identity, 6) SHOT/CAMERA, 7) visual style, 8) episode/lore context.',
+      'PRIORITY ORDER: 1) CUT STORY BEAT / KNOWLEDGE / ACTING, 2) APPROVED STORYBOARD composition if supplied, 3) CUT action/pose/blocking, 4) SCENE VISUAL LOCK, 5) SPACE MAP/BACKGROUND MASTER continuity, 6) CHARACTER/PROP MASTER identity, 7) SHOT/CAMERA, 8) visual style, 9) episode/lore context.',
+      ...presetRules,
       ...(sceneDirecting ? [
         'SCENE DIRECTING CONTEXT:',
         `SCENE PURPOSE: ${sceneDirecting.purpose||''}`,
@@ -77,6 +91,26 @@ export async function POST(req){
         `AVOID ACTING — DO NOT SHOW ANY OF THESE: ${storyActing.avoidActing||''}`,
         `NEXT BEAT: ${storyActing.nextBeat||''}`,
         'Do not make the character emotionally aware of information they have not learned yet. Do not skip ahead to the emotion of the next CUT.'
+      ] : []),
+      ...(characterState && Object.keys(characterState).length ? [
+        'CHARACTER STATE LOCK — persistent visible state:',
+        JSON.stringify(characterState),
+        'Preserve injury, blood/dirt, clothing damage, equipment, hair and other persistent physical state unless the current CUT explicitly changes it.'
+      ] : []),
+      ...(spatialContext?.spaceMap ? [
+        'SPACE MAP LOCK — same physical set across camera angles:',
+        JSON.stringify(spatialContext.spaceMap),
+        'Fixed architecture and major furniture may not teleport or swap walls.'
+      ] : []),
+      ...(spatialContext?.cameraPlan ? [
+        'CAMERA PLAN:',
+        JSON.stringify(spatialContext.cameraPlan)
+      ] : []),
+      ...(storyboardReference ? [
+        'APPROVED STORYBOARD COMPOSITION LOCK IS ACTIVE.',
+        'Match its camera side, framing, character screen positions, body blocking, action timing and major negative space.',
+        'Use the storyboard ONLY for composition/staging. Do NOT copy its rough monochrome drawing style.',
+        storyboardNote ? `DIRECTOR CONTE NOTE: ${storyboardNote}` : ''
       ] : []),
       ...sceneRules,
       ...identityRules,
@@ -100,6 +134,10 @@ export async function POST(req){
       episodeContext ? `Episode context for narrative continuity only. Do not copy unrelated events, poses, locations, or props from this context:\n${episodeContext}` : '',
       'FINAL CHECK BEFORE RENDERING: same SCENE color temperature/white balance/weather/lighting as the SCENE LOCK and previous approved CUT; same set as background MASTER; same character as character MASTER; requested pose only; requested position only; requested camera only; no unrelated action; no extra objects; no text.'
     ].filter(Boolean).join('\n')}];
+    if(storyboardReference && /^data:image\/(png|jpeg|webp);base64,/i.test(storyboardReference)){
+      content.push({type:'input_text',text:'APPROVED STORYBOARD · COMPOSITION/BLOCKING REFERENCE ONLY. Match framing and staging; render in the final locked webtoon style.'});
+      content.push({type:'input_image',image_url:storyboardReference,detail:'high'});
+    }
     if(continuityReference?.dataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(continuityReference.dataUrl)){
       content.push({type:'input_text',text:`PREVIOUS APPROVED CUT CONTINUITY REFERENCE — CUT ${String(continuityReference.cutId||'').padStart(3,'0')}. Use this image ONLY as the authoritative reference for scene color grade, white balance, light direction, exposure, skin tone, costume colors, background brightness and rendering density. Do NOT copy its pose, camera angle, crop or action into the current CUT. Current CUT shot/camera/action remain authoritative.`});
       content.push({type:'input_image',image_url:continuityReference.dataUrl,detail:'high'});
@@ -121,17 +159,27 @@ export async function POST(req){
     const payload={
       model: process.env.OPENAI_ORCHESTRATOR_MODEL || 'gpt-5',
       input:[{role:'user',content}],
-      tools:[{type:'image_generation',model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5',quality:'high',size:'1024x1536',input_fidelity:'high',output_format:'webp',output_compression:92}],
+      tools:[{type:'image_generation',model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5',quality:presetQuality,size:'1024x1536',input_fidelity:presetInputFidelity,output_format:'webp',output_compression:presetCompression}],
       tool_choice:{type:'image_generation'}
     };
-    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const upstreamController=new AbortController();
+    const upstreamTimer=setTimeout(()=>upstreamController.abort(new DOMException('OpenAI image generation timeout','AbortError')),175000);
+    const upstreamSignal=typeof AbortSignal!=='undefined'&&AbortSignal.any?AbortSignal.any([req.signal,upstreamController.signal]):upstreamController.signal;
+    let r;
+    try{
+      r=await fetch('https://api.openai.com/v1/responses',{signal:upstreamSignal,method:'POST',headers:{'Authorization':`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    }catch(err){
+      if(upstreamController.signal.aborted&&!req.signal.aborted)return Response.json({error:'OpenAI 이미지 생성이 175초를 초과해 자동 중단되었습니다. 다시 시도해주세요.',code:'UPSTREAM_TIMEOUT'},{status:504});
+      throw err;
+    }finally{clearTimeout(upstreamTimer)}
     const data=await r.json();
     if(!r.ok) return Response.json({error:data?.error?.message || 'OpenAI API request failed',details:data?.error || null},{status:r.status});
     const b64=imageResult(data);
     if(!b64) return Response.json({error:'이미지 결과를 찾지 못했습니다.',responseId:data?.id || null},{status:502});
-    return Response.json({ok:true,cutId,image:`data:image/webp;base64,${b64}`,responseId:data.id,model:process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5'});
+    const bytes=Buffer.from(b64,'base64');
+    return new Response(bytes,{status:200,headers:{'Content-Type':'image/webp','Content-Length':String(bytes.byteLength),'Cache-Control':'no-store','X-Image-Transport':'binary','X-OpenAI-Model':process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5','X-Generation-Preset':resolvedPresetId,'X-Generation-Quality':presetQuality,'X-Input-Fidelity':presetInputFidelity}});
   }catch(err){
-    console.error(err);
-    return Response.json({error:err?.message || 'Unexpected server error'},{status:500});
+    console.error('[generate-cut]',{name:err?.name||'Error',message:err?.message||String(err),stack:err?.stack||'',at:new Date().toISOString()});
+    return Response.json({error:err?.message || 'Unexpected server error',code:'GENERATE_CUT_RUNTIME_ERROR'},{status:500});
   }
 }

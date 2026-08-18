@@ -1,0 +1,109 @@
+{
+  "version": "V43.3",
+  "syntax": {
+    "pass": true,
+    "files": 12,
+    "results": [
+      {
+        "file": "main.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "editor.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/transform-master/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/generate-episode-specs/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/edit-cut/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/check-continuity/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/generate-cut/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/track-character-state/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/health/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/generate-episode-story/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/analyze-space-map/route.js",
+        "pass": true,
+        "error": ""
+      },
+      {
+        "file": "app/api/generate-storyboard/route.js",
+        "pass": true,
+        "error": ""
+      }
+    ]
+  },
+  "critical_checks": {
+    "main_script_clean": true,
+    "editor_script_clean": true,
+    "no_bad_script_tail": true,
+    "currentPage_decl": true,
+    "createStage_decl": true,
+    "inspectorTab_decl": true,
+    "activityItems_decl": true,
+    "CREATE_STAGES_decl": true,
+    "selectedCut_decl": true,
+    "selectedCuts_decl": true,
+    "create_hard_route": true,
+    "create_header_observer": true,
+    "cut_select_restore": true,
+    "lettering_target_persist": true,
+    "lettering_target_fallback": true,
+    "lettering_error_ui": true,
+    "assemble_fidelity": true,
+    "export_preflight": true,
+    "backup_all_wtal_keys": true,
+    "registry_lettering_styles": true,
+    "global_nav_guard": true
+  },
+  "unregistered_literal_wtal_keys": [],
+  "expected_runtime_only_keys": [
+    "wtal_activity",
+    "wtal_audit_",
+    "wtal_db",
+    "wtal_last_generate"
+  ],
+  "create_stage_renderer_call_counts": {
+    "renderEpisodeStory": 4,
+    "renderConte": 6,
+    "renderEpisode": 23,
+    "renderProduction": 5,
+    "renderLetteringHub": 2,
+    "renderAssemble": 12
+  },
+  "overall_static_audit": "PASS",
+  "limits": "Static regression audit only; browser-specific runtime behavior still requires a deployed smoke test."
+}
