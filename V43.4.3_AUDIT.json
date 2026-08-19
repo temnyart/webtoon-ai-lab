@@ -1,0 +1,17 @@
+{
+  "version": "V43.4.3",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "scene_state": true,
+    "scene_tabs": true,
+    "active_layout": true,
+    "render_filtered": true,
+    "preflight_filtered": true,
+    "canvas_filtered": true,
+    "scene_png_name": true,
+    "manifest_scene": true,
+    "version": true
+  },
+  "overall": "PASS"
+}

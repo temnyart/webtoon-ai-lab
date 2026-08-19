@@ -114,3 +114,14 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Image Prompt opens by default.
 - The user can still manually collapse any of those sections, and the open/closed state is remembered for that CUT during the browser session.
 - Story/Acting detail, Scene Visual Lock, Character Identity, Space Map and Character State remain collapsed until needed.
+
+
+## V43.4.3 — Assemble Scene View / Scene Export
+- Added SCENE VIEW tabs at the top of Assemble.
+- Tabs are created automatically from the current episode's scenes and show the number of Assemble CUTs in each scene.
+- Selecting a scene shows only that scene in the long vertical Assemble canvas; `전체` keeps the previous full-episode view.
+- The selected scene is remembered per episode.
+- Export Preflight, Long PNG, split files, and split+ZIP all operate on the currently selected scene.
+- Scene export filenames include `SCENE_XX` to prevent overwriting another scene's files.
+- Export manifest records the selected scene and scene label.
+- Assemble crop/gap/order data remains stored in the original episode layout; filtering does not duplicate or destroy layout data.
