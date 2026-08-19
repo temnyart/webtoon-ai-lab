@@ -103,3 +103,14 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Accordion open/closed state is remembered per CUT during the browser session.
 - Existing Spec/Masters/State/QC tabs are preserved.
 - Image Prompt keeps its save controls but the duplicate bottom Generate button is removed.
+
+
+## V43.4.2 — Inspector Defaults Cleanup
+- Removed Conte Reference from the Generate Inspector.
+- Removed Continuity Auto QC from the Generate Inspector.
+- Removed the QC Inspector tab; an old saved QC tab automatically falls back to Spec.
+- Required Masters opens by default.
+- Manual Master Override opens by default.
+- Image Prompt opens by default.
+- The user can still manually collapse any of those sections, and the open/closed state is remembered for that CUT during the browser session.
+- Story/Acting detail, Scene Visual Lock, Character Identity, Space Map and Character State remain collapsed until needed.

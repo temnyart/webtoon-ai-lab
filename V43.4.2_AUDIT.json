@@ -1,0 +1,17 @@
+{
+  "version": "V43.4.2",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "no_conte_reference": true,
+    "no_continuity_qc": true,
+    "no_qc_tab": true,
+    "old_qc_fallback": true,
+    "masters_default_open": true,
+    "manual_default_open": true,
+    "prompt_default_open": true,
+    "state_persist": true,
+    "version": true
+  },
+  "overall": "PASS"
+}
