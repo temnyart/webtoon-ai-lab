@@ -1,0 +1,18 @@
+{
+  "version": "V43.4.1",
+  "syntax_files": 12,
+  "syntax_pass": true,
+  "checks": {
+    "sticky_generate": true,
+    "quick_summary": true,
+    "story_accordion": true,
+    "scene_accordion": true,
+    "identity_accordion": true,
+    "prompt_accordion": true,
+    "no_duplicate_generate": true,
+    "details_session_state": true,
+    "tabs_preserved": true,
+    "version": true
+  },
+  "overall": "PASS"
+}

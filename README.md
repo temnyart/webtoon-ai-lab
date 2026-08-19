@@ -91,3 +91,15 @@ This patch specifically targets the standalone Lettering runtime boot path rathe
 - Generation request sends identity profiles and anchor IDs.
 - Prompt priority now puts main-character recognizability first and explicitly blocks skin-tone/style drift.
 - Existing images remain untouched. Regeneration is only needed when you want new cuts to use the new lock.
+
+
+## V43.4.1 — Generate Inspector UX
+- Generate CUT / Regenerate CUT is now fixed at the top of the CUT Inspector.
+- Partial Edit or Spec Edit sits beside the primary generation action.
+- A compact always-visible summary shows Scene, Shot/Camera, Action and Emotion before any long specification text.
+- Long Spec content is converted to native accordion sections.
+- Story/Acting Detail, Scene Visual Lock, Character Identity, Masters, State, QC, Conte and Image Prompt stay collapsed until needed.
+- The most useful '핵심 연출' accordion is open by default.
+- Accordion open/closed state is remembered per CUT during the browser session.
+- Existing Spec/Masters/State/QC tabs are preserved.
+- Image Prompt keeps its save controls but the duplicate bottom Generate button is removed.
